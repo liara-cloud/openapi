@@ -17,6 +17,27 @@ produces:
 
 paths:
   '/projects':
+    get:
+      tags:
+      - 'Apps'
+      summary: 'Get details of all projects'
+      description: 'get all details of all projects that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+      responses:
+        200: 
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/Projects'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+
     post:
       tags:
         - 'Apps'
@@ -68,6 +89,31 @@ paths:
           description: 'Your request has been submitted.'
         204: 
           description: 'App deleted.'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+    get:
+      tags:
+      - 'Apps'
+      summary: 'Get details of all project'
+      description: 'get all details of all project that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+      responses:
+        200: 
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/ProjectAllDetails'
         401:
           description: 'Missing authentication'
         404:
@@ -145,7 +191,105 @@ definitions:
       platform:
         type: string
         description: 'The platform of app that you want to create'
+  ProjectAllDetails:
+    type: object 
+    properties: 
+      project:
+        type: object
+        properties:
+          _id:
+            type: string
+            description: 'The id of project'
+          project_id:
+            type: string
+            description: 'The name of project'
+          type:
+            type: string
+            description: 'The platform of project'
+          status:
+            type: string
+            description: 'The status of project'
+          defaultSubdomain:
+            type: boolean
+            description: 'The defaultSubdomain status of project'
+          zeroDowntime:
+            type: boolean
+            description: 'The zeroDowntime status of project'
+          scale:
+            type: string
+            description: 'The being on of project'
+          envs: 
+            type: array
+            description: 'The envs of project'
+            items:
+              properties: 
+                key:
+                  type: string
+                value: 
+                  type: string
+                encrypted:
+                  type: boolean
+                _id: 
+                  type: string
+          planID:
+            type: string
+            description: 'The plan of project'
+          fixedIPStatus:
+            type: string
+            description: 'The fixedIPStatus of project'
+          created_at:
+            type: string
+            description: 'The time to create of project'
+          node:
+            type: object
+            description: 'The node of project'
+            properties: 
+              _id:
+                type: string
+              IP:
+                type: string
+          hourlyPrice:
+            type: number
+            description: 'The hourlyPrice of project'
+          isDeployed:
+            type: string
+            description: 'The deployment status of project'
+          reservedDiskSpace:
+            type: number
+            description: 'The count reservedDiskSpace of project'
+  Projects:
+    type: object
+    properties:
+      projects:
+        type: array
+        items:
+          properties: 
+            _id:
+              type: string
+              description: 'The id of project'
+            project_id:
+              type: string
+              description: 'The name of project'
+            type:
+              type: string
+              description: 'The platform of project'
+            status:
+              type: string
+              description: 'The status of project'
+            scale:
+              type: string
+              description: 'The being on of project'
+            planID:
+              type: string
+              description: 'The plan of project'
+            created_at:
+              type: string
+              description: 'The time to create the project'
+            isDeployed:
+              type: string
+              description: 'The project deployment status'
   
-externalDocs:
+
+externalDocs: 
   description: 'Find out more about APP'
   url: 'http://liara.ir'
