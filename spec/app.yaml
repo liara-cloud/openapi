@@ -51,7 +51,7 @@ paths:
       tags:
         - 'Apps'
       summary: 'Create a app'
-      description: 'create app that user owns'
+      description: 'delete app that user owns'
       parameters:
         - in: header
           name: 'Authorization'
@@ -62,7 +62,7 @@ paths:
           name: app-name
           required: true
           type: string
-          description: The name of the app to delete
+          description: 'The name of the app to delete'
       responses:
         200:
           description: 'Your request has been submitted.'
@@ -72,7 +72,66 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
-  
+  '/projects/{app-name}/actions/scale':
+    post:
+      tags:
+        - 'Apps'
+      summary: 'Turn on or off a app'
+      description: 'turn on or off a app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          required: true
+          type: string
+          description: 'The name of the app to turn on or off'
+        - in: body
+          name: scale
+          description: 'Return 1 to turn on or 0 to turn off'
+          required: true
+          schema:
+            type: object
+            required:
+              - scale
+            properties:
+              scale:
+                type: number
+                default: 1
+      responses:
+        200:
+          description: 'Your request has been submitted.'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/projects/{app-name}/actions/restart':
+    post:
+      tags:
+        - 'Apps'
+      summary: 'To restart a app'
+      description: 'to restart app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          required: true
+          type: string
+          description: 'The name of the app to restart'
+      responses:
+        200:
+          description: 'Your request has been submitted.'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
 
 definitions:
   Create-app:
