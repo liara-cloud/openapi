@@ -46,7 +46,32 @@ paths:
           description: 'App does not exists.'
         409:
           description: 'Conflict'
-  
+  '/projects/{app-name}':
+    delete:
+      tags:
+        - 'Apps'
+      summary: 'Create a app'
+      description: 'create app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          required: true
+          type: string
+          description: The name of the app to delete
+      responses:
+        200:
+          description: 'Your request has been submitted.'
+        204: 
+          description: 'App deleted.'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
   
 
 definitions:
