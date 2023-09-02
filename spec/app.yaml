@@ -1,0 +1,67 @@
+swagger: '2.0'
+info:
+  description: 'Manage the created apps'
+  version: '1.0.0'
+  title: 'APP'
+  termsOfService: '#'
+  contact:
+    email: 'info@liara.ir'
+host: 'api.iran.liara.ir'
+basePath: '/v1'
+schemes:
+  - 'https'
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  '/projects':
+    post:
+      tags:
+        - 'Apps'
+      summary: 'Create a app'
+      description: 'create app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: body
+          name: create app
+          required: true
+          schema:
+            $ref: '#/definitions/Create-app'
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        403:
+          description: 'Forbidden'
+        404:
+          description: 'App does not exists.'
+        409:
+          description: 'Conflict'
+  
+  
+
+definitions:
+  Create-app:
+    properties: 
+      name:
+        type: string
+        description: 'The name of app that you want to create'
+      planID:
+        type: string
+        description: 'The plan of app that you want to create'
+      platform:
+        type: string
+        description: 'The platform of app that you want to create'
+  
+externalDocs:
+  description: 'Find out more about APP'
+  url: 'http://liara.ir'
