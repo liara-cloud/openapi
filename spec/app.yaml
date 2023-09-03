@@ -7,7 +7,6 @@ info:
   contact:
     email: 'info@liara.ir'
 host: 'api.iran.liara.ir'
-basePath: '/v1'
 schemes:
   - 'https'
 consumes:
@@ -16,7 +15,7 @@ produces:
   - application/json
 
 paths:
-  '/projects':
+  '/v1/projects':
     get:
       tags:
       - 'Apps'
@@ -67,7 +66,7 @@ paths:
           description: 'App does not exists.'
         409:
           description: 'Conflict'
-  '/projects/{app-name}':
+  '/v1/projects/{app-name}':
     delete:
       tags:
         - 'Apps'
@@ -118,7 +117,7 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
-  '/projects/{app-name}/actions/scale':
+  '/v1/projects/{app-name}/actions/scale':
     post:
       tags:
         - 'Apps'
@@ -154,7 +153,7 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
-  '/projects/{app-name}/actions/restart':
+  '/v1/projects/{app-name}/actions/restart':
     post:
       tags:
         - 'Apps'
@@ -176,6 +175,78 @@ paths:
           description: 'Your request has been submitted.'
         401:
           description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v2/projects/{app-name}/sources':
+    post:
+      tags: 
+        - 'Deploy'
+      summary: 'Deploy sources code'
+      description: 'deploy sources code that user owns'
+      parameters:
+          - in: header
+            name: 'Authorization'
+            description: 'authorization token (Starts with Bearer)'
+            type: string
+            required: true
+          - in: header
+            name: Content-Type
+            description: 'File upload method by default(multipart/form-data)'
+            type: string
+            required: true
+            default: multipart/form-data
+          - in: path
+            name: app-name
+            description: 'The name of your app for deploy'
+            type: string
+            required: true
+          - in: formData
+            name: file
+            type: file
+            required: true
+            description: 'The .gz file to deploy'
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        403:
+          description: 'Forbidden'
+        404:
+          description: 'App does not exists.'
+  '/v2/projects/{app-name}/releases':
+    post:
+      tags: 
+        - 'Deploy'
+      summary: 'Deploy sources code'
+      description: 'deploy sources code that user owns'
+      parameters:
+          - in: header
+            name: 'Authorization'
+            description: 'authorization token (Starts with Bearer)'
+            type: string
+            required: true
+          - in: path
+            name: app-name
+            description: 'The name of your app for deploy'
+            type: string
+            required: true
+          - in: body
+            name: deploy releases
+            required: true
+            schema:
+              $ref: '#/definitions/Deploy-releases'
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        403:
+          description: 'Forbidden'
         404:
           description: 'App does not exists.'
 
@@ -288,7 +359,18 @@ definitions:
             isDeployed:
               type: string
               description: 'The project deployment status'
-  
+  Deploy-releases:
+    type: object
+    properties:
+      sourceID:
+        type: string
+        description: The id of Deployed sources
+      port:
+        type: number
+        description: The port of your app
+      type:
+        type: string
+        description: The platform of your app
 
 externalDocs: 
   description: 'Find out more about APP'
