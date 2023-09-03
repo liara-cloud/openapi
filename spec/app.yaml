@@ -249,6 +249,35 @@ paths:
           description: 'Forbidden'
         404:
           description: 'App does not exists.'
+  '/v1/projects/update-envs':
+    post:
+      tags:
+        - 'Apps'
+      summary: 'Update envs'
+      description: 'update envs that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: body
+          name: update envs
+          required: true
+          schema:
+            $ref: '#/definitions/Update-envs'
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        403:
+          description: 'Forbidden'
+        404:
+          description: 'App does not exists.'
+
 
 definitions:
   Create-app:
@@ -360,7 +389,6 @@ definitions:
               type: string
               description: 'The project deployment status'
   Deploy-releases:
-    type: object
     properties:
       sourceID:
         type: string
@@ -371,6 +399,23 @@ definitions:
       type:
         type: string
         description: The platform of your app
+  Update-envs:
+    properties: 
+      project:
+        type: string
+        description: 'The name of your app for update envs'
+      variables:
+        type: array
+        description: 'The envs for update'
+        items:
+          properties: 
+            key:
+              type: string
+              description: 'The name of your env'
+            value:
+              type: string
+              description: 'The value of your env'
+
 
 externalDocs: 
   description: 'Find out more about APP'
