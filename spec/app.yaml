@@ -506,6 +506,130 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
+  '/v1/projects/{app-name}/metrics/cpu?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get cpu reports of app'
+      description: 'get cpu reports of app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your cpu reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-name}/metrics/memory?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get memory reports of app'
+      description: 'get memory reports of app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your memory reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-name}/metrics/network-receive?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get network-receive reports of app'
+      description: 'get network-receive reports of app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your network-receive reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-name}/metrics/network-transmit?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get network-transmit reports of app'
+      description: 'get network-transmit reports of app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your network-transmit reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
 
 definitions:
   Create-app:
