@@ -60,8 +60,6 @@ paths:
           description: 'Bad request'
         401:
           description: 'Missing authentication'
-        403:
-          description: 'Forbidden'
         404:
           description: 'App does not exists.'
         409:
@@ -70,7 +68,7 @@ paths:
     delete:
       tags:
         - 'Apps'
-      summary: 'Create a app'
+      summary: 'Delete a app'
       description: 'delete app that user owns'
       parameters:
         - in: header
@@ -95,7 +93,7 @@ paths:
     get:
       tags:
       - 'Apps'
-      summary: 'Get details of all project'
+      summary: 'Get details of a project'
       description: 'get all details of all project that user owns'
       parameters:
         - in: header
@@ -212,16 +210,14 @@ paths:
           description: 'Bad request'
         401:
           description: 'Missing authentication'
-        403:
-          description: 'Forbidden'
         404:
           description: 'App does not exists.'
   '/v2/projects/{app-name}/releases':
     post:
       tags: 
         - 'Deploy'
-      summary: 'Deploy sources code'
-      description: 'deploy sources code that user owns'
+      summary: 'Deploy releases'
+      description: 'deploy releases that user owns'
       parameters:
           - in: header
             name: 'Authorization'
@@ -245,8 +241,6 @@ paths:
           description: 'Bad request'
         401:
           description: 'Missing authentication'
-        403:
-          description: 'Forbidden'
         404:
           description: 'App does not exists.'
   '/v1/projects/update-envs':
@@ -273,8 +267,6 @@ paths:
           description: 'Bad request'
         401:
           description: 'Missing authentication'
-        403:
-          description: 'Forbidden'
         404:
           description: 'App does not exists.'
   '/v1/projects/{app-name}/resize':
@@ -312,10 +304,82 @@ paths:
           description: 'Bad request'
         401:
           description: 'Missing authentication'
-        403:
-          description: 'Forbidden'
         404:
           description: 'App does not exists.'
+  '/v1/projects/{app-name}/disks':
+    post:
+      tags:
+        - 'Disks'
+      summary: 'Create a disk'
+      description: 'create a disk that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+        - in: body
+          name: disk
+          description: 'The disk of your app'
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - size
+            properties:
+              name:
+                type: string
+              size:
+                type: string
+      responses:
+        201:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-id}/disks/{disk-name}':
+    delete:
+      tags:
+        - 'Disks'
+      summary: 'Delete a disk'
+      description: 'delete a disk that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-id
+          description: 'The id of your app'
+          type: string
+          required: true
+        - in: path
+          name: disk-name
+          description: 'The name of your disk of app'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+        409:
+          description: 'Conflict'
+
 
 definitions:
   Create-app:
