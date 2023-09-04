@@ -438,7 +438,7 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
-  '/v1/projects/node-js-app/applets':
+  '/v1/projects/{app-name}/applets':
     get:
       tags:
         - 'Apps'
@@ -460,6 +460,46 @@ paths:
           description: 'Successful operation'
           schema:
             $ref: '#/definitions/Applets'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-name}/releases?page={page}&count={count}':
+    get:
+      tags:
+        - 'Apps'
+      summary: 'Get applets of app'
+      description: 'get applets of app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+        - in: path
+          name: page
+          description: 'The page of your releases'
+          type: number
+          default: 1
+          required: true
+        - in: path
+          name: count
+          description: 'The count of your releases'
+          type: number
+          default: 10
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/Releases'
         400:
           description: 'Bad request'
         401:
@@ -680,6 +720,59 @@ definitions:
                 tag:
                   type: string
                   description: 'The tag of release'
+  Releases:
+    type: object
+    properties:
+      total:
+        type: number
+        description: 'The total of releases'
+      currentRelease:
+        type: string
+        description: 'The currentRelease of releases'
+      readyReleasesCount:
+        type: number
+        description: 'The total of releases'
+      releases:
+        type: array
+        description: 'The total of releases'
+        items: 
+          properties:
+            _id:
+              type: string
+              description: 'The id of release'
+            type:
+              type: string
+              description: 'The type of release'
+            imageName:
+              type: string
+              description: 'The imageName of release'
+            projectType:
+              type: string
+              description: 'The projectType of release'
+            state:
+              type: string
+              description: 'The state of release'
+            port:
+              type: number
+              description: 'The port of release'
+            gitInfo:
+              type: object
+              description: 'The gitInfo of release'
+            client:
+              type: string
+              description: 'The client of release'
+            finishedAt:
+              type: string
+              description: 'The finishedAt of release'
+            createdAt:
+              type: string
+              description: 'The createdAt of release'
+            tag:
+              type: string
+              description: 'The tag of release'
+            sourceAvailable:
+              type: boolean
+              description: 'The sourceAvailable of release'
 
 externalDocs: 
   description: 'Find out more about APP'
