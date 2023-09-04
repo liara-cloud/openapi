@@ -379,6 +379,34 @@ paths:
           description: 'App does not exists.'
         409:
           description: 'Conflict'
+  '/v1/domains?project={app-name}':
+    get:
+      tags:
+        - 'Apps'
+      summary: 'Get all domains'
+      description: 'get all domains that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/Domains'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
 
 
 definitions:
@@ -517,6 +545,51 @@ definitions:
             value:
               type: string
               description: 'The value of your env'
+  Domains:
+    type: object
+    properties:
+      domains:
+        type: array
+        items:
+          properties: 
+            _id:
+              type: string
+              description: 'The id of domain'
+            name:
+              type: string
+              description: 'The name of domain'
+            type:
+              type: string
+              description: 'The type of domain'
+            project:
+              type: object
+              description: 'The type of domain'
+              properties:
+                _id:
+                  type: string
+                  description: 'The id of project'
+                project_id:
+                  type: string
+                  description: 'The name of project'
+            status:
+              type: string
+              description: 'The status of domain'
+            certificatesStatus:
+              type: string
+              description: 'The certificatesStatus of domain'
+            redirectTo:
+              type: string
+              description: 'The redirectTo of domain'
+            redirectStatus:
+              type: number
+              default: 302
+              description: 'The redirectStatus of domain'
+            created_at:
+              type: string
+              description: 'The created_at of domain'
+            CNameRecord:
+              type: string
+              description: 'The CNameRecord of domain'
 
 externalDocs: 
   description: 'Find out more about APP'
