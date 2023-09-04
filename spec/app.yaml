@@ -243,10 +243,111 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
+  '/v1/projects/{app-id}/zero-downtime/{status}':
+    post:
+      tags:
+        - 'Settings'
+      summary: 'Zero downtime'
+      description: 'zero downtime that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-id
+          required: true
+          type: string
+        - in: path
+          name: status
+          description: 'disable or enable'
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+        409:
+          description: 'Conflict'
+  '/v1/projects/{app-id}/default-subdomain/{status}':
+    post:
+      tags:
+        - 'Settings'
+      summary: 'Default subdomain'
+      description: 'default subdomain that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-id
+          required: true
+          type: string
+        - in: path
+          name: status
+          description: 'disable or enable'
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+        409:
+          description: 'Conflict'
+  '/v1/projects/{app-id}/fixed-ip/{status}':
+    post:
+      tags:
+        - 'Settings'
+      summary: 'IP static'
+      description: 'ip static that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-id
+          required: true
+          type: string
+        - in: path
+          name: status
+          description: 'disable or enable'
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+          schema:
+            properties: 
+              IP:
+                type: string
+                description: 'The IP of your app'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+        409:
+          description: 'Conflict'
   '/v1/projects/update-envs':
     post:
       tags:
-        - 'Apps'
+        - 'Settings'
       summary: 'Update envs'
       description: 'update envs that user owns'
       parameters:
@@ -470,8 +571,8 @@ paths:
     get:
       tags:
         - 'Apps'
-      summary: 'Get applets of app'
-      description: 'get applets of app that user owns'
+      summary: 'Get releases of app'
+      description: 'get releases of app that user owns'
       parameters:
         - in: header
           name: 'Authorization'
