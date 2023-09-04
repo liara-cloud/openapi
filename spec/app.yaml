@@ -16,27 +16,6 @@ produces:
 
 paths:
   '/v1/projects':
-    get:
-      tags:
-      - 'Apps'
-      summary: 'Get details of all projects'
-      description: 'get all details of all projects that user owns'
-      parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
-      responses:
-        200: 
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Projects'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
-
     post:
       tags:
         - 'Apps'
@@ -64,32 +43,27 @@ paths:
           description: 'App does not exists.'
         409:
           description: 'Conflict'
-  '/v1/projects/{app-name}':
-    delete:
+    get:
       tags:
-        - 'Apps'
-      summary: 'Delete a app'
-      description: 'delete app that user owns'
+      - 'Apps'
+      summary: 'Get details of all projects'
+      description: 'get all details of all projects that user owns'
       parameters:
         - in: header
           name: 'Authorization'
           description: 'authorization token (Starts with Bearer)'
           type: string
           required: true
-        - in: path
-          name: app-name
-          required: true
-          type: string
-          description: 'The name of the app to delete'
       responses:
-        200:
-          description: 'Your request has been submitted.'
-        204: 
-          description: 'App deleted.'
+        200: 
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/Projects'
         401:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
+  '/v1/projects/{app-name}':
     get:
       tags:
       - 'Apps'
@@ -111,6 +85,31 @@ paths:
           description: 'Successful operation'
           schema:
             $ref: '#/definitions/ProjectAllDetails'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+    delete:
+      tags:
+        - 'Apps'
+      summary: 'Delete a app'
+      description: 'delete app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          required: true
+          type: string
+          description: 'The name of the app to delete'
+      responses:
+        200:
+          description: 'Your request has been submitted.'
+        204: 
+          description: 'App deleted.'
         401:
           description: 'Missing authentication'
         404:
