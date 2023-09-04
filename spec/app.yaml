@@ -438,6 +438,34 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
+  '/v1/projects/node-js-app/applets':
+    get:
+      tags:
+        - 'Apps'
+      summary: 'Get applets of app'
+      description: 'get applets of app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/Applets'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
 
 definitions:
   Create-app:
@@ -620,6 +648,38 @@ definitions:
             CNameRecord:
               type: string
               description: 'The CNameRecord of domain'
+  Applets:
+    type: object
+    properties:
+      applets:
+        type: array
+        items:
+          properties: 
+            id:
+              type: string
+              description: 'The id of applet'
+            name:
+              type: string
+              description: 'The name of applet'
+            timestamp:
+              type: string
+              description: 'The timestamp of applet'
+            state:
+              type: string
+              description: 'The state of applet'
+            reason:
+              type: string
+              description: 'The reason of applet'
+            release:
+              type: object
+              description: 'The release of applet'
+              properties:
+                releaseID:
+                  type: string
+                  description: 'The releaseID of release'
+                tag:
+                  type: string
+                  description: 'The tag of release'
 
 externalDocs: 
   description: 'Find out more about APP'
