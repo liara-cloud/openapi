@@ -407,7 +407,37 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
-
+  '/v1/projects/{app-name}/logs?since={since}':
+    get:
+      tags:
+        - 'Apps'
+      summary: 'Get logs of app'
+      description: 'get logs of app that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'Show logs since timestamp'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
 
 definitions:
   Create-app:
