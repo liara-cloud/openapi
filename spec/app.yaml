@@ -482,7 +482,7 @@ paths:
   '/v1/domains?project={app-name}':
     get:
       tags:
-        - 'Apps'
+        - 'Domains'
       summary: 'Get all domains'
       description: 'get all domains that user owns'
       parameters:
@@ -507,6 +507,34 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
+  '/v1/domains/{domain-id}/check':
+    get:
+      tags:
+        - 'Domains'
+      summary: 'Check a domain'
+      description: 'check a domain that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: domain-id
+          description: 'The id of your domain'
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/CheckDomain'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Domain does not exists.'
   '/v1/projects/{app-name}/logs?since={since}':
     get:
       tags:
@@ -730,6 +758,208 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
+  '/v1/domains':
+    post:
+      tags:
+        - 'Domains'
+      summary: 'Create a domain'
+      description: 'create a domain that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: body
+          name: domain
+          description: 'The domain of your app'
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - project
+              - type
+            properties:
+              name:
+                type: string
+              project:
+                type: string
+              type:
+                type: string
+                default: PROJECT
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+        409: 
+          description: 'Conflict'
+  '/v1/domains/set-project':
+    post:
+      tags:
+        - 'Domains'
+      summary: 'Set a domain for project'
+      description: 'set a domain for project that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: body
+          name: domain
+          description: 'The domain of your app'
+          required: true
+          schema:
+            type: object
+            required:
+              - domainID
+              - projectID
+            properties:
+              domainID:
+                type: string
+              projectID:
+                type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404: 
+          description: 'App or domain does not exists.'
+  '/v1/domains/{domain-id}/set-redirect':
+    post:
+      tags:
+        - 'Domains'
+      summary: 'Redirect a domain'
+      description: 'redirect a domain that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: domain-id
+          description: 'The id of your domain'
+          required: true
+          type: string
+        - in: body
+          name: domain
+          description: 'The domain of your app'
+          required: true
+          schema:
+            type: object
+            required:
+              - redirectStatus
+              - redirectTo
+            properties:
+              redirectStatus:
+                type: number
+                description: '302 or 301'
+                default: 302
+              redirectTo:
+                type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404: 
+          description: 'Domain does not exists.'
+  '/v1/domains/{domain-id}/ssl/disable':
+    post:
+      tags:
+        - 'Domains'
+      summary: 'Disable ssl'
+      description: 'disable ssl that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: domain-id
+          description: 'The id of your domain'
+          required: true
+          type: string
+      responses:
+        204:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404: 
+          description: 'Domain does not exists.'
+  '/v1/domains/provision-ssl-certs':
+    post:
+      tags:
+        - 'Domains'
+      summary: 'Enable ssl'
+      description: 'enable ssl that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: body
+          name: domain
+          description: 'The domain of your app'
+          required: true
+          schema:
+            type: object
+            required:
+              - domain
+            properties:
+              domain:
+                type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404: 
+          description: 'Domain does not exists.'
+  '/v1/domains/{domain-id}':
+    delete:
+      tags:
+        - 'Domains'
+      summary: 'Delete a domain'
+      description: 'delete a domain that user owns'
+      parameters:
+        - in: header
+          name: 'Authorization'
+          description: 'authorization token (Starts with Bearer)'
+          type: string
+          required: true
+        - in: path
+          name: domain-id
+          description: 'The id of your domain'
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Domain does not exists.'
 
 definitions:
   Create-app:
@@ -997,6 +1227,111 @@ definitions:
             sourceAvailable:
               type: boolean
               description: 'The sourceAvailable of release'
+  CheckDomain:
+    type: object
+    properties:
+      domain:
+        type: object
+        properties:
+          _id:
+            type: string
+          user:
+            type: string
+          name:
+            type: string
+          type:
+            type: string
+          project:
+            type: object
+            properties:
+              current_service:
+                type: object
+                properties:
+                  port:
+                    type: integer
+                  name:
+                    type: string
+              fixedNode:
+                type: boolean
+              _id:
+                type: string
+              user:
+                type: string
+              project_id:
+                type: string
+              type:
+                type: string
+              status:
+                type: string
+              readOnlyRootFilesystem:
+                type: boolean
+              defaultSubdomain:
+                type: boolean
+              zeroDowntime:
+                type: boolean
+              isOneClickApp:
+                type: boolean
+              isWPPlus:
+                type: boolean
+              scale:
+                type: number
+              envs:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key:
+                      type: string
+                    value:
+                      type: string
+                    encrypted:
+                      type: boolean
+                    _id:
+                      type: string
+              planID:
+                type: string
+              hasVolume:
+                type: boolean
+              fixedIPStatus:
+                type: string
+              managedBySystem:
+                type: boolean
+              updated_at:
+                type: string
+              created_at:
+                type: string
+              __v:
+                type: number
+              node:
+                type: string
+              currentRelease:
+                type: string
+              lastScaleStartedAt:
+                type: string
+              lastScaleFinishedAt:
+                type: string
+              resizes:
+                type: number
+          status:
+            type: string
+          certificatesStatus:
+            type: string
+          redirectTo:
+            type: string
+          redirectStatus:
+            type: number
+          updated_at:
+            type: string
+          punycodeName:
+            type: string
+          verificationCode:
+            type: string
+          created_at:
+            type: string
+          __v:
+            type: number
+          CNameRecord:
+            type: string
 
 externalDocs: 
   description: 'Find out more about APP'
