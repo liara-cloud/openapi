@@ -14,6 +14,15 @@ consumes:
 produces:
   - application/json
 
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+
+security:
+  - Bearer: []
+
 paths:
   '/v1/projects':
     post:
@@ -22,11 +31,6 @@ paths:
       summary: 'Create a app'
       description: 'create app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: body
           name: create app
           required: true
@@ -48,12 +52,6 @@ paths:
       - 'Apps'
       summary: 'Get details of all projects'
       description: 'get all details of all projects that user owns'
-      parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
       responses:
         200: 
           description: 'Successful operation'
@@ -70,11 +68,6 @@ paths:
       summary: 'Get details of a project'
       description: 'get all details of all project that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -95,11 +88,6 @@ paths:
       summary: 'Delete a app'
       description: 'delete app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           required: true
@@ -121,11 +109,6 @@ paths:
       summary: 'Turn on or off a app'
       description: 'turn on or off a app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           required: true
@@ -157,11 +140,6 @@ paths:
       summary: 'To restart a app'
       description: 'to restart app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           required: true
@@ -181,11 +159,6 @@ paths:
       summary: 'Deploy sources code'
       description: 'deploy sources code that user owns'
       parameters:
-          - in: header
-            name: 'Authorization'
-            description: 'authorization token (Starts with Bearer)'
-            type: string
-            required: true
           - in: header
             name: Content-Type
             description: 'File upload method by default(multipart/form-data)'
@@ -218,11 +191,6 @@ paths:
       summary: 'Deploy releases'
       description: 'deploy releases that user owns'
       parameters:
-          - in: header
-            name: 'Authorization'
-            description: 'authorization token (Starts with Bearer)'
-            type: string
-            required: true
           - in: path
             name: app-name
             description: 'The name of your app for deploy'
@@ -249,11 +217,6 @@ paths:
       summary: 'Zero downtime'
       description: 'zero downtime that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-id
           required: true
@@ -281,11 +244,6 @@ paths:
       summary: 'Default subdomain'
       description: 'default subdomain that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-id
           required: true
@@ -313,11 +271,6 @@ paths:
       summary: 'IP static'
       description: 'ip static that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-id
           required: true
@@ -350,11 +303,6 @@ paths:
       summary: 'Update envs'
       description: 'update envs that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: body
           name: update envs
           required: true
@@ -376,11 +324,6 @@ paths:
       summary: 'Change plan'
       description: 'create app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -413,11 +356,6 @@ paths:
       summary: 'Create a disk'
       description: 'create a disk that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -453,11 +391,6 @@ paths:
       summary: 'Delete a disk'
       description: 'delete a disk that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-id
           description: 'The id of your app'
@@ -486,11 +419,6 @@ paths:
       summary: 'Get all domains'
       description: 'get all domains that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -514,11 +442,6 @@ paths:
       summary: 'Check a domain'
       description: 'check a domain that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: domain-id
           description: 'The id of your domain'
@@ -542,11 +465,6 @@ paths:
       summary: 'Get logs of app'
       description: 'get logs of app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -573,11 +491,6 @@ paths:
       summary: 'Get applets of app'
       description: 'get applets of app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -601,11 +514,6 @@ paths:
       summary: 'Get releases of app'
       description: 'get releases of app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -641,11 +549,6 @@ paths:
       summary: 'Get cpu reports of app'
       description: 'get cpu reports of app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -672,11 +575,6 @@ paths:
       summary: 'Get memory reports of app'
       description: 'get memory reports of app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -703,11 +601,6 @@ paths:
       summary: 'Get network-receive reports of app'
       description: 'get network-receive reports of app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -734,11 +627,6 @@ paths:
       summary: 'Get network-transmit reports of app'
       description: 'get network-transmit reports of app that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: app-name
           description: 'The name of your app'
@@ -765,11 +653,6 @@ paths:
       summary: 'Create a domain'
       description: 'create a domain that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: body
           name: domain
           description: 'The domain of your app'
@@ -806,11 +689,6 @@ paths:
       summary: 'Set a domain for project'
       description: 'set a domain for project that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: body
           name: domain
           description: 'The domain of your app'
@@ -841,11 +719,6 @@ paths:
       summary: 'Redirect a domain'
       description: 'redirect a domain that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: domain-id
           description: 'The id of your domain'
@@ -883,11 +756,6 @@ paths:
       summary: 'Disable ssl'
       description: 'disable ssl that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: domain-id
           description: 'The id of your domain'
@@ -909,11 +777,6 @@ paths:
       summary: 'Enable ssl'
       description: 'enable ssl that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: body
           name: domain
           description: 'The domain of your app'
@@ -941,11 +804,6 @@ paths:
       summary: 'Delete a domain'
       description: 'delete a domain that user owns'
       parameters:
-        - in: header
-          name: 'Authorization'
-          description: 'authorization token (Starts with Bearer)'
-          type: string
-          required: true
         - in: path
           name: domain-id
           description: 'The id of your domain'
