@@ -1,8 +1,8 @@
 swagger: '2.0'
 info:
-  description: 'Manage the created apps'
+  description: 'Manage your apps using our API'
   version: '1.0.0'
-  title: 'APP'
+  title: 'PaaS'
   termsOfService: '#'
   contact:
     email: 'info@liara.ir'

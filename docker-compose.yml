@@ -9,6 +9,6 @@ services:
     environment:
       URLS: "[
           { url: '/spec/dns.yaml', name: 'DNS' },
-          { url: '/spec/app.yaml', name: 'APP' }, 
-          { url: '/spec/db.yaml', name: 'DATABASE' }
+          { url: '/spec/paas.yaml', name: 'PaaS' }, 
+          { url: '/spec/dbaas.yaml', name: 'DBaaS' }
         ]"
