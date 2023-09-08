@@ -1,0 +1,14 @@
+version: "3.5"
+services:
+  openapi:
+    build: .
+    ports:
+      - 8080:8080
+    volumes:
+      - ./spec:/usr/share/nginx/html/spec
+    environment:
+      URLS: "[
+          { url: '/spec/dns.yaml', name: 'DNS' },
+          { url: '/spec/paas.yaml', name: 'PaaS' }, 
+          { url: '/spec/dbaas.yaml', name: 'DBaaS' }
+        ]"
