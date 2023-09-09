@@ -110,6 +110,69 @@ paths:
             description: 'Missing authentication'
           404:
             description: 'Database not found'
+  '/v1/databases/{database-id}/backups':
+    get:
+      tags:
+        - 'Backups'
+      summary: 'Get all backups'
+      description: 'get all backups that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
+    post:
+      tags:
+        - 'Backups'
+      summary: 'Backup a databases'
+      description: 'backup a databases that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
+  '/v1/databases/{database-id}/backups/{backups-name}/download':
+    post:
+      tags:
+        - 'Backups'
+      summary: 'Download a backup'
+      description: 'download a backup that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+        - in: path
+          name: backups-name
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
   '/v1/databases/{database-id}':
     delete:
       tags:
