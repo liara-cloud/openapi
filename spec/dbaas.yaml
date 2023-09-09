@@ -62,6 +62,8 @@ paths:
           required: true
           schema:
             type: object
+            required:
+                - scale
             properties:
               scale:
                 type: number
@@ -75,6 +77,39 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'Database not found'
+  '/v1/databases/{database-id}/resize':
+    post:
+        tags:
+          - 'Databases'
+        summary: 'Resize a databases'
+        description: 'resize a databases that user owns'
+        parameters:
+          - in: path
+            name: database-id
+            required: true
+            type: string
+          - in: body
+            name: resize
+            required: true
+            schema:
+              type: object
+              required:
+                - scale
+                - planID
+              properties:
+                disk:
+                  type: boolean
+                planID:
+                  type: string
+        responses:
+          200:
+            description: 'Successful operation'
+          400:
+            description: 'Bad request'
+          401:
+            description: 'Missing authentication'
+          404:
+            description: 'Database not found'
   '/v1/databases/{database-id}':
     delete:
       tags:
