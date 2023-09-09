@@ -1,6 +1,12 @@
 swagger: '2.0'
 info:
-  description: 'Manage your apps using our API'
+  description: "Manage your apps using our API\n\n
+    wss://api.iran.liara.ir\n 
+    This WebSocket endpoint allows real-time\n 
+    communication with the projects service hosted\n 
+    at Liara You can use WebSocket protocols\n 
+    to send and receive data, enabling efficient and\n
+    low-latency interactions with the projects"
   version: '1.0.0'
   title: 'PaaS'
   termsOfService: '#'
