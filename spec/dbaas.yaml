@@ -45,6 +45,36 @@ paths:
           description: 'Missing authentication'
         409:
           description: 'Conflict'
+  '/v1/databases/{database-id}/actions/scale':
+    post:
+      tags:
+        - 'Databases'
+      summary: 'Power on or power off a databases'
+      description: 'power on or power off a databases that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+        - in: body
+          name: scale
+          description: '1 for power on or 0 for power off'
+          required: true
+          schema:
+            type: object
+            properties:
+              scale:
+                type: number
+                enum: [0, 1]
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
   '/v1/databases/{database-id}':
     delete:
       tags:
