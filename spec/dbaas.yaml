@@ -24,12 +24,67 @@ security:
   - Bearer: []
 
 paths:
+  '/v1/databases/{database-id}':
+    delete:
+      tags:
+        - 'Databases'
+      summary: 'Delete a database'
+      description: 'delete a database that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
+    get:
+      tags:
+        - 'Databases'
+      summary: 'Get a database'
+      description: 'get a database that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/DB-details'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
   '/v1/databases':
+    get:
+      tags:
+        - 'Databases'
+      summary: 'Get all databases'
+      description: 'get all databases that user owns'
+      responses:
+        200:
+          description: 'Successful operation'
+          schema:
+            $ref: '#/definitions/DBs-details'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
     post:
       tags:
         - 'Databases'
-      summary: 'Create a databases'
-      description: 'create a databases that user owns'
+      summary: 'Create a database'
+      description: 'create a database that user owns'
       parameters:
         - in: body
           name: Create a databases
@@ -49,8 +104,8 @@ paths:
     post:
       tags:
         - 'Databases'
-      summary: 'Power on or power off a databases'
-      description: 'power on or power off a databases that user owns'
+      summary: 'Power on or power off a database'
+      description: 'power on or power off a database that user owns'
       parameters:
         - in: path
           name: database-id
@@ -81,8 +136,8 @@ paths:
     post:
         tags:
           - 'Databases'
-        summary: 'Resize a databases'
-        description: 'resize a databases that user owns'
+        summary: 'Resize a database'
+        description: 'resize a database that user owns'
         parameters:
           - in: path
             name: database-id
@@ -133,8 +188,8 @@ paths:
     post:
       tags:
         - 'Backups'
-      summary: 'Backup a databases'
-      description: 'backup a databases that user owns'
+      summary: 'Backup a database'
+      description: 'backup a database that user owns'
       parameters:
         - in: path
           name: database-id
@@ -173,26 +228,6 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'Database not found'
-  '/v1/databases/{database-id}':
-    delete:
-      tags:
-        - 'Databases'
-      summary: 'Delete a databases'
-      description: 'delete a databases that user owns'
-      parameters:
-        - in: path
-          name: database-id
-          required: true
-          type: string
-      responses:
-        200:
-          description: 'Successful operation'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Database not found'
 
 definitions:
   Create-databases:
@@ -212,6 +247,114 @@ definitions:
       version:
         type: string
         description: 'The version of databases that you want to create'
+  DB-details:
+    properties:
+      database:
+        type: object
+        properties:
+          _id:
+            type: string
+            description: The ID of the database
+          type:
+            type: string
+            description: The type of the database
+          planID:
+            type: string
+            description: The plan ID
+          status:
+            type: string
+            description: The status of the database
+          scale:
+            type: integer
+            description: The scale of the database
+          hostname:
+            type: string
+            description: The hostname of the database
+          publicNetwork:
+            type: boolean
+            description: Indicates if the database is on a public network
+          version:
+            type: string
+            description: The database version
+          volumeSize:
+            type: integer
+            description: The size of the database volume
+          metaData:
+            type: object
+            properties:
+              standaloneReplicaSet:
+                type: boolean
+                description: Indicates if the database uses a standalone replica set
+              privateNetwork:
+                type: boolean
+                description: Indicates if the database is on a private network
+          created_at:
+            type: string
+            description: The creation timestamp of the database
+          node:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: The ID of the database node
+              host:
+                type: string
+                description: The host of the database node
+          port:
+            type: integer
+            description: The port number for the database connection
+          root_password:
+            type: string
+            description: The root password for the database
+          internalPort:
+            type: integer
+            description: The internal port of the database
+          id:
+            type: string
+            description: The unique ID of the database
+          hourlyPrice:
+            type: number
+            description: The hourly price of the database
+          username:
+            type: string
+            description: The username associated with the database
+  DBs-details:
+    properties:
+      databases:
+        type: array
+        items:
+          type: object
+          properties:
+            _id:
+              type: string
+              description: The ID of the database
+            type:
+              type: string
+              description: The type of the database
+            planID:
+              type: string
+              description: The plan ID
+            status:
+              type: string
+              description: The status of the database
+            scale:
+              type: integer
+              description: The scale of the database
+            hostname:
+              type: string
+              description: The hostname of the database
+            publicNetwork:
+              type: boolean
+              description: Indicates if the database is on a public network
+            created_at:
+              type: string
+              description: The creation timestamp of the database
+            internalPort:
+              type: integer
+              description: The internal port of the database
+            id:
+              type: string
+              description: The unique ID of the database
 
 externalDocs: 
   description: 'Find out more about DBaaS'
