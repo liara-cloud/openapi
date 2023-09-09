@@ -10,9 +10,9 @@ host: 'api.iran.liara.ir'
 schemes:
   - 'https'
 consumes:
-  - application/json
+  - Databaselication/json
 produces:
-  - application/json
+  - Databaselication/json
 
 securityDefinitions:
   Bearer:
@@ -228,6 +228,158 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'Database not found'
+  '/v1/databases/{database-id}/public-network/{status}':
+    patch:
+      tags:
+        - 'Databases'
+      summary: 'Change public network status'
+      description: 'change public network status that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+        - in: path
+          name: status
+          required: true
+          type: string
+          enum: [enable, disable]
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
+        409:
+          description: 'Conflict'
+  '/v1/databases/{database-id}/metrics/cpu?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get cpu reports of database'
+      description: 'get cpu reports of database that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          description: 'The name of your database'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your cpu reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database does not exists.'
+  '/v1/databases/{database-id}/metrics/memory?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get memory reports of database'
+      description: 'get memory reports of database that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          description: 'The name of your database'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your memory reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database does not exists.'
+  '/v1/databases/{database-id}/metrics/network-receive?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get network-receive reports of database'
+      description: 'get network-receive reports of database that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          description: 'The name of your database'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your network-receive reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database does not exists.'
+  '/v1/databases/{database-id}/metrics/network-transmit?since={since}':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get network-transmit reports of database'
+      description: 'get network-transmit reports of database that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          description: 'The name of your database'
+          type: string
+          required: true
+        - in: path
+          name: since
+          description: 'The since of your network-transmit reports'
+          type: number
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database does not exists.'
+  '/v1/databases/{database-id}/metrics/summary':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get summary reports of database'
+      description: 'get summary reports of database that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          description: 'The name of your database'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database does not exists.'
 
 definitions:
   Create-databases:
