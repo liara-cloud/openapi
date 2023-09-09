@@ -228,6 +228,33 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'Database not found'
+  '/v1/databases/{database-id}/control-panel/{status}':
+    post:
+      tags:
+        - 'Databases'
+      summary: 'Change control-panel status'
+      description: 'change control-panel status that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+        - in: path
+          name: status
+          required: true
+          type: string
+          enum: [enable, disable]
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
+        409:
+          description: 'Conflict'
   '/v1/databases/{database-id}/public-network/{status}':
     patch:
       tags:
