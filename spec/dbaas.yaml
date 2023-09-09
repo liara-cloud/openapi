@@ -1,0 +1,90 @@
+swagger: '2.0'
+info:
+  description: 'Manage your databases using our API'
+  version: '1.0.0'
+  title: 'DBaaS'
+  termsOfService: '#'
+  contact:
+    email: 'info@liara.ir'
+host: 'api.iran.liara.ir'
+schemes:
+  - 'https'
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+
+security:
+  - Bearer: []
+
+paths:
+  '/v1/databases':
+    post:
+      tags:
+        - 'Databases'
+      summary: 'Create a databases'
+      description: 'create a databases that user owns'
+      parameters:
+        - in: body
+          name: Create a databases
+          required: true
+          schema:
+            $ref: '#/definitions/Create-databases'
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        409:
+          description: 'Conflict'
+  '/v1/databases/{database-id}':
+    delete:
+      tags:
+        - 'Databases'
+      summary: 'Delete a databases'
+      description: 'delete a databases that user owns'
+      parameters:
+        - in: path
+          name: database-id
+          required: true
+          type: string
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Database not found'
+
+definitions:
+  Create-databases:
+    properties: 
+      hostname:
+        type: string
+        description: 'The hostname of databases that you want to create'
+      publicNetwork:
+        type: boolean
+        description: 'The publicNetwork of databases that you want to create'
+      type:
+        type: string
+        description: 'The type of databases that you want to create'
+      planID:
+        type: string
+        description: 'The planID of databases that you want to create'
+      version:
+        type: string
+        description: 'The version of databases that you want to create'
+
+externalDocs: 
+  description: 'Find out more about DBaaS'
+  url: 'http://liara.ir'

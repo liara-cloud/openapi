@@ -43,8 +43,6 @@ paths:
           description: 'Bad request'
         401:
           description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
         409:
           description: 'Conflict'
     get:
@@ -1192,5 +1190,5 @@ definitions:
             type: string
 
 externalDocs: 
-  description: 'Find out more about APP'
+  description: 'Find out more about PaaS'
   url: 'http://liara.ir'
