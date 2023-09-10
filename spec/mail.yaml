@@ -1,0 +1,1148 @@
+swagger: '2.0'
+basePath: /api/v1
+info:
+  title: Liara Mail API Documentaion
+  version: 1.0.0
+  description: A fully featured mail delivery platform for incoming & outgoing e-mail
+  contact:
+    email: support@liara.ir
+    name: liara
+    url: https://liara.ir
+securityDefinitions:
+  jwt:
+    type: apiKey
+    name: Authorization
+    in: header
+security:
+  - jwt: []
+host: mail-service.iran.liara.ir
+schemes:
+  - https
+tags: []
+paths:
+  /mails:
+    get:
+      summary: get all mail servers
+      operationId: getMails
+      tags:
+        - mails
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailServers'
+          description: Ok
+        '5XX':
+          description: Unexpected error
+    post:
+      summary: create mail server
+      operationId: postMails
+      parameters:
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model1'
+      tags:
+        - mails
+      responses:
+        201:
+          description: OK
+        400:
+          description: Invalid request for plan
+        402:
+          description: Not enough balance
+        403:
+          description: Allowed to create only one Mail Server on the free plan
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}:
+    get:
+      summary: get single mail server
+      operationId: getMailsMailserverid
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+      tags:
+        - mails
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailServer'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+    delete:
+      summary: delete mail server
+      operationId: deleteMailsMailserverid
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+      tags:
+        - mails
+      responses:
+        204:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+    patch:
+      summary: chagen mail server mode
+      operationId: patchMailsMailserverid
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model8'
+      tags:
+        - mails
+      responses:
+        200:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/smtp-credentials:
+    get:
+      summary: get credential to connect to mail server with SMTP
+      operationId: getMailsMailserveridSmtpcredentials
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+      tags:
+        - smtp
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/SMTP'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+    post:
+      summary: generate credentials to connet mail server with SMTP
+      operationId: postMailsMailserveridSmtpcredentials
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model4'
+      tags:
+        - smtp
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/CreateSMTP'
+          description: OK
+        400:
+          description: Bad Request
+        403:
+          description: Allowed to create only 10 smtp credentials
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+    patch:
+      summary: revoke credentials to connect mail server with SMTP
+      operationId: patchMailsMailserveridSmtpcredentials
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model9'
+      tags:
+        - smtp
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/CreateSMTP'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Username not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/counts:
+    get:
+      summary: count number of sent mails every day
+      operationId: getMailsMailserveridCounts
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: integer
+          default: 30
+          minimum: 1
+          maximum: 180
+          name: lastNDays
+          in: query
+      tags:
+        - mails
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/CountMailPerDay'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/dns-check:
+    get:
+      summary: mail server check dns status
+      operationId: getMailsMailserveridDnscheck
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+      tags:
+        - mails
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/CheckDNS'
+          description: OK
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+  /mails/{domain}/check-availability:
+    get:
+      summary: check if domain name is available
+      operationId: getMailsDomainCheckavailability
+      parameters:
+        - type: string
+          name: domain
+          in: path
+          required: true
+      tags:
+        - mails
+      responses:
+        200:
+          description: OK
+        400:
+          description: Bad Request
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/remaining-free-emails:
+    get:
+      summary: count number of free mails every month
+      operationId: getMailsMailserveridRemainingfreeemails
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+      tags:
+        - mails
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/RemainingFreeMails'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/accounts:
+    get:
+      summary: get all mail accounts
+      operationId: getMailsMailserveridAccounts
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+      tags:
+        - accounts
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailAccounts'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+    post:
+      summary: add mail account
+      operationId: postMailsMailserveridAccounts
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model5'
+      tags:
+        - accounts
+      responses:
+        201:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/messages:
+    get:
+      summary: get all mails
+      operationId: getMailsMailserveridMessages
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: integer
+          default: 1
+          x-constraint:
+            sign: positive
+          name: page
+          in: query
+        - type: integer
+          default: 15
+          maximum: 100
+          x-constraint:
+            sign: positive
+          name: count
+          in: query
+        - type: string
+          enum:
+            - incoming
+            - outgoing
+          name: direction
+          in: query
+          required: true
+        - type: string
+          name: state
+          in: query
+        - type: string
+          name: subject
+          in: query
+        - type: string
+          name: from
+          in: query
+        - type: string
+          name: to
+          in: query
+      tags:
+        - messages
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailMessages'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        '5XX':
+          description: Unexpected error
+    post:
+      summary: send a mail
+      operationId: postMailsMailserveridMessages
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model3'
+      tags:
+        - messages
+      responses:
+        201:
+          description: OK
+        400:
+          description: Bad Request
+        403:
+          description: No valid dns records exists for this mail server
+        404:
+          description: Mail Server not found
+        406:
+          description: The source and destination addresses must not be the same
+        429:
+          description: Too mnay requests
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/messages/{messageID}:
+    get:
+      summary: get single mail
+      operationId: getMailsMailserveridMessagesMessageid
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: messageID
+          in: path
+          required: true
+      tags:
+        - messages
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailMessage'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Message not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/accounts/{accountID}/forwards:
+    get:
+      summary: get all extra address to forwarding mails
+      operationId: getMailsMailserveridAccountsAccountidForwards
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: accountID
+          in: path
+          required: true
+      tags:
+        - forward
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailForwards'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Account not found
+        '5XX':
+          description: Unexpected error
+    post:
+      summary: add address endpoint to forwarding mails
+      operationId: postMailsMailserveridAccountsAccountidForwards
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: accountID
+          in: path
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model6'
+      tags:
+        - forward
+      responses:
+        201:
+          description: OK
+        400:
+          description: Bad Request
+        403:
+          description: Max number of forwarders
+        404:
+          description: Mail Server or Mail Account not found
+        409:
+          description: Address endpoint already exists
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/accounts/{accountName}/check-availability:
+    get:
+      summary: check if mail account is available
+      operationId: getMailsMailserveridAccountsAccountnameCheckavailability
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          maxLength: 64
+          pattern: ^[a-z0-9]+([.-][a-z0-9]+)*$
+          name: accountName
+          in: path
+          required: true
+      tags:
+        - accounts
+      responses:
+        200:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server not found
+        409:
+          description: Account already taken.
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/messages/{messageID}/render:
+    get:
+      summary: get single mail html
+      operationId: getMailsMailserveridMessagesMessageidRender
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: messageID
+          in: path
+          required: true
+        - type: string
+          x-format:
+            guid:
+              version: uuidv4
+          name: token
+          in: query
+          required: true
+      tags:
+        - messages
+      responses:
+        200:
+          description: success and returns some html text
+          examples:
+            text/html:
+        400:
+          description: Bad Request
+        403:
+          description: Forbidden
+        404:
+          description: Mail Server or Mail Message not found
+        409:
+          description: Account already taken.
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/messages/{messageID}/attachments:
+    get:
+      summary: get all attachments for message
+      operationId: getMailsMailserveridMessagesMessageidAttachments
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: messageID
+          in: path
+          required: true
+      tags:
+        - attachments
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailAttachments'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Message not found
+        409:
+          description: Account already taken.
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/messages/{messageID}/events:
+    get:
+      summary: get all events for message
+      operationId: getMailsMailserveridMessagesMessageidEvents
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: messageID
+          in: path
+          required: true
+        - type: integer
+          default: 1
+          x-constraint:
+            sign: positive
+          name: page
+          in: query
+        - type: integer
+          default: 15
+          maximum: 100
+          x-constraint:
+            sign: positive
+          name: count
+          in: query
+      tags:
+        - event
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailEvents'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Message not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/messages/{messageID}/attachments/{attachmentID}:
+    get:
+      summary: download attachment
+      operationId: getMailsMailserveridMessagesMessageidAttachmentsAttachmentid
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: messageID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: attachmentID
+          in: path
+          required: true
+      tags:
+        - attachments
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/MailAttachment'
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Message not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/messages/{messageID}/temporary-access:
+    post:
+      summary: generate temporary access to email html
+      operationId: postMailsMailserveridMessagesMessageidTemporaryaccess
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: messageID
+          in: path
+          required: true
+        - type: integer
+          description: Specifying hourly expiration schedule options
+          default: 1
+          minimum: 1
+          maximum: 168
+          name: expiration
+          in: query
+      tags:
+        - messages
+      responses:
+        201:
+          schema:
+            $ref: '#/definitions/TmpAccess'
+          description: OK
+        400:
+          description: Bad Request
+        403:
+          description: Generate token limitation
+        404:
+          description: Mail Server or Mail Message not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/accounts/{accountID}:
+    delete:
+      summary: delete mail account
+      operationId: deleteMailsMailserveridAccountsAccountid
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: accountID
+          in: path
+          required: true
+      tags:
+        - accounts
+      responses:
+        204:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Account not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/smtp-credentials/{username}:
+    delete:
+      summary: delete smtp credential
+      operationId: deleteMailsMailserveridSmtpcredentialsUsername
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          name: username
+          in: path
+          required: true
+      tags:
+        - smtp
+      responses:
+        204:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or SMTP Credential not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/accounts/{accountID}/forwards/{addressID}:
+    delete:
+      summary: delete extra endpoint address
+      operationId: deleteMailsMailserveridAccountsAccountidForwardsAddressid
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: accountID
+          in: path
+          required: true
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: addressID
+          in: path
+          required: true
+      tags:
+        - forward
+      responses:
+        204:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Account or Mail Forward not found
+        '5XX':
+          description: Unexpected error
+  /mails/{mailServerID}/plans:
+    put:
+      summary: change mail server plan
+      operationId: putMailsMailserveridPlans
+      parameters:
+        - type: string
+          pattern: ^[0-9a-fA-F]{24}$
+          name: mailServerID
+          in: path
+          required: true
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Model10'
+      tags:
+        - mails
+      responses:
+        200:
+          description: OK
+        400:
+          description: Bad Request
+        404:
+          description: Mail Server or Mail Account not found
+        '5XX':
+          description: Unexpected error
+definitions:
+  TmpAccess:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          token:
+            type: object
+  MailEvents:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          total:
+            type: number
+          events:
+            type: object
+  MailAttachments:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          attachments:
+            type: array
+            items:
+              $ref: '#/definitions/MailAttachment'
+  MailAttachment:
+    properties:
+      name:
+        type: string
+      size:
+        type: number
+      content_type:
+        type: string
+      createdAt:
+        type: string
+      data:
+        type: string
+
+  MailForwards:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          forwarders:
+            type: object
+  MailMessages:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          total:
+            type: number
+          messages:
+            $ref: '#/definitions/MailMessage'
+  MailMessage:
+    properties:
+      createdAt:
+        type: string
+      direction:
+        type: string
+      from:
+        type: string
+      hasHtml:
+        type: boolean
+      isDev:
+        type: boolean
+      isFree:
+        type: boolean
+      spamScore:
+        type: boolean
+      subject:
+        type: string
+      to:
+        type: string
+      text:
+        type: string
+      status:
+        type: object
+      spamReson:
+        type: object
+
+  MailAccounts:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          domain:
+            type: string
+          accounts:
+            type: object
+  RemainingFreeMails:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          count:
+            type: number
+  CheckDNS:
+    properties:
+      status:
+        type: string
+      date:
+        type: object
+        $ref: '#/definitions/MailServer'
+  CountMailPerDay:
+    properties:
+      status:
+        type: string
+      date:
+        type: number
+  CreateSMTP:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          username:
+            type: string
+          passowrd:
+            type: string
+  SMTP:
+    properties:
+      status:
+        type: string
+      data:
+        type: object
+        properties:
+          description:
+            type: string
+          createdAt:
+            type: string
+          username:
+            type: string
+
+  MailServer:
+    properties:
+      id:
+        type: string
+      mode:
+        type: string
+      recordsStatus:
+        type: string
+      smtp_port:
+        type: string
+      smtp_server:
+        type: string
+      plan:
+        type: object
+      domain:
+        type: string
+      createdAt:
+        type: string
+      dns_setup:
+        type: string
+      rateLimitTier:
+        type: object
+  MailServers:
+    type: array
+    items:
+      $ref: '#/definitions/MailServer'
+  mode:
+    type: string
+    enum:
+      - DEV
+      - LIVE
+  Model1:
+    type: object
+    properties:
+      plan:
+        type: string
+        maxLength: 64
+      domain:
+        type: string
+        x-convert:
+          case: lower
+      mode:
+        $ref: '#/definitions/mode'
+    required:
+      - plan
+      - domain
+      - mode
+  Model2:
+    type: object
+    properties:
+      name:
+        type: string
+      content_type:
+        type: string
+      data:
+        type: string
+    required:
+      - name
+      - content_type
+      - data
+  attachments:
+    type: array
+    maxItems: 10
+    items:
+      $ref: '#/definitions/Model2'
+  Model3:
+    type: object
+    properties:
+      html:
+        type: string
+      text:
+        type: string
+      subject:
+        type: string
+      to:
+        type: string
+        x-convert:
+          case: lower
+      from:
+        type: string
+        x-convert:
+          case: lower
+      replyTo:
+        type: string
+      attachments:
+        $ref: '#/definitions/attachments'
+    required:
+      - subject
+      - to
+      - from
+  Model4:
+    type: object
+    properties:
+      description:
+        type: string
+        maxLength: 1000
+  Model5:
+    type: object
+    properties:
+      name:
+        type: string
+        maxLength: 64
+        pattern: ^[a-z0-9]+([.-][a-z0-9]+)*$
+    required:
+      - name
+  Model6:
+    type: object
+    properties:
+      address:
+        type: string
+        x-format:
+          email: true
+    required:
+      - address
+  timeout:
+    type: string
+    default: '5'
+    enum:
+      - '5'
+      - '15'
+      - '30'
+      - '60'
+      - '300'
+  Model7:
+    type: object
+    properties:
+      description:
+        type: string
+        maxLength: 512
+      name:
+        type: string
+        maxLength: 64
+      attachment:
+        type: boolean
+        default: true
+      address:
+        type: string
+        x-format:
+          uri: true
+      timeout:
+        $ref: '#/definitions/timeout'
+    required:
+      - name
+      - address
+  Model8:
+    type: object
+    properties:
+      mode:
+        $ref: '#/definitions/mode'
+    required:
+      - mode
+  Model9:
+    type: object
+    properties:
+      username:
+        type: string
+    required:
+      - username
+  Model10:
+    type: object
+    properties:
+      plan:
+        type: string
+        maxLength: 64
+    required:
+      - plan
+
+externalDocs:
+  description: 'Find out more about Liara Mail Server'
+  url: 'https://docs.liara.ir/email/create-mail-server/'

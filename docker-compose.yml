@@ -8,7 +8,8 @@ services:
       - ./spec:/usr/share/nginx/html/spec
     environment:
       URLS: "[
-          { url: '/spec/dns.yaml', name: 'DNS' },
-          { url: '/spec/paas.yaml', name: 'PaaS' }, 
-          { url: '/spec/dbaas.yaml', name: 'DBaaS' }
+        { url: '/spec/dns.yaml', name: 'DNS' },
+        { url: '/spec/mail.yaml', name: 'Mail'},
+        { url: '/spec/paas.yaml', name: 'PaaS' },
+        { url: '/spec/dbaas.yaml', name: 'DBaaS' }
         ]"
