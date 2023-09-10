@@ -1,7 +1,7 @@
 swagger: '2.0'
 info:
   description: "Manage your apps using our API\n\n
-    wss://api.iran.liara.ir\n 
+    wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>\n 
     This WebSocket endpoint allows real-time\n 
     communication with the projects service hosted\n 
     at Liara You can use WebSocket protocols\n 
