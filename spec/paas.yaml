@@ -1,6 +1,12 @@
 swagger: '2.0'
 info:
-  description: 'Manage your apps using our API'
+  description: "Manage your apps using our API\n\n
+    wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>\n 
+    This WebSocket endpoint allows real-time\n 
+    communication with the projects service hosted\n 
+    at Liara You can use WebSocket protocols\n 
+    to send and receive data, enabling efficient and\n
+    low-latency interactions with the projects"
   version: '1.0.0'
   title: 'PaaS'
   termsOfService: '#'
@@ -43,8 +49,6 @@ paths:
           description: 'Bad request'
         401:
           description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
         409:
           description: 'Conflict'
     get:
@@ -1192,5 +1196,5 @@ definitions:
             type: string
 
 externalDocs: 
-  description: 'Find out more about APP'
+  description: 'Find out more about PaaS'
   url: 'http://liara.ir'
