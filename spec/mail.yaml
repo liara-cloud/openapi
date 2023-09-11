@@ -13,6 +13,8 @@ securityDefinitions:
     type: apiKey
     name: Authorization
     in: header
+    description: >-
+      Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #
 security:
   - jwt: []
 host: mail-service.iran.liara.ir
@@ -31,7 +33,7 @@ paths:
           schema:
             $ref: '#/definitions/MailServers'
           description: Ok
-        '5XX':
+        500:
           description: Unexpected error
     post:
       summary: create mail server
@@ -52,7 +54,7 @@ paths:
           description: Not enough balance
         403:
           description: Allowed to create only one Mail Server on the free plan
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}:
     get:
@@ -75,7 +77,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
     delete:
       summary: delete mail server
@@ -95,7 +97,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
     patch:
       summary: chagen mail server mode
@@ -119,7 +121,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/smtp-credentials:
     get:
@@ -142,7 +144,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
     post:
       summary: generate credentials to connet mail server with SMTP
@@ -170,7 +172,7 @@ paths:
           description: Allowed to create only 10 smtp credentials
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
     patch:
       summary: revoke credentials to connect mail server with SMTP
@@ -196,7 +198,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Username not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/counts:
     get:
@@ -225,7 +227,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/dns-check:
     get:
@@ -246,7 +248,7 @@ paths:
           description: OK
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{domain}/check-availability:
     get:
@@ -264,7 +266,7 @@ paths:
           description: OK
         400:
           description: Bad Request
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/remaining-free-emails:
     get:
@@ -287,7 +289,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/accounts:
     get:
@@ -310,7 +312,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
     post:
       summary: add mail account
@@ -334,7 +336,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/messages:
     get:
@@ -389,7 +391,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server not found
-        '5XX':
+        500:
           description: Unexpected error
     post:
       summary: send a mail
@@ -419,7 +421,7 @@ paths:
           description: The source and destination addresses must not be the same
         429:
           description: Too mnay requests
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/messages/{messageID}:
     get:
@@ -447,7 +449,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Mail Message not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/accounts/{accountID}/forwards:
     get:
@@ -475,7 +477,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Mail Account not found
-        '5XX':
+        500:
           description: Unexpected error
     post:
       summary: add address endpoint to forwarding mails
@@ -508,7 +510,7 @@ paths:
           description: Mail Server or Mail Account not found
         409:
           description: Address endpoint already exists
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/accounts/{accountName}/check-availability:
     get:
@@ -537,7 +539,7 @@ paths:
           description: Mail Server not found
         409:
           description: Account already taken.
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/messages/{messageID}/render:
     get:
@@ -576,7 +578,7 @@ paths:
           description: Mail Server or Mail Message not found
         409:
           description: Account already taken.
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/messages/{messageID}/attachments:
     get:
@@ -606,7 +608,7 @@ paths:
           description: Mail Server or Mail Message not found
         409:
           description: Account already taken.
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/messages/{messageID}/events:
     get:
@@ -647,7 +649,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Mail Message not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/messages/{messageID}/attachments/{attachmentID}:
     get:
@@ -680,7 +682,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Mail Message not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/messages/{messageID}/temporary-access:
     post:
@@ -717,7 +719,7 @@ paths:
           description: Generate token limitation
         404:
           description: Mail Server or Mail Message not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/accounts/{accountID}:
     delete:
@@ -743,7 +745,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Mail Account not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/smtp-credentials/{username}:
     delete:
@@ -768,7 +770,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or SMTP Credential not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/accounts/{accountID}/forwards/{addressID}:
     delete:
@@ -799,7 +801,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Mail Account or Mail Forward not found
-        '5XX':
+        500:
           description: Unexpected error
   /mails/{mailServerID}/plans:
     put:
@@ -824,7 +826,7 @@ paths:
           description: Bad Request
         404:
           description: Mail Server or Mail Account not found
-        '5XX':
+        500:
           description: Unexpected error
 definitions:
   TmpAccess:
