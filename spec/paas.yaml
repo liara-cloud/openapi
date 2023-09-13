@@ -353,6 +353,53 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
+  '/v1/projects/{app-id}/disks':
+    get:
+      tags:
+        - 'Disks'
+      summary: 'Get disks'
+      description: 'get disks that user owns'
+      parameters:
+        - in: path
+          name: app-id
+          description: 'The id of your app'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-id}/disks/{app-name}/backups':
+    get:
+      tags:
+        - 'Disks'
+      summary: 'Get backups disks'
+      description: 'get backups disks that user owns'
+      parameters:
+        - in: path
+          name: app-id
+          description: 'The id of your app'
+          type: string
+          required: true
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
   '/v1/projects/{app-name}/disks':
     post:
       tags:
