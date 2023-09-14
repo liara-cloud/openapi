@@ -374,12 +374,12 @@ paths:
           description: 'Missing authentication'
         404:
           description: 'App does not exists.'
-  '/v1/projects/{app-id}/disks/{app-name}/backups':
+  '/v1/projects/{app-id}/disks/{disk-name}/backups':
     get:
       tags:
         - 'Disks'
-      summary: 'Get backups disks'
-      description: 'get backups disks that user owns'
+      summary: 'Get backups disk'
+      description: 'get backups disk that user owns'
       parameters:
         - in: path
           name: app-id
@@ -387,8 +387,64 @@ paths:
           type: string
           required: true
         - in: path
-          name: app-name
-          description: 'The name of your app'
+          name: disk-name
+          description: 'The name of your disk'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+    post:
+      tags:
+        - 'Disks'
+      summary: 'Create backup disk'
+      description: 'create backup disk that user owns'
+      parameters:
+        - in: path
+          name: app-id
+          description: 'The id of your app'
+          type: string
+          required: true
+        - in: path
+          name: disk-name
+          description: 'The name of your disk'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-id}/disks/{disk-name}/backups/manual/{backup-name}/download':
+    post:
+      tags:
+        - 'Disks'
+      summary: 'Download backup disk'
+      description: 'download backup disk that user owns'
+      parameters:
+        - in: path
+          name: app-id
+          description: 'The id of your app'
+          type: string
+          required: true
+        - in: path
+          name: disk-name
+          description: 'The name of your disk'
+          type: string
+          required: true
+        - in: path
+          name: backup-name
+          description: 'The name of your backup'
           type: string
           required: true
       responses:
