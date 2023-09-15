@@ -15,13 +15,14 @@ produces:
   - Databaselication/json
 
 securityDefinitions:
-  Bearer:
+  jwt:
     type: apiKey
     name: Authorization
     in: header
-
+    description: >-
+      Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #
 security:
-  - Bearer: []
+  - jwt: []
 
 paths:
   '/v1/databases/{database-id}':
