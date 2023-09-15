@@ -21,13 +21,14 @@ produces:
   - application/json
 
 securityDefinitions:
-  Bearer:
+  jwt:
     type: apiKey
     name: Authorization
     in: header
-
+    description: >-
+      Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #
 security:
-  - Bearer: []
+  - jwt: []
 
 paths:
   '/v1/projects':
@@ -643,6 +644,27 @@ paths:
           description: 'Successful operation'
           schema:
             $ref: '#/definitions/Releases'
+        400:
+          description: 'Bad request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'App does not exists.'
+  '/v1/projects/{app-name}/metrics/summary':
+    get:
+      tags:
+        - 'Reports'
+      summary: 'Get summary reports of app'
+      description: 'get summary reports of app that user owns'
+      parameters:
+        - in: path
+          name: app-name
+          description: 'The name of your app'
+          type: string
+          required: true
+      responses:
+        200:
+          description: 'Successful operation'
         400:
           description: 'Bad request'
         401:
