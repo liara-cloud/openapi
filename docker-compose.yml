@@ -1,4 +1,4 @@
-version: "3.5"
+version: '3.5'
 services:
   openapi:
     build: .
@@ -11,5 +11,6 @@ services:
         { url: '/spec/dns.yaml', name: 'DNS' },
         { url: '/spec/mail.yaml', name: 'Mail'},
         { url: '/spec/paas.yaml', name: 'PaaS' },
-        { url: '/spec/dbaas.yaml', name: 'DBaaS' }
+        { url: '/spec/dbaas.yaml', name: 'DBaaS' },
+        { url: '/spec/object-storage.yaml', name: 'Object Storage' }
         ]"
