@@ -1,0 +1,753 @@
+swagger: '2.0'
+basePath: '/api/v1'
+info:
+  title: 'Object Storage API Documentaion'
+  description: 'A scalable, reliable, and cost effective Object Storage solution to support your application from liara-cloud'
+  version: '1.0.0'
+  contact:
+    email: support@liara.ir
+    name: liara
+    url: https://liara.ir
+securityDefinitions:
+  jwt:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: >-
+      Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #
+security:
+  - jwt: []
+host: 'storage-service.iran.liara.ir'
+schemes:
+  - https
+tags:
+  - name: 'Bucket'
+    description: 'Operations about bucket'
+  - name: 'Key'
+    description: 'Operations about key'
+  - name: 'Folder'
+    description: 'Operations about folder'
+  - name: 'Object'
+    description: 'Operations about object'
+paths:
+  /buckets:
+    get:
+      tags:
+        - 'Bucket'
+      summary: 'List all Buckets'
+      description: 'List all Bucket'
+      produces:
+        - 'application/json'
+      responses:
+        200:
+          description: 'successful operation'
+        401:
+          description: 'Missing authentication'
+        500:
+          description: 'server does not response'
+    post:
+      tags:
+        - 'Bucket'
+      summary: 'Create Bucket'
+      description: 'creates a new bucket on an object storage'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'create bucket. Acceptable values for permission: ( private / public ) and for plan: ( 20g, 40g, 80g, 160g )'
+          required: true
+          schema:
+            $ref: '#/definitions/Create-Bucket'
+      responses:
+        201:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/migrations:
+    get:
+      tags:
+        - 'Bucket'
+      summary: list migration operation
+      description: 'list migration operation'
+      produces:
+        - 'application/json'
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/type/{permission}:
+    patch:
+      tags:
+        - 'Bucket'
+      summary: change Bucket Access Policy
+      description: 'Change Bucket Access policy on an object storage ( public / private )'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'path'
+          name: 'permission'
+          type: 'string'
+          required: true
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/upgrade/{plan}:
+    patch:
+      tags:
+        - 'Bucket'
+      summary: 'Upgrade Bucket'
+      description: 'Upgrade Bucket plan ( just make space bigger )'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'path'
+          name: 'plan'
+          type: 'string'
+          required: true
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        403:
+          description: 'Forbidden'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+        502:
+          description: 'bad gateway'
+  /buckets/{bucket}:
+    get:
+      tags:
+        - 'Bucket'
+      summary: 'Get Single Buckets'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        200:
+          description: 'successful operation'
+        401:
+          description: 'Missing authentication'
+        500:
+          description: 'server does not response'
+    delete:
+      tags:
+        - 'Bucket'
+      summary: 'Destroy Bucket'
+      description: 'Delete Bucket on an object storage'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        204:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/check-availability:
+    get:
+      tags:
+        - 'Bucket'
+      summary: 'Check Bucket availability'
+      description: 'Check if you can create Bucket with specified Name.'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/migrates:
+    post:
+      tags:
+        - 'Bucket'
+      summary: 'Migrating buckets'
+      description: 'Move data from one bucket to another'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Migrate buckets'
+          required: true
+          schema:
+            $ref: '#/definitions/Migrate-Bucket'
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+  /buckets/migration/from:
+    get:
+      tags:
+        - 'Bucket'
+      summary: 'List storage service buckets'
+      description: 'List previous buckets of storage service in liara.'
+      produces:
+        - 'application/json'
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+  /keys:
+    get:
+      tags:
+        - 'Key'
+      summary: 'Get List of Keys'
+      produces:
+        - 'application/json'
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+    post:
+      tags:
+        - 'Key'
+      summary: 'Create Keys'
+      description: 'Create access and secret key'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Declare Buckets for access key'
+          required: true
+          schema:
+            $ref: '#/definitions/Create-Key'
+      responses:
+        201:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+  /keys/{key}:
+    get:
+      tags:
+        - 'Key'
+      summary: 'Get Key'
+      description: 'Get a key'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'key'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        500:
+          description: 'server does not response'
+    patch:
+      tags:
+        - 'Key'
+      summary: 'Update key'
+      description: 'Update buckets of key ( redefine )'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'key'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'body'
+          name: 'body'
+          description: 'Declare Buckets for access key'
+          required: true
+          schema:
+            $ref: '#/definitions/Create-Key'
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+    delete:
+      tags:
+        - 'Key'
+      summary: 'Delete Key'
+      description: 'Delete access key'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'key'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        204:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /keys/{key}/revoke:
+    patch:
+      tags:
+        - 'Key'
+      summary: 'Revoke secret key'
+      description: 'Revoke secret key'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'key'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/download/${object}:
+    get:
+      tags:
+        - 'Object'
+      summary: 'Download Object'
+      description: 'Return presigned url for download object'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'path'
+          name: 'object'
+          description: 'specify object path'
+          required: true
+          type: 'string'
+        - in: 'query'
+          name: 'expiry'
+          description: 'example: 2 days 7 hours 45 minutes'
+          required: false
+          type: 'string'
+
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/upload/{object}:
+    get:
+      tags:
+        - 'Object'
+      summary: 'Upload Object'
+      description: 'Return presigned url for download object'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'path'
+          name: 'object'
+          description: 'specify object path'
+          required: true
+          type: 'string'
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/objects/{prefix}:
+    get:
+      tags:
+        - 'Object'
+      summary: 'List Objects'
+      description: 'Return list of objects ( max:50, min:1 )'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'path'
+          name: 'prefix'
+          description: ''
+          required: true
+          type: 'string'
+        - in: 'query'
+          name: 'number'
+          description: 'specify number of object ( max: 50, min: 1 )'
+          required: false
+          type: 'string'
+        - in: 'query'
+          name: 'page'
+          description: ''
+          required: false
+          type: 'string'
+      responses:
+        200:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+    delete:
+      tags:
+        - 'Object'
+      summary: 'Delete Object'
+      description: 'Delete an object from storage'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'path'
+          name: 'prefix'
+          description: ''
+          required: true
+          type: 'string'
+      responses:
+        204:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/objects/statistics/{object}:
+    get:
+      tags:
+        - 'Object'
+      summary: 'Get Stat Object'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'path'
+          name: 'object'
+          description: ''
+          required: true
+          type: 'string'
+      responses:
+        204:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/folders:
+    post:
+      tags:
+        - 'Folder'
+      summary: 'Create Folder'
+      description: 'Create Folder in Bucket'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'body'
+          name: 'body'
+          description: ''
+          required: true
+          schema:
+            $ref: '#/definitions/Create-Folder'
+      responses:
+        201:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+    delete:
+      tags:
+        - 'Folder'
+      summary: 'Delete Folder'
+      description: 'Delete Folder in Bucket'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'query'
+          name: 'path'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        204:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/metrics/summary:
+    get:
+      tags:
+        - 'Metrics'
+      summary: 'metrics summary'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+      responses:
+        204:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+  /buckets/{bucket}/metrics/historical:
+    get:
+      tags:
+        - 'Metrics'
+      summary: 'hisotrical metrics'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'bucket'
+          type: 'string'
+          description: ''
+          required: true
+        - in: 'query'
+          name: 'since'
+          description: 'unix time'
+          required: true
+          type: 'string'
+      responses:
+        204:
+          description: 'successful operation'
+        400:
+          description: 'Bad Request'
+        401:
+          description: 'Missing authentication'
+        404:
+          description: 'Not Found'
+        409:
+          description: 'Conflict'
+        500:
+          description: 'server does not response'
+definitions:
+  Migrate-Bucket:
+    type: 'object'
+    properties:
+      from:
+        type: 'string'
+      to:
+        type: 'string'
+      path:
+        type: 'string'
+  Create-Key:
+    type: 'object'
+    properties:
+      buckets:
+        type: 'array'
+        items: {}
+      description:
+        type: 'string'
+  Create-Bucket:
+    type: 'object'
+    properties:
+      name:
+        type: 'string'
+      plan:
+        type: 'string'
+      permission:
+        type: 'string'
+  Create-Folder:
+    type: 'object'
+    properties:
+      path:
+        type: 'string'
+
+externalDocs:
+  description: 'Find out more about Liara Object Storage'
+  url: 'https://docs.liara.ir/buckets/about/'
