@@ -1,1325 +1,1537 @@
-swagger: '2.0'
+openapi: 3.0.1
 info:
-  description: "Manage your apps using our API\n\n
-    wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>\n 
-    This WebSocket endpoint allows real-time\n 
-    communication with the projects service hosted\n 
-    at Liara You can use WebSocket protocols\n 
-    to send and receive data, enabling efficient and\n
-    low-latency interactions with the projects"
-  version: '1.0.0'
-  title: 'PaaS'
+  title: PaaS
+  description: |-
+    Manage your apps using our API
+
+     wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>
+     This WebSocket endpoint allows real-time
+     communication with the projects service hosted
+     at Liara You can use WebSocket protocols
+     to send and receive data, enabling efficient and
+     low-latency interactions with the projects
   termsOfService: '#'
   contact:
-    email: 'info@liara.ir'
-host: 'api.iran.liara.ir'
-schemes:
-  - 'https'
-consumes:
-  - application/json
-produces:
-  - application/json
-
-securityDefinitions:
-  jwt:
-    type: apiKey
-    name: Authorization
-    in: header
-    description: >-
-      Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about PaaS
+  url: http://liara.ir
+servers:
+- url: https://api.iran.liara.ir/
 security:
-  - jwt: []
-
+- jwt: []
 paths:
-  '/v1/projects':
-    post:
+  /v1/projects:
+    get:
       tags:
-        - 'Apps'
-      summary: 'Create a app'
-      description: 'create app that user owns'
-      parameters:
-        - in: body
-          name: create app
-          required: true
-          schema:
-            $ref: '#/definitions/Create-app'
+      - Apps
+      summary: Get details of all projects
+      description: get all details of all projects that user owns
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Projects'
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+    post:
+      tags:
+      - Apps
+      summary: Create a app
+      description: create app that user owns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Create-app'
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         409:
-          description: 'Conflict'
+          description: Conflict
+          content: {}
+      x-codegen-request-body-name: create app
+  /v1/projects/{app-name}:
     get:
       tags:
-      - 'Apps'
-      summary: 'Get details of all projects'
-      description: 'get all details of all projects that user owns'
-      responses:
-        200: 
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Projects'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}':
-    get:
-      tags:
-      - 'Apps'
-      summary: 'Get details of a project'
-      description: 'get all details of all project that user owns'
+      - Apps
+      summary: Get details of a project
+      description: get all details of all project that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
       responses:
-        200: 
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/ProjectAllDetails'
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectAllDetails'
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
+          description: App does not exists.
+          content: {}
     delete:
       tags:
-        - 'Apps'
-      summary: 'Delete a app'
-      description: 'delete app that user owns'
+      - Apps
+      summary: Delete a app
+      description: delete app that user owns
       parameters:
-        - in: path
-          name: app-name
-          required: true
+      - name: app-name
+        in: path
+        description: The name of the app to delete
+        required: true
+        schema:
           type: string
-          description: 'The name of the app to delete'
       responses:
         200:
-          description: 'Your request has been submitted.'
-        204: 
-          description: 'App deleted.'
+          description: Your request has been submitted.
+          content: {}
+        204:
+          description: App deleted.
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/actions/scale':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/actions/scale:
     post:
       tags:
-        - 'Apps'
-      summary: 'Turn on or off a app'
-      description: 'turn on or off a app that user owns'
+      - Apps
+      summary: Turn on or off a app
+      description: turn on or off a app that user owns
       parameters:
-        - in: path
-          name: app-name
-          required: true
+      - name: app-name
+        in: path
+        description: The name of the app to turn on or off
+        required: true
+        schema:
           type: string
-          description: 'The name of the app to turn on or off'
-        - in: body
-          name: scale
-          description: 'Return 1 to turn on or 0 to turn off'
-          required: true
-          schema:
-            type: object
-            required:
-              - scale
-            properties:
-              scale:
-                type: number
-                default: 1
-      responses:
-        200:
-          description: 'Your request has been submitted.'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/actions/restart':
-    post:
-      tags:
-        - 'Apps'
-      summary: 'To restart a app'
-      description: 'to restart app that user owns'
-      parameters:
-        - in: path
-          name: app-name
-          required: true
-          type: string
-          description: 'The name of the app to restart'
-      responses:
-        200:
-          description: 'Your request has been submitted.'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
-  '/v2/projects/{app-name}/sources':
-    post:
-      tags: 
-        - 'Deploy'
-      summary: 'Deploy sources code'
-      description: 'deploy sources code that user owns'
-      parameters:
-          - in: header
-            name: Content-Type
-            description: 'File upload method by default(multipart/form-data)'
-            type: string
-            required: true
-            default: multipart/form-data
-          - in: path
-            name: app-name
-            description: 'The name of your app for deploy'
-            type: string
-            required: true
-          - in: formData
-            name: file
-            type: file
-            required: true
-            description: 'The .gz file to deploy'
-      responses:
-        200:
-          description: 'Successful operation'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
-  '/v2/projects/{app-name}/releases':
-    post:
-      tags: 
-        - 'Deploy'
-      summary: 'Deploy releases'
-      description: 'deploy releases that user owns'
-      parameters:
-          - in: path
-            name: app-name
-            description: 'The name of your app for deploy'
-            type: string
-            required: true
-          - in: body
-            name: deploy releases
-            required: true
+      requestBody:
+        description: Return 1 to turn on or 0 to turn off
+        content:
+          application/json:
             schema:
-              $ref: '#/definitions/Deploy-releases'
+              required:
+              - scale
+              type: object
+              properties:
+                scale:
+                  type: number
+        required: true
       responses:
         200:
-          description: 'Successful operation'
-        400:
-          description: 'Bad request'
+          description: Your request has been submitted.
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-id}/zero-downtime/{status}':
+          description: App does not exists.
+          content: {}
+      x-codegen-request-body-name: scale
+  /v1/projects/{app-name}/actions/restart:
     post:
       tags:
-        - 'Settings'
-      summary: 'Zero downtime'
-      description: 'zero downtime that user owns'
+      - Apps
+      summary: To restart a app
+      description: to restart app that user owns
       parameters:
-        - in: path
-          name: app-id
-          required: true
-          type: string
-        - in: path
-          name: status
-          description: 'disable or enable'
-          required: true
+      - name: app-name
+        in: path
+        description: The name of the app to restart
+        required: true
+        schema:
           type: string
       responses:
         200:
-          description: 'Successful operation'
-        400:
-          description: 'Bad request'
+          description: Your request has been submitted.
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
+          description: App does not exists.
+          content: {}
+  /v2/projects/{app-name}/sources:
+    post:
+      tags:
+      - Deploy
+      summary: Deploy sources code
+      description: deploy sources code that user owns
+      parameters:
+      - name: Content-Type
+        in: header
+        description: File upload method by default(multipart/form-data)
+        required: true
+        schema:
+          type: string
+          default: multipart/form-data
+      - name: app-name
+        in: path
+        description: The name of your app for deploy
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  description: The .gz file to deploy
+                  format: binary
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+  /v2/projects/{app-name}/releases:
+    post:
+      tags:
+      - Deploy
+      summary: Deploy releases
+      description: deploy releases that user owns
+      parameters:
+      - name: app-name
+        in: path
+        description: The name of your app for deploy
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Deploy-releases'
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+      x-codegen-request-body-name: deploy releases
+  /v1/projects/{app-id}/zero-downtime/{status}:
+    post:
+      tags:
+      - Settings
+      summary: Zero downtime
+      description: zero downtime that user owns
+      parameters:
+      - name: app-id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: status
+        in: path
+        description: disable or enable
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
         409:
-          description: 'Conflict'
-  '/v1/projects/{app-id}/default-subdomain/{status}':
+          description: Conflict
+          content: {}
+  /v1/projects/{app-id}/default-subdomain/{status}:
     post:
       tags:
-        - 'Settings'
-      summary: 'Default subdomain'
-      description: 'default subdomain that user owns'
+      - Settings
+      summary: Default subdomain
+      description: default subdomain that user owns
       parameters:
-        - in: path
-          name: app-id
-          required: true
+      - name: app-id
+        in: path
+        required: true
+        schema:
           type: string
-        - in: path
-          name: status
-          description: 'disable or enable'
-          required: true
+      - name: status
+        in: path
+        description: disable or enable
+        required: true
+        schema:
           type: string
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
+          description: App does not exists.
+          content: {}
         409:
-          description: 'Conflict'
-  '/v1/projects/{app-id}/fixed-ip/{status}':
+          description: Conflict
+          content: {}
+  /v1/projects/{app-id}/fixed-ip/{status}:
     post:
       tags:
-        - 'Settings'
-      summary: 'IP static'
-      description: 'ip static that user owns'
+      - Settings
+      summary: IP static
+      description: ip static that user owns
       parameters:
-        - in: path
-          name: app-id
-          required: true
+      - name: app-id
+        in: path
+        required: true
+        schema:
           type: string
-        - in: path
-          name: status
-          description: 'disable or enable'
-          required: true
+      - name: status
+        in: path
+        description: disable or enable
+        required: true
+        schema:
           type: string
       responses:
         200:
-          description: 'Successful operation'
-          schema:
-            properties: 
-              IP:
-                type: string
-                description: 'The IP of your app'
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
+          description: App does not exists.
+          content: {}
         409:
-          description: 'Conflict'
-  '/v1/projects/update-envs':
+          description: Conflict
+          content: {}
+  /v1/projects/update-envs:
     post:
       tags:
-        - 'Settings'
-      summary: 'Update envs'
-      description: 'update envs that user owns'
-      parameters:
-        - in: body
-          name: update envs
-          required: true
-          schema:
-            $ref: '#/definitions/Update-envs'
+      - Settings
+      summary: Update envs
+      description: update envs that user owns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Update-envs'
+        required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/resize':
+          description: App does not exists.
+          content: {}
+      x-codegen-request-body-name: update envs
+  /v1/projects/{app-name}/resize:
     post:
       tags:
-        - 'Apps'
-      summary: 'Change plan'
-      description: 'create app that user owns'
+      - Apps
+      summary: Change plan
+      description: create app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: body
-          name: plan
-          description: 'The plan of your app'
-          required: true
-          schema:
-            type: object
-            required:
+      requestBody:
+        description: The plan of your app
+        content:
+          application/json:
+            schema:
+              required:
               - planID
-            properties:
-              planID:
-                type: string
+              type: object
+              properties:
+                planID:
+                  type: string
+        required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-id}/disks':
+          description: App does not exists.
+          content: {}
+      x-codegen-request-body-name: plan
+  /v1/projects/{app-id}/disks:
     get:
       tags:
-        - 'Disks'
-      summary: 'Get disks'
-      description: 'get disks that user owns'
+      - Disks
+      summary: Get disks
+      description: get disks that user owns
       parameters:
-        - in: path
-          name: app-id
-          description: 'The id of your app'
+      - name: app-id
+        in: path
+        description: The id of your app
+        required: true
+        schema:
           type: string
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-id}/disks/{disk-name}/backups':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-id}/disks/{disk-name}/backups:
     get:
       tags:
-        - 'Disks'
-      summary: 'Get backups disk'
-      description: 'get backups disk that user owns'
+      - Disks
+      summary: Get backups disk
+      description: get backups disk that user owns
       parameters:
-        - in: path
-          name: app-id
-          description: 'The id of your app'
+      - name: app-id
+        in: path
+        description: The id of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: disk-name
-          description: 'The name of your disk'
+      - name: disk-name
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
           type: string
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
+          description: App does not exists.
+          content: {}
     post:
       tags:
-        - 'Disks'
-      summary: 'Create backup disk'
-      description: 'create backup disk that user owns'
+      - Disks
+      summary: Create backup disk
+      description: create backup disk that user owns
       parameters:
-        - in: path
-          name: app-id
-          description: 'The id of your app'
+      - name: app-id
+        in: path
+        description: The id of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: disk-name
-          description: 'The name of your disk'
+      - name: disk-name
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
           type: string
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-id}/disks/{disk-name}/backups/manual/{backup-name}/download':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-id}/disks/{disk-name}/backups/manual/{backup-name}/download:
     post:
       tags:
-        - 'Disks'
-      summary: 'Download backup disk'
-      description: 'download backup disk that user owns'
+      - Disks
+      summary: Download backup disk
+      description: download backup disk that user owns
       parameters:
-        - in: path
-          name: app-id
-          description: 'The id of your app'
+      - name: app-id
+        in: path
+        description: The id of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: disk-name
-          description: 'The name of your disk'
+      - name: disk-name
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: backup-name
-          description: 'The name of your backup'
+      - name: backup-name
+        in: path
+        description: The name of your backup
+        required: true
+        schema:
           type: string
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/disks':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/disks:
     post:
       tags:
-        - 'Disks'
-      summary: 'Create a disk'
-      description: 'create a disk that user owns'
+      - Disks
+      summary: Create a disk
+      description: create a disk that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: body
-          name: disk
-          description: 'The disk of your app'
-          required: true
-          schema:
-            type: object
-            required:
+      requestBody:
+        description: The disk of your app
+        content:
+          application/json:
+            schema:
+              required:
               - name
               - size
-            properties:
-              name:
-                type: string
-              size:
-                type: string
+              type: object
+              properties:
+                name:
+                  type: string
+                size:
+                  type: string
+        required: true
       responses:
         201:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-id}/disks/{disk-name}':
+          description: App does not exists.
+          content: {}
+      x-codegen-request-body-name: disk
+  /v1/projects/{app-id}/disks/{disk-name}:
     delete:
       tags:
-        - 'Disks'
-      summary: 'Delete a disk'
-      description: 'delete a disk that user owns'
+      - Disks
+      summary: Delete a disk
+      description: delete a disk that user owns
       parameters:
-        - in: path
-          name: app-id
-          description: 'The id of your app'
+      - name: app-id
+        in: path
+        description: The id of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: disk-name
-          description: 'The name of your disk of app'
+      - name: disk-name
+        in: path
+        description: The name of your disk of app
+        required: true
+        schema:
           type: string
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
+          description: App does not exists.
+          content: {}
         409:
-          description: 'Conflict'
-  '/v1/domains?project={app-name}':
+          description: Conflict
+          content: {}
+  /v1/domains?project={app-name}:
     get:
       tags:
-        - 'Domains'
-      summary: 'Get all domains'
-      description: 'get all domains that user owns'
+      - Domains
+      summary: Get all domains
+      description: get all domains that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
-          type: string
-          required: true
-      responses:
-        200:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Domains'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'App does not exists.'
-  '/v1/domains/{domain-id}/check':
-    get:
-      tags:
-        - 'Domains'
-      summary: 'Check a domain'
-      description: 'check a domain that user owns'
-      parameters:
-        - in: path
-          name: domain-id
-          description: 'The id of your domain'
-          required: true
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
       responses:
         200:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/CheckDomain'
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domains'
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'Domain does not exists.'
-  '/v1/projects/{app-name}/logs?since={since}':
+          description: App does not exists.
+          content: {}
+  /v1/domains/{domain-id}/check:
     get:
       tags:
-        - 'Apps'
-      summary: 'Get logs of app'
-      description: 'get logs of app that user owns'
+      - Domains
+      summary: Check a domain
+      description: check a domain that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: domain-id
+        in: path
+        description: The id of your domain
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: since
-          description: 'Show logs since timestamp'
-          type: string
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckDomain'
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/applets':
+          description: Domain does not exists.
+          content: {}
+  /v1/projects/{app-name}/logs?since={since}:
     get:
       tags:
-        - 'Apps'
-      summary: 'Get applets of app'
-      description: 'get applets of app that user owns'
+      - Apps
+      summary: Get logs of app
+      description: get logs of app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
+      - name: since
+        in: path
+        description: Show logs since timestamp
+        required: true
+        schema:
+          type: string
       responses:
         200:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Applets'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/releases?page={page}&count={count}':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/applets:
     get:
       tags:
-        - 'Apps'
-      summary: 'Get releases of app'
-      description: 'get releases of app that user owns'
+      - Apps
+      summary: Get applets of app
+      description: get applets of app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: page
-          description: 'The page of your releases'
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Applets'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/releases?page={page}&count={count}:
+    get:
+      tags:
+      - Apps
+      summary: Get releases of app
+      description: get releases of app that user owns
+      parameters:
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
+          type: string
+      - name: page
+        in: path
+        description: The page of your releases
+        required: true
+        schema:
           type: number
-          default: 1
-          required: true
-        - in: path
-          name: count
-          description: 'The count of your releases'
+          default: 1.0
+      - name: count
+        in: path
+        description: The count of your releases
+        required: true
+        schema:
           type: number
-          default: 10
-          required: true
+          default: 10.0
       responses:
         200:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Releases'
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Releases'
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/metrics/summary':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/metrics/summary:
     get:
       tags:
-        - 'Reports'
-      summary: 'Get summary reports of app'
-      description: 'get summary reports of app that user owns'
+      - Reports
+      summary: Get summary reports of app
+      description: get summary reports of app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/metrics/cpu?since={since}':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/metrics/cpu?since={since}:
     get:
       tags:
-        - 'Reports'
-      summary: 'Get cpu reports of app'
-      description: 'get cpu reports of app that user owns'
+      - Reports
+      summary: Get cpu reports of app
+      description: get cpu reports of app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: since
-          description: 'The since of your cpu reports'
+      - name: since
+        in: path
+        description: The since of your cpu reports
+        required: true
+        schema:
           type: number
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/metrics/memory?since={since}':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/metrics/memory?since={since}:
     get:
       tags:
-        - 'Reports'
-      summary: 'Get memory reports of app'
-      description: 'get memory reports of app that user owns'
+      - Reports
+      summary: Get memory reports of app
+      description: get memory reports of app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: since
-          description: 'The since of your memory reports'
+      - name: since
+        in: path
+        description: The since of your memory reports
+        required: true
+        schema:
           type: number
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/metrics/network-receive?since={since}':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/metrics/network-receive?since={since}:
     get:
       tags:
-        - 'Reports'
-      summary: 'Get network-receive reports of app'
-      description: 'get network-receive reports of app that user owns'
+      - Reports
+      summary: Get network-receive reports of app
+      description: get network-receive reports of app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: since
-          description: 'The since of your network-receive reports'
+      - name: since
+        in: path
+        description: The since of your network-receive reports
+        required: true
+        schema:
           type: number
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/projects/{app-name}/metrics/network-transmit?since={since}':
+          description: App does not exists.
+          content: {}
+  /v1/projects/{app-name}/metrics/network-transmit?since={since}:
     get:
       tags:
-        - 'Reports'
-      summary: 'Get network-transmit reports of app'
-      description: 'get network-transmit reports of app that user owns'
+      - Reports
+      summary: Get network-transmit reports of app
+      description: get network-transmit reports of app that user owns
       parameters:
-        - in: path
-          name: app-name
-          description: 'The name of your app'
+      - name: app-name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
           type: string
-          required: true
-        - in: path
-          name: since
-          description: 'The since of your network-transmit reports'
+      - name: since
+        in: path
+        description: The since of your network-transmit reports
+        required: true
+        schema:
           type: number
-          required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-  '/v1/domains':
+          description: App does not exists.
+          content: {}
+  /v1/domains:
     post:
       tags:
-        - 'Domains'
-      summary: 'Create a domain'
-      description: 'create a domain that user owns'
-      parameters:
-        - in: body
-          name: domain
-          description: 'The domain of your app'
-          required: true
-          schema:
-            type: object
-            required:
+      - Domains
+      summary: Create a domain
+      description: create a domain that user owns
+      requestBody:
+        description: The domain of your app
+        content:
+          application/json:
+            schema:
+              required:
               - name
               - project
               - type
-            properties:
-              name:
-                type: string
-              project:
-                type: string
-              type:
-                type: string
-                default: PROJECT
+              type: object
+              properties:
+                name:
+                  type: string
+                project:
+                  type: string
+                type:
+                  type: string
+                  default: PROJECT
+        required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'App does not exists.'
-        409: 
-          description: 'Conflict'
-  '/v1/domains/set-project':
+          description: App does not exists.
+          content: {}
+        409:
+          description: Conflict
+          content: {}
+      x-codegen-request-body-name: domain
+  /v1/domains/set-project:
     post:
       tags:
-        - 'Domains'
-      summary: 'Set a domain for project'
-      description: 'set a domain for project that user owns'
-      parameters:
-        - in: body
-          name: domain
-          description: 'The domain of your app'
-          required: true
-          schema:
-            type: object
-            required:
+      - Domains
+      summary: Set a domain for project
+      description: set a domain for project that user owns
+      requestBody:
+        description: The domain of your app
+        content:
+          application/json:
+            schema:
+              required:
               - domainID
               - projectID
-            properties:
-              domainID:
-                type: string
-              projectID:
-                type: string
+              type: object
+              properties:
+                domainID:
+                  type: string
+                projectID:
+                  type: string
+        required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
-        404: 
-          description: 'App or domain does not exists.'
-  '/v1/domains/{domain-id}/set-redirect':
+          description: Missing authentication
+          content: {}
+        404:
+          description: App or domain does not exists.
+          content: {}
+      x-codegen-request-body-name: domain
+  /v1/domains/{domain-id}/set-redirect:
     post:
       tags:
-        - 'Domains'
-      summary: 'Redirect a domain'
-      description: 'redirect a domain that user owns'
+      - Domains
+      summary: Redirect a domain
+      description: redirect a domain that user owns
       parameters:
-        - in: path
-          name: domain-id
-          description: 'The id of your domain'
-          required: true
+      - name: domain-id
+        in: path
+        description: The id of your domain
+        required: true
+        schema:
           type: string
-        - in: body
-          name: domain
-          description: 'The domain of your app'
-          required: true
-          schema:
-            type: object
-            required:
+      requestBody:
+        description: The domain of your app
+        content:
+          application/json:
+            schema:
+              required:
               - redirectStatus
               - redirectTo
-            properties:
-              redirectStatus:
-                type: number
-                description: '302 or 301'
-                default: 302
-              redirectTo:
-                type: string
+              type: object
+              properties:
+                redirectStatus:
+                  type: number
+                  description: 302 or 301
+                redirectTo:
+                  type: string
+        required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
-        404: 
-          description: 'Domain does not exists.'
-  '/v1/domains/{domain-id}/ssl/disable':
+          description: Missing authentication
+          content: {}
+        404:
+          description: Domain does not exists.
+          content: {}
+      x-codegen-request-body-name: domain
+  /v1/domains/{domain-id}/ssl/disable:
     post:
       tags:
-        - 'Domains'
-      summary: 'Disable ssl'
-      description: 'disable ssl that user owns'
+      - Domains
+      summary: Disable ssl
+      description: disable ssl that user owns
       parameters:
-        - in: path
-          name: domain-id
-          description: 'The id of your domain'
-          required: true
+      - name: domain-id
+        in: path
+        description: The id of your domain
+        required: true
+        schema:
           type: string
       responses:
         204:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
-        404: 
-          description: 'Domain does not exists.'
-  '/v1/domains/provision-ssl-certs':
+          description: Missing authentication
+          content: {}
+        404:
+          description: Domain does not exists.
+          content: {}
+  /v1/domains/provision-ssl-certs:
     post:
       tags:
-        - 'Domains'
-      summary: 'Enable ssl'
-      description: 'enable ssl that user owns'
-      parameters:
-        - in: body
-          name: domain
-          description: 'The domain of your app'
-          required: true
-          schema:
-            type: object
-            required:
+      - Domains
+      summary: Enable ssl
+      description: enable ssl that user owns
+      requestBody:
+        description: The domain of your app
+        content:
+          application/json:
+            schema:
+              required:
               - domain
-            properties:
-              domain:
-                type: string
+              type: object
+              properties:
+                domain:
+                  type: string
+        required: true
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
-        404: 
-          description: 'Domain does not exists.'
-  '/v1/domains/{domain-id}':
+          description: Missing authentication
+          content: {}
+        404:
+          description: Domain does not exists.
+          content: {}
+      x-codegen-request-body-name: domain
+  /v1/domains/{domain-id}:
     delete:
       tags:
-        - 'Domains'
-      summary: 'Delete a domain'
-      description: 'delete a domain that user owns'
+      - Domains
+      summary: Delete a domain
+      description: delete a domain that user owns
       parameters:
-        - in: path
-          name: domain-id
-          description: 'The id of your domain'
-          required: true
+      - name: domain-id
+        in: path
+        description: The id of your domain
+        required: true
+        schema:
           type: string
       responses:
         200:
-          description: 'Successful operation'
+          description: Successful operation
+          content: {}
         400:
-          description: 'Bad request'
+          description: Bad request
+          content: {}
         401:
-          description: 'Missing authentication'
+          description: Missing authentication
+          content: {}
         404:
-          description: 'Domain does not exists.'
-
-definitions:
-  Create-app:
-    properties: 
-      name:
-        type: string
-        description: 'The name of app that you want to create'
-      planID:
-        type: string
-        description: 'The plan of app that you want to create'
-      platform:
-        type: string
-        description: 'The platform of app that you want to create'
-  ProjectAllDetails:
-    type: object 
-    properties: 
-      project:
-        type: object
-        properties:
-          _id:
-            type: string
-            description: 'The id of project'
-          project_id:
-            type: string
-            description: 'The name of project'
-          type:
-            type: string
-            description: 'The platform of project'
-          status:
-            type: string
-            description: 'The status of project'
-          defaultSubdomain:
-            type: boolean
-            description: 'The defaultSubdomain status of project'
-          zeroDowntime:
-            type: boolean
-            description: 'The zeroDowntime status of project'
-          scale:
-            type: string
-            description: 'The being on of project'
-          envs: 
-            type: array
-            description: 'The envs of project'
-            items:
-              properties: 
-                key:
-                  type: string
-                value: 
-                  type: string
-                encrypted:
-                  type: boolean
-                _id: 
-                  type: string
-          planID:
-            type: string
-            description: 'The plan of project'
-          fixedIPStatus:
-            type: string
-            description: 'The fixedIPStatus of project'
-          created_at:
-            type: string
-            description: 'The time to create of project'
-          node:
-            type: object
-            description: 'The node of project'
-            properties: 
-              _id:
-                type: string
-              IP:
-                type: string
-          hourlyPrice:
-            type: number
-            description: 'The hourlyPrice of project'
-          isDeployed:
-            type: string
-            description: 'The deployment status of project'
-          reservedDiskSpace:
-            type: number
-            description: 'The count reservedDiskSpace of project'
-  Projects:
-    type: object
-    properties:
-      projects:
-        type: array
-        items:
-          properties: 
-            _id:
-              type: string
-              description: 'The id of project'
-            project_id:
-              type: string
-              description: 'The name of project'
-            type:
-              type: string
-              description: 'The platform of project'
-            status:
-              type: string
-              description: 'The status of project'
-            scale:
-              type: string
-              description: 'The being on of project'
-            planID:
-              type: string
-              description: 'The plan of project'
-            created_at:
-              type: string
-              description: 'The time to create the project'
-            isDeployed:
-              type: string
-              description: 'The project deployment status'
-  Deploy-releases:
-    properties:
-      sourceID:
-        type: string
-        description: The id of Deployed sources
-      port:
-        type: number
-        description: The port of your app
-      type:
-        type: string
-        description: The platform of your app
-  Update-envs:
-    properties: 
-      project:
-        type: string
-        description: 'The name of your app for update envs'
-      variables:
-        type: array
-        description: 'The envs for update'
-        items:
-          properties: 
-            key:
-              type: string
-              description: 'The name of your env'
-            value:
-              type: string
-              description: 'The value of your env'
-  Domains:
-    type: object
-    properties:
-      domains:
-        type: array
-        items:
-          properties: 
-            _id:
-              type: string
-              description: 'The id of domain'
-            name:
-              type: string
-              description: 'The name of domain'
-            type:
-              type: string
-              description: 'The type of domain'
-            project:
-              type: object
-              description: 'The type of domain'
-              properties:
-                _id:
-                  type: string
-                  description: 'The id of project'
-                project_id:
-                  type: string
-                  description: 'The name of project'
-            status:
-              type: string
-              description: 'The status of domain'
-            certificatesStatus:
-              type: string
-              description: 'The certificatesStatus of domain'
-            redirectTo:
-              type: string
-              description: 'The redirectTo of domain'
-            redirectStatus:
-              type: number
-              default: 302
-              description: 'The redirectStatus of domain'
-            created_at:
-              type: string
-              description: 'The created_at of domain'
-            CNameRecord:
-              type: string
-              description: 'The CNameRecord of domain'
-  Applets:
-    type: object
-    properties:
-      applets:
-        type: array
-        items:
-          properties: 
-            id:
-              type: string
-              description: 'The id of applet'
-            name:
-              type: string
-              description: 'The name of applet'
-            timestamp:
-              type: string
-              description: 'The timestamp of applet'
-            state:
-              type: string
-              description: 'The state of applet'
-            reason:
-              type: string
-              description: 'The reason of applet'
-            release:
-              type: object
-              description: 'The release of applet'
-              properties:
-                releaseID:
-                  type: string
-                  description: 'The releaseID of release'
-                tag:
-                  type: string
-                  description: 'The tag of release'
-  Releases:
-    type: object
-    properties:
-      total:
-        type: number
-        description: 'The total of releases'
-      currentRelease:
-        type: string
-        description: 'The currentRelease of releases'
-      readyReleasesCount:
-        type: number
-        description: 'The total of releases'
-      releases:
-        type: array
-        description: 'The total of releases'
-        items: 
+          description: Domain does not exists.
+          content: {}
+components:
+  schemas:
+    Create-app:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of app that you want to create
+        planID:
+          type: string
+          description: The plan of app that you want to create
+        platform:
+          type: string
+          description: The platform of app that you want to create
+    ProjectAllDetails:
+      type: object
+      properties:
+        project:
+          type: object
           properties:
             _id:
               type: string
-              description: 'The id of release'
+              description: The id of project
+            project_id:
+              type: string
+              description: The name of project
             type:
               type: string
-              description: 'The type of release'
-            imageName:
+              description: The platform of project
+            status:
               type: string
-              description: 'The imageName of release'
-            projectType:
-              type: string
-              description: 'The projectType of release'
-            state:
-              type: string
-              description: 'The state of release'
-            port:
-              type: number
-              description: 'The port of release'
-            gitInfo:
-              type: object
-              description: 'The gitInfo of release'
-            client:
-              type: string
-              description: 'The client of release'
-            finishedAt:
-              type: string
-              description: 'The finishedAt of release'
-            createdAt:
-              type: string
-              description: 'The createdAt of release'
-            tag:
-              type: string
-              description: 'The tag of release'
-            sourceAvailable:
+              description: The status of project
+            defaultSubdomain:
               type: boolean
-              description: 'The sourceAvailable of release'
-  CheckDomain:
-    type: object
-    properties:
-      domain:
-        type: object
-        properties:
-          _id:
-            type: string
-          user:
-            type: string
-          name:
-            type: string
-          type:
-            type: string
-          project:
-            type: object
-            properties:
-              current_service:
+              description: The defaultSubdomain status of project
+            zeroDowntime:
+              type: boolean
+              description: The zeroDowntime status of project
+            scale:
+              type: string
+              description: The being on of project
+            envs:
+              type: array
+              description: The envs of project
+              items:
                 type: object
                 properties:
-                  port:
-                    type: integer
-                  name:
+                  key:
                     type: string
-              fixedNode:
-                type: boolean
+                  value:
+                    type: string
+                  encrypted:
+                    type: boolean
+                  _id:
+                    type: string
+            planID:
+              type: string
+              description: The plan of project
+            fixedIPStatus:
+              type: string
+              description: The fixedIPStatus of project
+            created_at:
+              type: string
+              description: The time to create of project
+            node:
+              type: object
+              properties:
+                _id:
+                  type: string
+                IP:
+                  type: string
+              description: The node of project
+            hourlyPrice:
+              type: number
+              description: The hourlyPrice of project
+            isDeployed:
+              type: string
+              description: The deployment status of project
+            reservedDiskSpace:
+              type: number
+              description: The count reservedDiskSpace of project
+    Projects:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            type: object
+            properties:
               _id:
                 type: string
-              user:
-                type: string
+                description: The id of project
               project_id:
                 type: string
+                description: The name of project
               type:
                 type: string
+                description: The platform of project
               status:
                 type: string
-              readOnlyRootFilesystem:
-                type: boolean
-              defaultSubdomain:
-                type: boolean
-              zeroDowntime:
-                type: boolean
-              isOneClickApp:
-                type: boolean
-              isWPPlus:
-                type: boolean
+                description: The status of project
               scale:
-                type: number
-              envs:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    key:
-                      type: string
-                    value:
-                      type: string
-                    encrypted:
-                      type: boolean
-                    _id:
-                      type: string
+                type: string
+                description: The being on of project
               planID:
                 type: string
-              hasVolume:
-                type: boolean
-              fixedIPStatus:
-                type: string
-              managedBySystem:
-                type: boolean
-              updated_at:
-                type: string
+                description: The plan of project
               created_at:
                 type: string
-              __v:
+                description: The time to create the project
+              isDeployed:
+                type: string
+                description: The project deployment status
+    Deploy-releases:
+      type: object
+      properties:
+        sourceID:
+          type: string
+          description: The id of Deployed sources
+        port:
+          type: number
+          description: The port of your app
+        type:
+          type: string
+          description: The platform of your app
+    Update-envs:
+      type: object
+      properties:
+        project:
+          type: string
+          description: The name of your app for update envs
+        variables:
+          type: array
+          description: The envs for update
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                description: The name of your env
+              value:
+                type: string
+                description: The value of your env
+    Domains:
+      type: object
+      properties:
+        domains:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: The id of domain
+              name:
+                type: string
+                description: The name of domain
+              type:
+                type: string
+                description: The type of domain
+              project:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: The id of project
+                  project_id:
+                    type: string
+                    description: The name of project
+                description: The type of domain
+              status:
+                type: string
+                description: The status of domain
+              certificatesStatus:
+                type: string
+                description: The certificatesStatus of domain
+              redirectTo:
+                type: string
+                description: The redirectTo of domain
+              redirectStatus:
                 type: number
-              node:
+                description: The redirectStatus of domain
+              created_at:
                 type: string
-              currentRelease:
+                description: The created_at of domain
+              CNameRecord:
                 type: string
-              lastScaleStartedAt:
+                description: The CNameRecord of domain
+    Applets:
+      type: object
+      properties:
+        applets:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
                 type: string
-              lastScaleFinishedAt:
+                description: The id of applet
+              name:
                 type: string
-              resizes:
+                description: The name of applet
+              timestamp:
+                type: string
+                description: The timestamp of applet
+              state:
+                type: string
+                description: The state of applet
+              reason:
+                type: string
+                description: The reason of applet
+              release:
+                type: object
+                properties:
+                  releaseID:
+                    type: string
+                    description: The releaseID of release
+                  tag:
+                    type: string
+                    description: The tag of release
+                description: The release of applet
+    Releases:
+      type: object
+      properties:
+        total:
+          type: number
+          description: The total of releases
+        currentRelease:
+          type: string
+          description: The currentRelease of releases
+        readyReleasesCount:
+          type: number
+          description: The total of releases
+        releases:
+          type: array
+          description: The total of releases
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: The id of release
+              type:
+                type: string
+                description: The type of release
+              imageName:
+                type: string
+                description: The imageName of release
+              projectType:
+                type: string
+                description: The projectType of release
+              state:
+                type: string
+                description: The state of release
+              port:
                 type: number
-          status:
-            type: string
-          certificatesStatus:
-            type: string
-          redirectTo:
-            type: string
-          redirectStatus:
-            type: number
-          updated_at:
-            type: string
-          punycodeName:
-            type: string
-          verificationCode:
-            type: string
-          created_at:
-            type: string
-          __v:
-            type: number
-          CNameRecord:
-            type: string
-
-externalDocs: 
-  description: 'Find out more about PaaS'
-  url: 'http://liara.ir'
+                description: The port of release
+              gitInfo:
+                type: object
+                properties: {}
+                description: The gitInfo of release
+              client:
+                type: string
+                description: The client of release
+              finishedAt:
+                type: string
+                description: The finishedAt of release
+              createdAt:
+                type: string
+                description: The createdAt of release
+              tag:
+                type: string
+                description: The tag of release
+              sourceAvailable:
+                type: boolean
+                description: The sourceAvailable of release
+    CheckDomain:
+      type: object
+      properties:
+        domain:
+          type: object
+          properties:
+            _id:
+              type: string
+            user:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+            project:
+              type: object
+              properties:
+                current_service:
+                  type: object
+                  properties:
+                    port:
+                      type: integer
+                    name:
+                      type: string
+                fixedNode:
+                  type: boolean
+                _id:
+                  type: string
+                user:
+                  type: string
+                project_id:
+                  type: string
+                type:
+                  type: string
+                status:
+                  type: string
+                readOnlyRootFilesystem:
+                  type: boolean
+                defaultSubdomain:
+                  type: boolean
+                zeroDowntime:
+                  type: boolean
+                isOneClickApp:
+                  type: boolean
+                isWPPlus:
+                  type: boolean
+                scale:
+                  type: number
+                envs:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+                      encrypted:
+                        type: boolean
+                      _id:
+                        type: string
+                planID:
+                  type: string
+                hasVolume:
+                  type: boolean
+                fixedIPStatus:
+                  type: string
+                managedBySystem:
+                  type: boolean
+                updated_at:
+                  type: string
+                created_at:
+                  type: string
+                __v:
+                  type: number
+                node:
+                  type: string
+                currentRelease:
+                  type: string
+                lastScaleStartedAt:
+                  type: string
+                lastScaleFinishedAt:
+                  type: string
+                resizes:
+                  type: number
+            status:
+              type: string
+            certificatesStatus:
+              type: string
+            redirectTo:
+              type: string
+            redirectStatus:
+              type: number
+            updated_at:
+              type: string
+            punycodeName:
+              type: string
+            verificationCode:
+              type: string
+            created_at:
+              type: string
+            __v:
+              type: number
+            CNameRecord:
+              type: string
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
+      name: Authorization
+      in: header
