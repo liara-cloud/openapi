@@ -1,381 +1,440 @@
-swagger: '2.0'
+openapi: 3.0.1
 info:
-  description: 'Manage dns zones and records'
-  version: '1.0.0'
-  title: 'DNS'
+  title: DNS
+  description: Manage dns zones and records
   termsOfService: '#'
   contact:
-    email: 'info@liara.ir'
-host: 'dns-service.iran.liara.ir'
-basePath: '/api/v1'
-schemes:
-  - 'https'
-consumes:
-  - application/json
-produces:
-  - application/json
-
-securityDefinitions:
-  jwt:
-    type: apiKey
-    name: Authorization
-    in: header
-    description: >-
-      Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #
-security:
-  - jwt: []
-
-paths:
-  '/zones':
-    get:
-      tags:
-        - 'Zone'
-      summary: 'List all zones'
-      description: 'list all zones that user owns'
-      responses:
-        '200':
-          description: An server
-          schema:
-            $ref: '#/definitions/Zones'
-
-    post:
-      tags:
-        - 'Zone'
-      summary: 'Create Zone'
-      description: 'creates a new zone on dns server'
-
-      parameters:
-        - in: body
-          name: 'zone_struct'
-          description: 'The zone to create'
-          required: true
-          schema:
-            type: object
-            required:
-              - name
-            properties:
-              name:
-                type: string
-      responses:
-        201:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Zone'
-        400:
-          description: 'Bad Request'
-        401:
-          description: 'Missing authentication'
-        409:
-          description: 'Conflict'
-        500:
-          description: 'server does not response'
-  '/zones/{zone}':
-    get:
-      tags:
-        - 'Zone'
-      summary: 'Get Zone'
-      description: 'Deletes this zone, all dns records'
-
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: The name of the zone to delete
-          type: string
-      responses:
-        200:
-          description: 'zone details'
-          schema:
-            $ref: '#/definitions/Zone'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Zone does not exists.'
-
-    delete:
-      tags:
-        - 'Zone'
-      summary: 'Delete Zone'
-      description: 'Deletes this zone, all dns records'
-
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: The name of the zone to delete
-          type: string
-      responses:
-        200:
-          description: 'Your request has been submitted.'
-        204:
-          description: 'Zone deleted.'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Zone does not exists.'
-  '/zones/{zone}/check':
-    put:
-      tags:
-        - 'Check Name Servers'
-      summary: 'check nameserver'
-      description: 'check nameserver of zone'
-
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: The name of the zone to check status
-          type: string
-      responses:
-        201:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Submitted'
-        400:
-          description: 'bad request maybe validation error on zone name'
-        404:
-          description: 'Zone does not exists or its status is not pending'
-        401:
-          description: 'Missing authentication'
-        406:
-          description: 'Please try later.'
-        500:
-          description: 'server does not response'
-  '/zones/{zone}/dns-records':
-    post:
-      tags:
-        - 'Dns Record'
-      summary: 'Create dns record'
-      description: 'Creates a new dns record, returns the dns record on creation'
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: 'The name of the zone to delete'
-          type: string
-        - in: body
-          name: 'dns record'
-          required: true
-          schema:
-            $ref: '#/definitions/Dns-record'
-      responses:
-        201:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Dns-record-response'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Zone does not exists.'
-        409:
-          description: 'Conflict'
-    get:
-      tags:
-        - 'Dns Record'
-      summary: 'Get all dns record'
-      description: 'Get all Dns Records on this zone'
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: 'The name of the zone to see all dns records'
-          type: string
-      responses:
-        200:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/All-dns-record-response'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Zone Not Found'
-  '/zones/{zone}/dns-records/{id}':
-    get:
-      tags:
-        - 'Dns Record'
-      summary: 'Get dns record'
-      description: 'Get Dns Record data on this zone'
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: 'The name of the zone to see dns record'
-          type: string
-        - in: path
-          name: id
-          required: true
-          type: string
-          description: 'The id of dns record to see its data'
-      responses:
-        200:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Dns-record-response'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Zone or dns record Not Found'
-    put:
-      tags:
-        - 'Dns Record'
-      summary: 'edit dns record'
-      description: 'you can not edit type of dns record'
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: 'The name of the zone to edit dns record'
-          type: string
-        - in: path
-          name: id
-          required: true
-          type: string
-          description: 'The id of dns record to edit its data'
-        - in: body
-          name: 'dns record'
-          required: true
-          schema:
-            $ref: '#/definitions/Dns-record'
-      responses:
-        200:
-          description: 'Successful operation'
-          schema:
-            $ref: '#/definitions/Dns-record-response'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Zone does not exists.'
-        409:
-          description: 'Conflict'
-    delete:
-      tags:
-        - 'Dns Record'
-      summary: 'delete dns record'
-      description: 'Delete dns record from this zone'
-      parameters:
-        - in: path
-          name: zone
-          required: true
-          description: 'The name of the zone to delete dns record'
-          type: string
-        - in: path
-          name: id
-          required: true
-          type: string
-          description: 'The id of dns record to delete its data'
-      responses:
-        204:
-          description: 'Successful operation'
-        400:
-          description: 'Bad request'
-        401:
-          description: 'Missing authentication'
-        404:
-          description: 'Zone does not exists.'
-
-definitions:
-  Zone:
-    properties:
-      name:
-        type: string
-        description: 'The name of the zone, “liara.ir”, max length: 253, pattern: ^([a-zA-Z0-9][\-a-zA-Z0-9]*\.)+[\-a-zA-Z0-9]{2,20}$'
-      status:
-        type: string
-        description: 'The status of the zone, valid values: [CREATING, PENDING, ACTIVE, DELETING]'
-      nameServers:
-        type: array
-        items:
-          type: string
-      currentNameServers:
-        type: array
-        items:
-          type: string
-      lastCheckAt:
-        type: string
-        description: 'Last time when zones nameservers was checked'
-      createdAt:
-        type: string
-        description: 'Time when zone was created'
-
-  Zones:
-    type: array
-    items:
-      $ref: '#/definitions/Zone'
-
-  Dns-record:
-    properties:
-      name:
-        type: string
-        description: 'The name of dns record, "@" for zone name(root level), "*" for wild card and any valid value with RFC 1123'
-      type:
-        type: string
-        description: 'The type of dns record, valid values: [A, AAAA, TXT, CNAME, ALIAS, MX, SRV, SPF, PTR]'
-      ttl:
-        type: number
-        default: 3600
-        description: 'The ttl of dns record, is not required, valid values: [120, 180, 300, 600, 900, 1800, 3600, 7200, 18000, 43200, 86400, 172800, 432000]'
-      contents:
-        type: array
-        items:
-          type: object
-        description: 'Array of content of dns record, change base on type of dns record'
-
-  Dns-record-id:
-    properties:
-      id:
-        type: string
-        description: 'The id of dns record which need in PUT, DELETE and GET method'
-      name:
-        type: string
-        description: 'The name of dns record, "@" for zone name(root level), "*" for wild card and any valid value with RFC 1123'
-      type:
-        type: string
-        description: 'The type of dns record, valid values: [A, AAAA, TXT, CNAME, ALIAS, MX, SRV, CAA]'
-      ttl:
-        type: number
-        default: 3600
-        description: 'The ttl of dns record, is not required, valid values: [120, 180, 300, 600, 900, 1800, 3600, 7200, 18000, 43200, 86400, 172800, 432000]'
-      contents:
-        type: array
-        items:
-          type: object
-        description: 'Array of content of dns record, change base on type of dns record'
-
-  Dns-record-response:
-    properties:
-      status:
-        type: string
-        description: 'success'
-      data:
-        $ref: '#/definitions/Dns-record-id'
-
-  All-dns-record-response:
-    properties:
-      status:
-        type: string
-        description: 'success'
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/Dns-record-id'
-
-  Submitted:
-    properties:
-      status:
-        type: string
-        description: 'succes'
-      data:
-        type: string
-        description: 'Your request has been submitted.'
-
+    email: info@liara.ir
+  version: 1.0.0
 externalDocs:
-  description: 'Find out more about DNS'
-  url: 'http://liara.ir'
+  description: Find out more about DNS
+  url: http://liara.ir
+servers:
+- url: https://dns-service.iran.liara.ir/api/v1
+security:
+- jwt: []
+paths:
+  /zones:
+    get:
+      tags:
+      - Zone
+      summary: List all zones
+      description: list all zones that user owns
+      responses:
+        200:
+          description: An server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zones'
+    post:
+      tags:
+      - Zone
+      summary: Create Zone
+      description: creates a new zone on dns server
+      requestBody:
+        description: The zone to create
+        content:
+          application/json:
+            schema:
+              required:
+              - name
+              type: object
+              properties:
+                name:
+                  type: string
+        required: true
+      responses:
+        201:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        400:
+          description: Bad Request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        409:
+          description: Conflict
+          content: {}
+        500:
+          description: server does not response
+          content: {}
+      x-codegen-request-body-name: zone_struct
+  /zones/{zone}:
+    get:
+      tags:
+      - Zone
+      summary: Get Zone
+      description: Deletes this zone, all dns records
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to delete
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: zone details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone does not exists.
+          content: {}
+    delete:
+      tags:
+      - Zone
+      summary: Delete Zone
+      description: Deletes this zone, all dns records
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to delete
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Your request has been submitted.
+          content: {}
+        204:
+          description: Zone deleted.
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone does not exists.
+          content: {}
+  /zones/{zone}/check:
+    put:
+      tags:
+      - Check Name Servers
+      summary: check nameserver
+      description: check nameserver of zone
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to check status
+        required: true
+        schema:
+          type: string
+      responses:
+        201:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submitted'
+        400:
+          description: bad request maybe validation error on zone name
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone does not exists or its status is not pending
+          content: {}
+        406:
+          description: Please try later.
+          content: {}
+        500:
+          description: server does not response
+          content: {}
+  /zones/{zone}/dns-records:
+    get:
+      tags:
+      - Dns Record
+      summary: Get all dns record
+      description: Get all Dns Records on this zone
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to see all dns records
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/All-dns-record-response'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone Not Found
+          content: {}
+    post:
+      tags:
+      - Dns Record
+      summary: Create dns record
+      description: Creates a new dns record, returns the dns record on creation
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to delete
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dns-record'
+        required: true
+      responses:
+        201:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dns-record-response'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone does not exists.
+          content: {}
+        409:
+          description: Conflict
+          content: {}
+      x-codegen-request-body-name: dns record
+  /zones/{zone}/dns-records/{id}:
+    get:
+      tags:
+      - Dns Record
+      summary: Get dns record
+      description: Get Dns Record data on this zone
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to see dns record
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        description: The id of dns record to see its data
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dns-record-response'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone or dns record Not Found
+          content: {}
+    put:
+      tags:
+      - Dns Record
+      summary: edit dns record
+      description: you can not edit type of dns record
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to edit dns record
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        description: The id of dns record to edit its data
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dns-record'
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dns-record-response'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone does not exists.
+          content: {}
+        409:
+          description: Conflict
+          content: {}
+      x-codegen-request-body-name: dns record
+    delete:
+      tags:
+      - Dns Record
+      summary: delete dns record
+      description: Delete dns record from this zone
+      parameters:
+      - name: zone
+        in: path
+        description: The name of the zone to delete dns record
+        required: true
+        schema:
+          type: string
+      - name: id
+        in: path
+        description: The id of dns record to delete its data
+        required: true
+        schema:
+          type: string
+      responses:
+        204:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Zone does not exists.
+          content: {}
+components:
+  schemas:
+    Zone:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 'The name of the zone, “liara.ir”, max length: 253, pattern:
+            ^([a-zA-Z0-9][\-a-zA-Z0-9]*\.)+[\-a-zA-Z0-9]{2,20}$'
+        status:
+          type: string
+          description: 'The status of the zone, valid values: [CREATING, PENDING,
+            ACTIVE, DELETING]'
+        nameServers:
+          type: array
+          items:
+            type: string
+        currentNameServers:
+          type: array
+          items:
+            type: string
+        lastCheckAt:
+          type: string
+          description: Last time when zones nameservers was checked
+        createdAt:
+          type: string
+          description: Time when zone was created
+    Zones:
+      type: array
+      items:
+        $ref: '#/components/schemas/Zone'
+    Dns-record:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of dns record, "@" for zone name(root level), "*"
+            for wild card and any valid value with RFC 1123
+        type:
+          type: string
+          description: 'The type of dns record, valid values: [A, AAAA, TXT, CNAME,
+            ALIAS, MX, SRV, SPF, PTR]'
+        ttl:
+          type: number
+          description: 'The ttl of dns record, is not required, valid values: [120,
+            180, 300, 600, 900, 1800, 3600, 7200, 18000, 43200, 86400, 172800, 432000]'
+        contents:
+          type: array
+          description: Array of content of dns record, change base on type of dns
+            record
+          items:
+            type: object
+            properties: {}
+    Dns-record-id:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The id of dns record which need in PUT, DELETE and GET method
+        name:
+          type: string
+          description: The name of dns record, "@" for zone name(root level), "*"
+            for wild card and any valid value with RFC 1123
+        type:
+          type: string
+          description: 'The type of dns record, valid values: [A, AAAA, TXT, CNAME,
+            ALIAS, MX, SRV, CAA]'
+        ttl:
+          type: number
+          description: 'The ttl of dns record, is not required, valid values: [120,
+            180, 300, 600, 900, 1800, 3600, 7200, 18000, 43200, 86400, 172800, 432000]'
+        contents:
+          type: array
+          description: Array of content of dns record, change base on type of dns
+            record
+          items:
+            type: object
+            properties: {}
+    Dns-record-response:
+      type: object
+      properties:
+        status:
+          type: string
+          description: success
+        data:
+          $ref: '#/components/schemas/Dns-record-id'
+    All-dns-record-response:
+      type: object
+      properties:
+        status:
+          type: string
+          description: success
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dns-record-id'
+    Submitted:
+      type: object
+      properties:
+        status:
+          type: string
+          description: succes
+        data:
+          type: string
+          description: Your request has been submitted.
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
+      name: Authorization
+      in: header
