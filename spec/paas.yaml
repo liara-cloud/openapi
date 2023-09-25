@@ -4,12 +4,19 @@ info:
   description: |-
     Manage your apps using our API
 
-     wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>
-     This WebSocket endpoint allows real-time
-     communication with the projects service hosted
-     at Liara You can use WebSocket protocols
-     to send and receive data, enabling efficient and
-     low-latency interactions with the projects
+    [wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>](
+    wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>)
+
+    Parameters:
+    - `token`: Your api token in liara
+    - `cmd`: By default /bin/bash
+    - `project_id`: The id of your project in liara
+
+    This `WebSocket` endpoint allows `real-time`
+    communication with the projects service hosted
+    at `Liara` You can use `WebSocket protocols`
+    to send and receive data, enabling efficient and
+    low-latency interactions with the projects
   termsOfService: '#'
   contact:
     email: info@liara.ir
