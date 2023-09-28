@@ -31,6 +31,7 @@ paths:
       - Bucket
       summary: List all Buckets
       description: List all Bucket
+      operationId: getBuckets
       responses:
         200:
           description: successful operation
@@ -46,6 +47,7 @@ paths:
       - Bucket
       summary: Create Bucket
       description: creates a new bucket on an object storage
+      operationId: createBucket
       requestBody:
         description: 'create bucket. Acceptable values for permission: ( private /
           public ) and for plan: ( 20g, 40g, 80g, 160g )'
@@ -77,6 +79,7 @@ paths:
       - Bucket
       summary: list migration operation
       description: list migration operation
+      operationId: getMigrations
       responses:
         200:
           description: successful operation
@@ -100,6 +103,7 @@ paths:
       summary: change Bucket Access Policy
       description: Change Bucket Access policy on an object storage ( public / private
         )
+      operationId: changeBucketAccess
       parameters:
       - name: bucket
         in: path
@@ -133,6 +137,7 @@ paths:
       - Bucket
       summary: Upgrade Bucket
       description: Upgrade Bucket plan ( just make space bigger )
+      operationId: upgradeBucket
       parameters:
       - name: bucket
         in: path
@@ -171,6 +176,7 @@ paths:
       tags:
       - Bucket
       summary: Get Single Buckets
+      operationId: getSingleBuckets
       parameters:
       - name: bucket
         in: path
@@ -192,6 +198,7 @@ paths:
       - Bucket
       summary: Destroy Bucket
       description: Delete Bucket on an object storage
+      operationId: destroyBucket
       parameters:
       - name: bucket
         in: path
@@ -220,6 +227,7 @@ paths:
       - Bucket
       summary: Check Bucket availability
       description: Check if you can create Bucket with specified Name.
+      operationId: checkBucket
       parameters:
       - name: bucket
         in: path
@@ -251,6 +259,7 @@ paths:
       - Bucket
       summary: Migrating buckets
       description: Move data from one bucket to another
+      operationId: migratingBuckets
       requestBody:
         description: Migrate buckets
         content:
@@ -281,6 +290,7 @@ paths:
       - Bucket
       summary: List storage service buckets
       description: List previous buckets of storage service in liara.
+      operationId: getListPreviousBuckets
       responses:
         200:
           description: successful operation
@@ -302,6 +312,7 @@ paths:
       tags:
       - Key
       summary: Get List of Keys
+      operationId: getListKeys
       responses:
         200:
           description: successful operation
@@ -323,6 +334,7 @@ paths:
       - Key
       summary: Create Keys
       description: Create access and secret key
+      operationId: createKey
       requestBody:
         description: Declare Buckets for access key
         content:
@@ -353,6 +365,7 @@ paths:
       - Key
       summary: Get Key
       description: Get a key
+      operationId: getKey
       parameters:
       - name: key
         in: path
@@ -380,6 +393,7 @@ paths:
       - Key
       summary: Delete Key
       description: Delete access key
+      operationId: deleteKey
       parameters:
       - name: key
         in: path
@@ -410,6 +424,7 @@ paths:
       - Key
       summary: Update key
       description: Update buckets of key ( redefine )
+      operationId: updateKey
       parameters:
       - name: key
         in: path
@@ -449,6 +464,7 @@ paths:
       - Key
       summary: Revoke secret key
       description: Revoke secret key
+      operationId: revokeSecretKey
       parameters:
       - name: key
         in: path
@@ -480,6 +496,7 @@ paths:
       - Object
       summary: Download Object
       description: Return presigned url for download object
+      operationId: downloadObject
       parameters:
       - name: bucket
         in: path
@@ -522,6 +539,7 @@ paths:
       - Object
       summary: Upload Object
       description: Return presigned url for download object
+      operationId: uploadObject
       parameters:
       - name: bucket
         in: path
@@ -559,6 +577,7 @@ paths:
       - Object
       summary: List Objects
       description: Return list of objects ( max:50, min:1 )
+      operationId: getListObjects
       parameters:
       - name: bucket
         in: path
@@ -603,6 +622,7 @@ paths:
       - Object
       summary: Delete Object
       description: Delete an object from storage
+      operationId: deleteObject
       parameters:
       - name: bucket
         in: path
@@ -638,6 +658,7 @@ paths:
       tags:
       - Object
       summary: Get Stat Object
+      operationId: getStatObject
       parameters:
       - name: bucket
         in: path
@@ -674,6 +695,7 @@ paths:
       - Folder
       summary: Create Folder
       description: Create Folder in Bucket
+      operationId: createFolder
       parameters:
       - name: bucket
         in: path
@@ -711,6 +733,7 @@ paths:
       - Folder
       summary: Delete Folder
       description: Delete Folder in Bucket
+      operationId: deleteFolder
       parameters:
       - name: bucket
         in: path
@@ -746,6 +769,7 @@ paths:
       tags:
       - Metrics
       summary: metrics summary
+      operationId: getMetricsSummary
       parameters:
       - name: bucket
         in: path
@@ -776,6 +800,7 @@ paths:
       tags:
       - Metrics
       summary: hisotrical metrics
+      operationId: getHisotricalMetrics
       parameters:
       - name: bucket
         in: path
