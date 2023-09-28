@@ -20,6 +20,7 @@ paths:
       - Zone
       summary: List all zones
       description: list all zones that user owns
+      operationId: getListZones
       responses:
         200:
           description: An server
@@ -32,6 +33,7 @@ paths:
       - Zone
       summary: Create Zone
       description: creates a new zone on dns server
+      operationId: createZone
       requestBody:
         description: The zone to create
         content:
@@ -69,7 +71,8 @@ paths:
       tags:
       - Zone
       summary: Get Zone
-      description: Deletes this zone, all dns records
+      description: Get this zone, all dns records
+      operationId: getZone
       parameters:
       - name: zone
         in: path
@@ -95,6 +98,7 @@ paths:
       - Zone
       summary: Delete Zone
       description: Deletes this zone, all dns records
+      operationId: deleteZone
       parameters:
       - name: zone
         in: path
@@ -121,6 +125,7 @@ paths:
       - Check Name Servers
       summary: check nameserver
       description: check nameserver of zone
+      operationId: checkNameServer
       parameters:
       - name: zone
         in: path
@@ -156,6 +161,7 @@ paths:
       - Dns Record
       summary: Get all dns record
       description: Get all Dns Records on this zone
+      operationId: getListDnsRecords
       parameters:
       - name: zone
         in: path
@@ -184,6 +190,7 @@ paths:
       - Dns Record
       summary: Create dns record
       description: Creates a new dns record, returns the dns record on creation
+      operationId: createDnsRecord
       parameters:
       - name: zone
         in: path
@@ -223,6 +230,7 @@ paths:
       - Dns Record
       summary: Get dns record
       description: Get Dns Record data on this zone
+      operationId: getDnsRecord
       parameters:
       - name: zone
         in: path
@@ -257,6 +265,7 @@ paths:
       - Dns Record
       summary: edit dns record
       description: you can not edit type of dns record
+      operationId: editDnsRecord
       parameters:
       - name: zone
         in: path
@@ -301,6 +310,7 @@ paths:
       - Dns Record
       summary: delete dns record
       description: Delete dns record from this zone
+      operationId: deleteDnsRecord
       parameters:
       - name: zone
         in: path
