@@ -35,6 +35,7 @@ paths:
       - Apps
       summary: Get details of all projects
       description: get all details of all projects that user owns
+      operationId: getApps
       responses:
         200:
           description: Successful operation
@@ -53,6 +54,7 @@ paths:
       - Apps
       summary: Create a app
       description: create app that user owns
+      operationId: createApp
       requestBody:
         content:
           application/json:
@@ -73,14 +75,15 @@ paths:
           description: Conflict
           content: {}
       x-codegen-request-body-name: create app
-  /v1/projects/{app-name}:
+  /v1/projects/{name}:
     get:
       tags:
       - Apps
       summary: Get details of a project
       description: get all details of all project that user owns
+      operationId: getAppByName
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -104,8 +107,9 @@ paths:
       - Apps
       summary: Delete a app
       description: delete app that user owns
+      operationId: deleteAppByName
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of the app to delete
         required: true
@@ -124,14 +128,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/actions/scale:
+  /v1/projects/{name}/actions/scale:
     post:
       tags:
       - Apps
       summary: Turn on or off a app
       description: turn on or off a app that user owns
+      operationId: turnApp
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of the app to turn on or off
         required: true
@@ -160,14 +165,15 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: scale
-  /v1/projects/{app-name}/actions/restart:
+  /v1/projects/{name}/actions/restart:
     post:
       tags:
       - Apps
       summary: To restart a app
       description: to restart app that user owns
+      operationId: restartApp
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of the app to restart
         required: true
@@ -183,12 +189,13 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v2/projects/{app-name}/sources:
+  /v2/projects/{name}/sources:
     post:
       tags:
       - Deploy
       summary: Deploy sources code
       description: deploy sources code that user owns
+      operationId: sourcesDeploy
       parameters:
       - name: Content-Type
         in: header
@@ -197,7 +204,7 @@ paths:
         schema:
           type: string
           default: multipart/form-data
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app for deploy
         required: true
@@ -228,14 +235,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v2/projects/{app-name}/releases:
+  /v2/projects/{name}/releases:
     post:
       tags:
       - Deploy
       summary: Deploy releases
       description: deploy releases that user owns
+      operationId: releasesDeploy
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app for deploy
         required: true
@@ -261,14 +269,15 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: deploy releases
-  /v1/projects/{app-id}/zero-downtime/{status}:
+  /v1/projects/{id}/zero-downtime/{status}:
     post:
       tags:
       - Settings
       summary: Zero downtime
       description: zero downtime that user owns
+      operationId: zeroDowntime
       parameters:
-      - name: app-id
+      - name: id
         in: path
         required: true
         schema:
@@ -295,14 +304,15 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/projects/{app-id}/default-subdomain/{status}:
+  /v1/projects/{id}/default-subdomain/{status}:
     post:
       tags:
       - Settings
       summary: Default subdomain
       description: default subdomain that user owns
+      operationId: defaultSubdomain
       parameters:
-      - name: app-id
+      - name: id
         in: path
         required: true
         schema:
@@ -329,14 +339,15 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/projects/{app-id}/fixed-ip/{status}:
+  /v1/projects/{id}/fixed-ip/{status}:
     post:
       tags:
       - Settings
       summary: IP static
       description: ip static that user owns
+      operationId: ipStatic
       parameters:
-      - name: app-id
+      - name: id
         in: path
         required: true
         schema:
@@ -372,6 +383,7 @@ paths:
       - Settings
       summary: Update envs
       description: update envs that user owns
+      operationId: updateEnvs
       requestBody:
         content:
           application/json:
@@ -392,14 +404,15 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: update envs
-  /v1/projects/{app-name}/resize:
+  /v1/projects/{name}/resize:
     post:
       tags:
       - Apps
       summary: Change plan
       description: create app that user owns
+      operationId: changePlan
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -431,14 +444,15 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: plan
-  /v1/projects/{app-id}/disks:
+  /v1/projects/{id}/disks:
     get:
       tags:
       - Disks
       summary: Get disks
       description: get disks that user owns
+      operationId: getDisks
       parameters:
-      - name: app-id
+      - name: id
         in: path
         description: The id of your app
         required: true
@@ -457,20 +471,21 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-id}/disks/{disk-name}/backups:
+  /v1/projects/{id}/disks/{name}/backups:
     get:
       tags:
       - Disks
       summary: Get backups disk
       description: get backups disk that user owns
+      operationId: getBackups
       parameters:
-      - name: app-id
+      - name: id
         in: path
         description: The id of your app
         required: true
         schema:
           type: string
-      - name: disk-name
+      - name: name
         in: path
         description: The name of your disk
         required: true
@@ -494,14 +509,15 @@ paths:
       - Disks
       summary: Create backup disk
       description: create backup disk that user owns
+      operationId: createBackup
       parameters:
-      - name: app-id
+      - name: id
         in: path
         description: The id of your app
         required: true
         schema:
           type: string
-      - name: disk-name
+      - name: name
         in: path
         description: The name of your disk
         required: true
@@ -520,26 +536,27 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-id}/disks/{disk-name}/backups/manual/{backup-name}/download:
+  /v1/projects/{id}/disks/{dname}/backups/manual/{bname}/download:
     post:
       tags:
       - Disks
       summary: Download backup disk
       description: download backup disk that user owns
+      operationId: downloadBackup
       parameters:
-      - name: app-id
+      - name: id
         in: path
         description: The id of your app
         required: true
         schema:
           type: string
-      - name: disk-name
+      - name: dname
         in: path
         description: The name of your disk
         required: true
         schema:
           type: string
-      - name: backup-name
+      - name: bname
         in: path
         description: The name of your backup
         required: true
@@ -558,14 +575,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/disks:
+  /v1/projects/{name}/disks:
     post:
       tags:
       - Disks
       summary: Create a disk
       description: create a disk that user owns
+      operationId: createDisk
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -600,20 +618,21 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: disk
-  /v1/projects/{app-id}/disks/{disk-name}:
+  /v1/projects/{id}/disks/{name}:
     delete:
       tags:
       - Disks
       summary: Delete a disk
       description: delete a disk that user owns
+      operationId: deleteDisk
       parameters:
-      - name: app-id
+      - name: id
         in: path
         description: The id of your app
         required: true
         schema:
           type: string
-      - name: disk-name
+      - name: name
         in: path
         description: The name of your disk of app
         required: true
@@ -635,14 +654,15 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/domains?project={app-name}:
+  /v1/domains?project={name}:
     get:
       tags:
       - Domains
       summary: Get all domains
       description: get all domains that user owns
+      operationId: getAppDomains
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -664,14 +684,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/domains/{domain-id}/check:
+  /v1/domains/{id}/check:
     get:
       tags:
       - Domains
       summary: Check a domain
       description: check a domain that user owns
+      operationId: checkDomain
       parameters:
-      - name: domain-id
+      - name: id
         in: path
         description: The id of your domain
         required: true
@@ -693,14 +714,15 @@ paths:
         404:
           description: Domain does not exists.
           content: {}
-  /v1/projects/{app-name}/logs?since={since}:
+  /v1/projects/{name}/logs?since={since}:
     get:
       tags:
       - Apps
       summary: Get logs of app
       description: get logs of app that user owns
+      operationId: getAppLogs
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -725,14 +747,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/applets:
+  /v1/projects/{name}/applets:
     get:
       tags:
       - Apps
       summary: Get applets of app
       description: get applets of app that user owns
+      operationId: getAppApplets
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -754,14 +777,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/releases?page={page}&count={count}:
+  /v1/projects/{name}/releases?page={page}&count={count}:
     get:
       tags:
       - Apps
       summary: Get releases of app
       description: get releases of app that user owns
+      operationId: getAppReleases
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -797,14 +821,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/metrics/summary:
+  /v1/projects/{name}/metrics/summary:
     get:
       tags:
       - Reports
       summary: Get summary reports of app
       description: get summary reports of app that user owns
+      operationId: getAppSummaryReports
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -823,14 +848,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/metrics/cpu?since={since}:
+  /v1/projects/{name}/metrics/cpu?since={since}:
     get:
       tags:
       - Reports
       summary: Get cpu reports of app
       description: get cpu reports of app that user owns
+      operationId: getAppCpuReports
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -855,14 +881,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/metrics/memory?since={since}:
+  /v1/projects/{name}/metrics/memory?since={since}:
     get:
       tags:
       - Reports
       summary: Get memory reports of app
       description: get memory reports of app that user owns
+      operationId: getAppMemoryReports
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -887,14 +914,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/metrics/network-receive?since={since}:
+  /v1/projects/{name}/metrics/network-receive?since={since}:
     get:
       tags:
       - Reports
       summary: Get network-receive reports of app
       description: get network-receive reports of app that user owns
+      operationId: getAppNetworkReceiveReports
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -919,14 +947,15 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{app-name}/metrics/network-transmit?since={since}:
+  /v1/projects/{name}/metrics/network-transmit?since={since}:
     get:
       tags:
       - Reports
       summary: Get network-transmit reports of app
       description: get network-transmit reports of app that user owns
+      operationId: getNetworkTransmitReports
       parameters:
-      - name: app-name
+      - name: name
         in: path
         description: The name of your app
         required: true
@@ -957,6 +986,7 @@ paths:
       - Domains
       summary: Create a domain
       description: create a domain that user owns
+      operationId: createAppDomain
       requestBody:
         description: The domain of your app
         content:
@@ -999,6 +1029,7 @@ paths:
       - Domains
       summary: Set a domain for project
       description: set a domain for project that user owns
+      operationId: setAppDomain
       requestBody:
         description: The domain of your app
         content:
@@ -1028,14 +1059,15 @@ paths:
           description: App or domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{domain-id}/set-redirect:
+  /v1/domains/{id}/set-redirect:
     post:
       tags:
       - Domains
       summary: Redirect a domain
       description: redirect a domain that user owns
+      operationId: redirectDomain
       parameters:
-      - name: domain-id
+      - name: id
         in: path
         description: The id of your domain
         required: true
@@ -1071,14 +1103,15 @@ paths:
           description: Domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{domain-id}/ssl/disable:
+  /v1/domains/{id}/ssl/disable:
     post:
       tags:
       - Domains
       summary: Disable ssl
       description: disable ssl that user owns
+      operationId: disableSsl
       parameters:
-      - name: domain-id
+      - name: id
         in: path
         description: The id of your domain
         required: true
@@ -1103,6 +1136,7 @@ paths:
       - Domains
       summary: Enable ssl
       description: enable ssl that user owns
+      operationId: enableSsl
       requestBody:
         description: The domain of your app
         content:
@@ -1129,14 +1163,15 @@ paths:
           description: Domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{domain-id}:
+  /v1/domains/{id}:
     delete:
       tags:
       - Domains
       summary: Delete a domain
       description: delete a domain that user owns
+      operationId: deleteDomain
       parameters:
-      - name: domain-id
+      - name: id
         in: path
         description: The id of your domain
         required: true
