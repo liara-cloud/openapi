@@ -14,14 +14,15 @@ servers:
 security:
 - jwt: []
 paths:
-  /v1/databases/{database-id}:
+  /v1/databases/{id}:
     get:
       tags:
       - Databases
       summary: Get a database
       description: get a database that user owns
+      operationId: getDatabase
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -47,8 +48,9 @@ paths:
       - Databases
       summary: Delete a database
       description: delete a database that user owns
+      operationId: deleteDatabase
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -72,6 +74,7 @@ paths:
       - Databases
       summary: Get all databases
       description: get all databases that user owns
+      operationId: getListDatabases
       responses:
         200:
           description: Successful operation
@@ -90,6 +93,7 @@ paths:
       - Databases
       summary: Create a database
       description: create a database that user owns
+      operationId: createDatabase
       requestBody:
         content:
           Databaselication/json:
@@ -110,14 +114,15 @@ paths:
           description: Conflict
           content: {}
       x-codegen-request-body-name: Create a databases
-  /v1/databases/{database-id}/actions/scale:
+  /v1/databases/{id}/actions/scale:
     post:
       tags:
       - Databases
       summary: Power on or power off a database
       description: power on or power off a database that user owns
+      operationId: TurnDatabase
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -148,14 +153,15 @@ paths:
           description: Database not found
           content: {}
       x-codegen-request-body-name: scale
-  /v1/databases/{database-id}/resize:
+  /v1/databases/{id}/resize:
     post:
       tags:
       - Databases
       summary: Resize a database
       description: resize a database that user owns
+      operationId: resizeDatabase
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -187,14 +193,15 @@ paths:
           description: Database not found
           content: {}
       x-codegen-request-body-name: resize
-  /v1/databases/{database-id}/backups:
+  /v1/databases/{id}/backups:
     get:
       tags:
       - Backups
       summary: Get all backups
       description: get all backups that user owns
+      operationId: getListBackups
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -217,8 +224,9 @@ paths:
       - Backups
       summary: Backup a database
       description: backup a database that user owns
+      operationId: createBackup
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -236,21 +244,24 @@ paths:
         404:
           description: Database not found
           content: {}
-  /v1/databases/{database-id}/backups/{backups-name}/download:
+  /v1/databases/{id}/backups/{name}/download:
     post:
       tags:
       - Backups
       summary: Download a backup
       description: download a backup that user owns
+      operationId: downloadBackup
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
+        description: The id of your database
         schema:
           type: string
-      - name: backups-name
+      - name: name
         in: path
         required: true
+        description: The name of your backup
         schema:
           type: string
       responses:
@@ -266,14 +277,15 @@ paths:
         404:
           description: Database not found
           content: {}
-  /v1/databases/{database-id}/control-panel/{status}:
+  /v1/databases/{id}/control-panel/{status}:
     post:
       tags:
       - Databases
       summary: Change control-panel status
       description: change control-panel status that user owns
+      operationId: changeControlPanel
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -302,14 +314,15 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/databases/{database-id}/public-network/{status}:
+  /v1/databases/{id}/public-network/{status}:
     patch:
       tags:
       - Databases
       summary: Change public network status
       description: change public network status that user owns
+      operationId: changePublicNetwork
       parameters:
-      - name: database-id
+      - name: id
         in: path
         required: true
         schema:
@@ -338,14 +351,15 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/databases/{database-id}/metrics/cpu?since={since}:
+  /v1/databases/{id}/metrics/cpu?since={since}:
     get:
       tags:
       - Reports
       summary: Get cpu reports of database
       description: get cpu reports of database that user owns
+      operationId: getDatabaseCpuReports
       parameters:
-      - name: database-id
+      - name: id
         in: path
         description: The name of your database
         required: true
@@ -370,14 +384,15 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{database-id}/metrics/memory?since={since}:
+  /v1/databases/{id}/metrics/memory?since={since}:
     get:
       tags:
       - Reports
       summary: Get memory reports of database
       description: get memory reports of database that user owns
+      operationId: getDatabaseMemoryReports
       parameters:
-      - name: database-id
+      - name: id
         in: path
         description: The name of your database
         required: true
@@ -402,14 +417,15 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{database-id}/metrics/network-receive?since={since}:
+  /v1/databases/{id}/metrics/network-receive?since={since}:
     get:
       tags:
       - Reports
       summary: Get network-receive reports of database
       description: get network-receive reports of database that user owns
+      operationId: getDatabaseNetworkReceiveReports
       parameters:
-      - name: database-id
+      - name: id
         in: path
         description: The name of your database
         required: true
@@ -434,14 +450,15 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{database-id}/metrics/network-transmit?since={since}:
+  /v1/databases/{id}/metrics/network-transmit?since={since}:
     get:
       tags:
       - Reports
       summary: Get network-transmit reports of database
       description: get network-transmit reports of database that user owns
+      operationId: getDatabaseNetworkTransmitReports
       parameters:
-      - name: database-id
+      - name: id
         in: path
         description: The name of your database
         required: true
@@ -466,14 +483,15 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{database-id}/metrics/summary:
+  /v1/databases/{id}/metrics/summary:
     get:
       tags:
       - Reports
       summary: Get summary reports of database
       description: get summary reports of database that user owns
+      operationId: getDatabaseSummaryReports
       parameters:
-      - name: database-id
+      - name: id
         in: path
         description: The name of your database
         required: true
