@@ -65,7 +65,7 @@ paths:
       tags:
       - mails
       summary: get single mail server
-      operationId: getMailsMailserverid
+      operationId: getSingleMailServer
       parameters:
       - name: mailServerID
         in: path
@@ -93,7 +93,7 @@ paths:
       tags:
       - mails
       summary: delete mail server
-      operationId: deleteMailsMailserverid
+      operationId: deleteMailServer
       parameters:
       - name: mailServerID
         in: path
@@ -118,7 +118,7 @@ paths:
       tags:
       - mails
       summary: chagen mail server mode
-      operationId: patchMailsMailserverid
+      operationId: changeMailServerMode
       parameters:
       - name: mailServerID
         in: path
@@ -151,7 +151,7 @@ paths:
       tags:
       - smtp
       summary: get credential to connect to mail server with SMTP
-      operationId: getMailsMailserveridSmtpcredentials
+      operationId: getCredential
       parameters:
       - name: mailServerID
         in: path
@@ -179,7 +179,7 @@ paths:
       tags:
       - smtp
       summary: generate credentials to connet mail server with SMTP
-      operationId: postMailsMailserveridSmtpcredentials
+      operationId: generateCredentials
       parameters:
       - name: mailServerID
         in: path
@@ -217,7 +217,7 @@ paths:
       tags:
       - smtp
       summary: revoke credentials to connect mail server with SMTP
-      operationId: patchMailsMailserveridSmtpcredentials
+      operationId: revokeCredentials
       parameters:
       - name: mailServerID
         in: path
@@ -253,7 +253,7 @@ paths:
       tags:
       - mails
       summary: count number of sent mails every day
-      operationId: getMailsMailserveridCounts
+      operationId: getCountMails
       parameters:
       - name: mailServerID
         in: path
@@ -289,7 +289,7 @@ paths:
       tags:
       - mails
       summary: mail server check dns status
-      operationId: getMailsMailserveridDnscheck
+      operationId: checkMailServerDnsStatus
       parameters:
       - name: mailServerID
         in: path
@@ -315,7 +315,7 @@ paths:
       tags:
       - mails
       summary: check if domain name is available
-      operationId: getMailsDomainCheckavailability
+      operationId: checkDomainAvailable
       parameters:
       - name: domain
         in: path
@@ -337,7 +337,7 @@ paths:
       tags:
       - mails
       summary: count number of free mails every month
-      operationId: getMailsMailserveridRemainingfreeemails
+      operationId: getCountFreeMails
       parameters:
       - name: mailServerID
         in: path
@@ -366,7 +366,7 @@ paths:
       tags:
       - accounts
       summary: get all mail accounts
-      operationId: getMailsMailserveridAccounts
+      operationId: getAllMailAccounts
       parameters:
       - name: mailServerID
         in: path
@@ -394,7 +394,7 @@ paths:
       tags:
       - accounts
       summary: add mail account
-      operationId: postMailsMailserveridAccounts
+      operationId: createMailACcount
       parameters:
       - name: mailServerID
         in: path
@@ -427,7 +427,7 @@ paths:
       tags:
       - messages
       summary: get all mails
-      operationId: getMailsMailserveridMessages
+      operationId: getAllMails
       parameters:
       - name: mailServerID
         in: path
@@ -498,7 +498,7 @@ paths:
       tags:
       - messages
       summary: send a mail
-      operationId: postMailsMailserveridMessages
+      operationId: sendMail
       parameters:
       - name: mailServerID
         in: path
@@ -540,7 +540,7 @@ paths:
       tags:
       - messages
       summary: get single mail
-      operationId: getMailsMailserveridMessagesMessageid
+      operationId: getSingleMail
       parameters:
       - name: mailServerID
         in: path
@@ -575,7 +575,7 @@ paths:
       tags:
       - forward
       summary: get all extra address to forwarding mails
-      operationId: getMailsMailserveridAccountsAccountidForwards
+      operationId: getListAddressForwarding
       parameters:
       - name: mailServerID
         in: path
@@ -609,7 +609,7 @@ paths:
       tags:
       - forward
       summary: add address endpoint to forwarding mails
-      operationId: postMailsMailserveridAccountsAccountidForwards
+      operationId: createAddressForwarding
       parameters:
       - name: mailServerID
         in: path
@@ -654,7 +654,7 @@ paths:
       tags:
       - accounts
       summary: check if mail account is available
-      operationId: getMailsMailserveridAccountsAccountnameCheckavailability
+      operationId: checkMailAvailable
       parameters:
       - name: mailServerID
         in: path
@@ -690,7 +690,7 @@ paths:
       tags:
       - messages
       summary: get single mail html
-      operationId: getMailsMailserveridMessagesMessageidRender
+      operationId: getSingleMailHtml
       parameters:
       - name: mailServerID
         in: path
@@ -740,7 +740,7 @@ paths:
       tags:
       - attachments
       summary: get all attachments for message
-      operationId: getMailsMailserveridMessagesMessageidAttachments
+      operationId: getAllAttachments
       parameters:
       - name: mailServerID
         in: path
@@ -778,7 +778,7 @@ paths:
       tags:
       - event
       summary: get all events for message
-      operationId: getMailsMailserveridMessagesMessageidEvents
+      operationId: getAllEvents
       parameters:
       - name: mailServerID
         in: path
@@ -832,7 +832,7 @@ paths:
       tags:
       - attachments
       summary: download attachment
-      operationId: getMailsMailserveridMessagesMessageidAttachmentsAttachmentid
+      operationId: downloadAttachments
       parameters:
       - name: mailServerID
         in: path
@@ -873,7 +873,7 @@ paths:
       tags:
       - messages
       summary: generate temporary access to email html
-      operationId: postMailsMailserveridMessagesMessageidTemporaryaccess
+      operationId: generateTemporary
       parameters:
       - name: mailServerID
         in: path
@@ -919,7 +919,7 @@ paths:
       tags:
       - accounts
       summary: delete mail account
-      operationId: deleteMailsMailserveridAccountsAccountid
+      operationId: deleteMailAccount
       parameters:
       - name: mailServerID
         in: path
@@ -951,7 +951,7 @@ paths:
       tags:
       - smtp
       summary: delete smtp credential
-      operationId: deleteMailsMailserveridSmtpcredentialsUsername
+      operationId: deleteSmtpCredential
       parameters:
       - name: mailServerID
         in: path
@@ -982,7 +982,7 @@ paths:
       tags:
       - forward
       summary: delete extra endpoint address
-      operationId: deleteMailsMailserveridAccountsAccountidForwardsAddressid
+      operationId: deleteExtraEndpoint
       parameters:
       - name: mailServerID
         in: path
@@ -1020,7 +1020,7 @@ paths:
       tags:
       - mails
       summary: change mail server plan
-      operationId: putMailsMailserveridPlans
+      operationId: changeMailServerPlan
       parameters:
       - name: mailServerID
         in: path
