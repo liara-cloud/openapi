@@ -536,7 +536,7 @@ components:
         database:
           type: object
           properties:
-            "_id":
+            DBId:
               type: string
               description: The ID of the database
             type:
@@ -611,7 +611,7 @@ components:
           items:
             type: object
             properties:
-              "_id":
+              DBId:
                 type: string
                 description: The ID of the database
               type:
