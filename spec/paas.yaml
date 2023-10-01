@@ -197,13 +197,6 @@ paths:
       description: deploy sources code that user owns
       operationId: sourcesDeploy
       parameters:
-      - name: Content-Type
-        in: header
-        description: File upload method by default(multipart/form-data)
-        required: true
-        schema:
-          type: string
-          default: multipart/form-data
       - name: name
         in: path
         description: The name of your app for deploy
@@ -212,15 +205,16 @@ paths:
           type: string
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
+              type: object
               required:
               - file
               properties:
                 file:
                   type: string
-                  description: The .gz file to deploy
                   format: binary
+                  description: The .gz file to deploy
         required: true
       responses:
         200:
