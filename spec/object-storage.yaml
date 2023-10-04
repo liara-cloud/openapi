@@ -12,7 +12,7 @@ externalDocs:
   description: Find out more about Liara Object Storage
   url: https://docs.liara.ir/buckets/about/
 servers:
-- url: https://storage-service.iran.liara.ir/api/v1
+- url: https://storage-service.iran.liara.ir/
 security:
 - jwt: []
 tags:
@@ -25,7 +25,7 @@ tags:
 - name: Object
   description: Operations about object
 paths:
-  /buckets:
+  /api/v1/buckets:
     get:
       tags:
       - Bucket
@@ -73,7 +73,7 @@ paths:
           description: server does not response
           content: {}
       x-codegen-request-body-name: body
-  /buckets/migrations:
+  /api/v1/buckets/migrations:
     get:
       tags:
       - Bucket
@@ -96,7 +96,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/type/{permission}:
+  /api/v1/buckets/{bucket}/type/{permission}:
     patch:
       tags:
       - Bucket
@@ -131,7 +131,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/upgrade/{plan}:
+  /api/v1/buckets/{bucket}/upgrade/{plan}:
     patch:
       tags:
       - Bucket
@@ -171,7 +171,7 @@ paths:
         502:
           description: bad gateway
           content: {}
-  /buckets/{bucket}:
+  /api/v1/buckets/{bucket}:
     get:
       tags:
       - Bucket
@@ -221,7 +221,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/check-availability:
+  /api/v1/buckets/{bucket}/check-availability:
     get:
       tags:
       - Bucket
@@ -253,7 +253,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/migrates:
+  /api/v1/buckets/migrates:
     post:
       tags:
       - Bucket
@@ -284,7 +284,7 @@ paths:
           description: server does not response
           content: {}
       x-codegen-request-body-name: body
-  /buckets/migration/from:
+  /api/v1/buckets/migration/from:
     get:
       tags:
       - Bucket
@@ -307,7 +307,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /keys:
+  /api/v1/keys:
     get:
       tags:
       - Key
@@ -359,7 +359,7 @@ paths:
           description: server does not response
           content: {}
       x-codegen-request-body-name: body
-  /keys/{key}:
+  /api/v1/keys/{key}:
     get:
       tags:
       - Key
@@ -458,7 +458,7 @@ paths:
           description: server does not response
           content: {}
       x-codegen-request-body-name: body
-  /keys/{key}/revoke:
+  /api/v1/keys/{key}/revoke:
     patch:
       tags:
       - Key
@@ -490,7 +490,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/download/${object}:
+  /api/v1/buckets/{bucket}/download/${object}:
     get:
       tags:
       - Object
@@ -533,7 +533,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/upload/{object}:
+  /api/v1/buckets/{bucket}/upload/{object}:
     get:
       tags:
       - Object
@@ -571,7 +571,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/objects/{prefix}:
+  /api/v1/buckets/{bucket}/objects/{prefix}:
     get:
       tags:
       - Object
@@ -653,7 +653,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/objects/statistics/{object}:
+  /api/v1/buckets/{bucket}/objects/statistics/{object}:
     get:
       tags:
       - Object
@@ -689,7 +689,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/folders:
+  /api/v1/buckets/{bucket}/folders:
     post:
       tags:
       - Folder
@@ -764,7 +764,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/metrics/summary:
+  /api/v1/buckets/{bucket}/metrics/summary:
     get:
       tags:
       - Metrics
@@ -795,7 +795,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /buckets/{bucket}/metrics/historical:
+  /api/v1/buckets/{bucket}/metrics/historical:
     get:
       tags:
       - Metrics
