@@ -10,11 +10,11 @@ externalDocs:
   description: Find out more about DNS
   url: http://liara.ir
 servers:
-- url: https://dns-service.iran.liara.ir/api/v1
+- url: https://dns-service.iran.liara.ir/
 security:
 - jwt: []
 paths:
-  /zones:
+  /api/v1/zones:
     get:
       tags:
       - Zone
@@ -66,7 +66,7 @@ paths:
           description: server does not response
           content: {}
       x-codegen-request-body-name: zone_struct
-  /zones/{zone}:
+  /api/v1/zones/{zone}:
     get:
       tags:
       - Zone
@@ -119,7 +119,7 @@ paths:
         404:
           description: Zone does not exists.
           content: {}
-  /zones/{zone}/check:
+  /api/v1/zones/{zone}/check:
     put:
       tags:
       - Check Name Servers
@@ -155,7 +155,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /zones/{zone}/dns-records:
+  /api/v1/zones/{zone}/dns-records:
     get:
       tags:
       - Dns Record
@@ -224,7 +224,7 @@ paths:
           description: Conflict
           content: {}
       x-codegen-request-body-name: dns record
-  /zones/{zone}/dns-records/{id}:
+  /api/v1/zones/{zone}/dns-records/{id}:
     get:
       tags:
       - Dns Record
