@@ -648,36 +648,6 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/domains?project={name}:
-    get:
-      tags:
-      - Domains
-      summary: Get all domains
-      description: get all domains that user owns
-      operationId: getAppDomains
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Domains'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
   /v1/domains/{id}/check:
     get:
       tags:
@@ -708,7 +678,7 @@ paths:
         404:
           description: Domain does not exists.
           content: {}
-  /v1/projects/{name}/logs?since={since}:
+  /v1/projects/{name}/logs:
     get:
       tags:
       - Apps
@@ -723,7 +693,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: Show logs since timestamp
         required: true
         schema:
@@ -771,7 +741,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/releases?page={page}&count={count}:
+  /v1/projects/{name}/releases:
     get:
       tags:
       - Apps
@@ -786,14 +756,14 @@ paths:
         schema:
           type: string
       - name: page
-        in: path
+        in: query
         description: The page of your releases
         required: true
         schema:
           type: number
           default: 1.0
       - name: count
-        in: path
+        in: query
         description: The count of your releases
         required: true
         schema:
@@ -842,7 +812,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/cpu?since={since}:
+  /v1/projects/{name}/metrics/cpu:
     get:
       tags:
       - Reports
@@ -857,7 +827,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your cpu reports
         required: true
         schema:
@@ -875,7 +845,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/memory?since={since}:
+  /v1/projects/{name}/metrics/memory:
     get:
       tags:
       - Reports
@@ -890,7 +860,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your memory reports
         required: true
         schema:
@@ -908,7 +878,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/network-receive?since={since}:
+  /v1/projects/{name}/metrics/network-receive:
     get:
       tags:
       - Reports
@@ -923,7 +893,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-receive reports
         required: true
         schema:
@@ -941,7 +911,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/network-transmit?since={since}:
+  /v1/projects/{name}/metrics/network-transmit:
     get:
       tags:
       - Reports
@@ -956,7 +926,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-transmit reports
         required: true
         schema:
@@ -975,6 +945,35 @@ paths:
           description: App does not exists.
           content: {}
   /v1/domains:
+    get:
+      tags:
+      - Domains
+      summary: Get all domains
+      description: get all domains that user owns
+      operationId: getAppDomains
+      parameters:
+      - name: project
+        in: query
+        description: The name of your app
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domains'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
     post:
       tags:
       - Domains

@@ -351,7 +351,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/databases/{id}/metrics/cpu?since={since}:
+  /v1/databases/{id}/metrics/cpu:
     get:
       tags:
       - Reports
@@ -366,7 +366,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your cpu reports
         required: true
         schema:
@@ -384,7 +384,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/memory?since={since}:
+  /v1/databases/{id}/metrics/memory:
     get:
       tags:
       - Reports
@@ -399,7 +399,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your memory reports
         required: true
         schema:
@@ -417,7 +417,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/network-receive?since={since}:
+  /v1/databases/{id}/metrics/network-receive:
     get:
       tags:
       - Reports
@@ -432,7 +432,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-receive reports
         required: true
         schema:
@@ -450,7 +450,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/network-transmit?since={since}:
+  /v1/databases/{id}/metrics/network-transmit:
     get:
       tags:
       - Reports
@@ -465,7 +465,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-transmit reports
         required: true
         schema:
