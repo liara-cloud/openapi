@@ -25,9 +25,22 @@ externalDocs:
   description: Find out more about PaaS
   url: http://liara.ir
 servers:
-- url: https://api.iran.liara.ir/
+- url: https://api.iran.liara.ir
 security:
 - jwt: []
+tags:
+  - name: Apps
+    description: Everything about your Apps
+  - name: Deploy
+    description: Deploy endpoints
+  - name: Settings
+    description: Settings of your app
+  - name: Disks
+    description: Disks of your app
+  - name: Domains
+    description: Domains of your app
+  - name: Reports
+    description: Reports of your app
 paths:
   /v1/projects:
     get:
@@ -75,7 +88,7 @@ paths:
           description: Conflict
           content: {}
       x-codegen-request-body-name: create app
-  /v1/projects/{name}:
+  '/v1/projects/{name}':
     get:
       tags:
       - Apps
@@ -128,7 +141,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/actions/scale:
+  '/v1/projects/{name}/actions/scale':
     post:
       tags:
       - Apps
@@ -165,7 +178,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: scale
-  /v1/projects/{name}/actions/restart:
+  '/v1/projects/{name}/actions/restart':
     post:
       tags:
       - Apps
@@ -189,7 +202,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v2/projects/{name}/sources:
+  '/v2/projects/{name}/sources':
     post:
       tags:
       - Deploy
@@ -229,7 +242,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v2/projects/{name}/releases:
+  '/v2/projects/{name}/releases':
     post:
       tags:
       - Deploy
@@ -263,7 +276,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: deploy releases
-  /v1/projects/{id}/zero-downtime/{status}:
+  '/v1/projects/{id}/zero-downtime/{status}':
     post:
       tags:
       - Settings
@@ -298,7 +311,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/projects/{id}/default-subdomain/{status}:
+  '/v1/projects/{id}/default-subdomain/{status}':
     post:
       tags:
       - Settings
@@ -333,7 +346,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/projects/{id}/fixed-ip/{status}:
+  '/v1/projects/{id}/fixed-ip/{status}':
     post:
       tags:
       - Settings
@@ -398,7 +411,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: update envs
-  /v1/projects/{name}/resize:
+  '/v1/projects/{name}/resize':
     post:
       tags:
       - Apps
@@ -438,7 +451,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: plan
-  /v1/projects/{id}/disks:
+  '/v1/projects/{id}/disks':
     get:
       tags:
       - Disks
@@ -465,7 +478,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{id}/disks/{name}/backups:
+  '/v1/projects/{id}/disks/{name}/backups':
     get:
       tags:
       - Disks
@@ -530,7 +543,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{id}/disks/{dname}/backups/manual/{bname}/download:
+  '/v1/projects/{id}/disks/{dname}/backups/manual/{bname}/download':
     post:
       tags:
       - Disks
@@ -569,7 +582,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/disks:
+  '/v1/projects/{name}/disks':
     post:
       tags:
       - Disks
@@ -612,7 +625,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: disk
-  /v1/projects/{id}/disks/{name}:
+  '/v1/projects/{id}/disks/{name}':
     delete:
       tags:
       - Disks
@@ -648,37 +661,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/domains?project={name}:
-    get:
-      tags:
-      - Domains
-      summary: Get all domains
-      description: get all domains that user owns
-      operationId: getAppDomains
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Domains'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  /v1/domains/{id}/check:
+  '/v1/domains/{id}/check':
     get:
       tags:
       - Domains
@@ -708,7 +691,7 @@ paths:
         404:
           description: Domain does not exists.
           content: {}
-  /v1/projects/{name}/logs?since={since}:
+  '/v1/projects/{name}/logs':
     get:
       tags:
       - Apps
@@ -723,7 +706,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: Show logs since timestamp
         required: true
         schema:
@@ -741,7 +724,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/applets:
+  '/v1/projects/{name}/applets':
     get:
       tags:
       - Apps
@@ -771,7 +754,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/releases?page={page}&count={count}:
+  '/v1/projects/{name}/releases':
     get:
       tags:
       - Apps
@@ -786,14 +769,14 @@ paths:
         schema:
           type: string
       - name: page
-        in: path
+        in: query
         description: The page of your releases
         required: true
         schema:
           type: number
           default: 1.0
       - name: count
-        in: path
+        in: query
         description: The count of your releases
         required: true
         schema:
@@ -815,7 +798,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/summary:
+  '/v1/projects/{name}/metrics/summary':
     get:
       tags:
       - Reports
@@ -842,7 +825,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/cpu?since={since}:
+  '/v1/projects/{name}/metrics/cpu':
     get:
       tags:
       - Reports
@@ -857,7 +840,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your cpu reports
         required: true
         schema:
@@ -875,7 +858,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/memory?since={since}:
+  '/v1/projects/{name}/metrics/memory':
     get:
       tags:
       - Reports
@@ -890,7 +873,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your memory reports
         required: true
         schema:
@@ -908,7 +891,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/network-receive?since={since}:
+  '/v1/projects/{name}/metrics/network-receive':
     get:
       tags:
       - Reports
@@ -923,7 +906,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-receive reports
         required: true
         schema:
@@ -941,7 +924,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/network-transmit?since={since}:
+  '/v1/projects/{name}/metrics/network-transmit':
     get:
       tags:
       - Reports
@@ -956,7 +939,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-transmit reports
         required: true
         schema:
@@ -975,6 +958,35 @@ paths:
           description: App does not exists.
           content: {}
   /v1/domains:
+    get:
+      tags:
+      - Domains
+      summary: Get all domains
+      description: get all domains that user owns
+      operationId: getAppDomains
+      parameters:
+      - name: project
+        in: query
+        description: The name of your app
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Domains'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
     post:
       tags:
       - Domains
@@ -1053,7 +1065,7 @@ paths:
           description: App or domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{id}/set-redirect:
+  '/v1/domains/{id}/set-redirect':
     post:
       tags:
       - Domains
@@ -1097,7 +1109,7 @@ paths:
           description: Domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{id}/ssl/disable:
+  '/v1/domains/{id}/ssl/disable':
     post:
       tags:
       - Domains
@@ -1157,7 +1169,7 @@ paths:
           description: Domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{id}:
+  '/v1/domains/{id}':
     delete:
       tags:
       - Domains

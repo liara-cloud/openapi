@@ -10,11 +10,18 @@ externalDocs:
   description: Find out more about DBaaS
   url: http://liara.ir
 servers:
-- url: https://api.iran.liara.ir/
+- url: https://api.iran.liara.ir
 security:
 - jwt: []
+tags:
+  - name: Databases
+    description: Everything about your Databases
+  - name: Backups
+    description: Backups endpoints
+  - name: Reports
+    description: Reports of your app
 paths:
-  /v1/databases/{id}:
+  '/v1/databases/{id}':
     get:
       tags:
       - Databases
@@ -114,7 +121,7 @@ paths:
           description: Conflict
           content: {}
       x-codegen-request-body-name: Create a databases
-  /v1/databases/{id}/actions/scale:
+  '/v1/databases/{id}/actions/scale':
     post:
       tags:
       - Databases
@@ -153,7 +160,7 @@ paths:
           description: Database not found
           content: {}
       x-codegen-request-body-name: scale
-  /v1/databases/{id}/resize:
+  '/v1/databases/{id}/resize':
     post:
       tags:
       - Databases
@@ -193,7 +200,7 @@ paths:
           description: Database not found
           content: {}
       x-codegen-request-body-name: resize
-  /v1/databases/{id}/backups:
+  '/v1/databases/{id}/backups':
     get:
       tags:
       - Backups
@@ -244,7 +251,7 @@ paths:
         404:
           description: Database not found
           content: {}
-  /v1/databases/{id}/backups/{name}/download:
+  '/v1/databases/{id}/backups/{name}/download':
     post:
       tags:
       - Backups
@@ -277,7 +284,7 @@ paths:
         404:
           description: Database not found
           content: {}
-  /v1/databases/{id}/control-panel/{status}:
+  '/v1/databases/{id}/control-panel/{status}':
     post:
       tags:
       - Databases
@@ -314,7 +321,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/databases/{id}/public-network/{status}:
+  '/v1/databases/{id}/public-network/{status}':
     patch:
       tags:
       - Databases
@@ -351,7 +358,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/databases/{id}/metrics/cpu?since={since}:
+  '/v1/databases/{id}/metrics/cpu':
     get:
       tags:
       - Reports
@@ -366,7 +373,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your cpu reports
         required: true
         schema:
@@ -384,7 +391,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/memory?since={since}:
+  '/v1/databases/{id}/metrics/memory':
     get:
       tags:
       - Reports
@@ -399,7 +406,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your memory reports
         required: true
         schema:
@@ -417,7 +424,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/network-receive?since={since}:
+  '/v1/databases/{id}/metrics/network-receive':
     get:
       tags:
       - Reports
@@ -432,7 +439,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-receive reports
         required: true
         schema:
@@ -450,7 +457,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/network-transmit?since={since}:
+  '/v1/databases/{id}/metrics/network-transmit':
     get:
       tags:
       - Reports
@@ -465,7 +472,7 @@ paths:
         schema:
           type: string
       - name: since
-        in: path
+        in: query
         description: The since of your network-transmit reports
         required: true
         schema:
@@ -483,7 +490,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/summary:
+  '/v1/databases/{id}/metrics/summary':
     get:
       tags:
       - Reports
