@@ -74,7 +74,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/mails/{mailServerID}:
+  '/api/v1/mails/{mailServerID}':
     get:
       tags:
       - mails
@@ -160,7 +160,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/mails/{mailServerID}/smtp-credentials:
+  '/api/v1/mails/{mailServerID}/smtp-credentials':
     get:
       tags:
       - smtp
@@ -262,7 +262,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/mails/{mailServerID}/counts:
+  '/api/v1/mails/{mailServerID}/counts':
     get:
       tags:
       - mails
@@ -298,7 +298,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/dns-check:
+  '/api/v1/mails/{mailServerID}/dns-check':
     get:
       tags:
       - mails
@@ -324,7 +324,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{domain}/check-availability:
+  '/api/v1/mails/{domain}/check-availability':
     get:
       tags:
       - mails
@@ -346,7 +346,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/remaining-free-emails:
+  '/api/v1/mails/{mailServerID}/remaining-free-emails':
     get:
       tags:
       - mails
@@ -375,7 +375,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/accounts:
+  '/api/v1/mails/{mailServerID}/accounts':
     get:
       tags:
       - accounts
@@ -436,7 +436,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/mails/{mailServerID}/messages:
+  '/api/v1/mails/{mailServerID}/messages':
     get:
       tags:
       - messages
@@ -549,7 +549,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/mails/{mailServerID}/messages/{messageID}:
+  '/api/v1/mails/{mailServerID}/messages/{messageID}':
     get:
       tags:
       - messages
@@ -584,7 +584,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/accounts/{accountID}/forwards:
+  '/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards':
     get:
       tags:
       - forward
@@ -663,7 +663,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/mails/{mailServerID}/accounts/{accountName}/check-availability:
+  '/api/v1/mails/{mailServerID}/accounts/{accountName}/check-availability':
     get:
       tags:
       - accounts
@@ -699,7 +699,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/messages/{messageID}/render:
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/render':
     get:
       tags:
       - messages
@@ -749,7 +749,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/messages/{messageID}/attachments:
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/attachments':
     get:
       tags:
       - attachments
@@ -787,7 +787,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/messages/{messageID}/events:
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/events':
     get:
       tags:
       - event
@@ -841,7 +841,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/messages/{messageID}/attachments/{attachmentID}:
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/attachments/{attachmentID}':
     get:
       tags:
       - attachments
@@ -882,7 +882,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/messages/{messageID}/temporary-access:
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/temporary-access':
     post:
       tags:
       - messages
@@ -928,7 +928,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/accounts/{accountID}:
+  '/api/v1/mails/{mailServerID}/accounts/{accountID}':
     delete:
       tags:
       - accounts
@@ -960,7 +960,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/smtp-credentials/{username}:
+  '/api/v1/mails/{mailServerID}/smtp-credentials/{username}':
     delete:
       tags:
       - smtp
@@ -991,7 +991,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/accounts/{accountID}/forwards/{addressID}:
+  '/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards/{addressID}':
     delete:
       tags:
       - forward
@@ -1029,7 +1029,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /api/v1/mails/{mailServerID}/plans:
+  '/api/v1/mails/{mailServerID}/plans':
     put:
       tags:
       - mails

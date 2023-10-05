@@ -96,7 +96,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/type/{permission}:
+  '/api/v1/buckets/{bucket}/type/{permission}':
     patch:
       tags:
       - Bucket
@@ -131,7 +131,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/upgrade/{plan}:
+  '/api/v1/buckets/{bucket}/upgrade/{plan}':
     patch:
       tags:
       - Bucket
@@ -171,7 +171,7 @@ paths:
         502:
           description: bad gateway
           content: {}
-  /api/v1/buckets/{bucket}:
+  '/api/v1/buckets/{bucket}':
     get:
       tags:
       - Bucket
@@ -221,7 +221,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/check-availability:
+  '/api/v1/buckets/{bucket}/check-availability':
     get:
       tags:
       - Bucket
@@ -359,7 +359,7 @@ paths:
           description: server does not response
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/keys/{key}:
+  '/api/v1/keys/{key}':
     get:
       tags:
       - Key
@@ -458,7 +458,7 @@ paths:
           description: server does not response
           content: {}
       x-codegen-request-body-name: body
-  /api/v1/keys/{key}/revoke:
+  '/api/v1/keys/{key}/revoke':
     patch:
       tags:
       - Key
@@ -490,7 +490,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/download/${object}:
+  '/api/v1/buckets/{bucket}/download/${object}':
     get:
       tags:
       - Object
@@ -533,7 +533,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/upload/{object}:
+  '/api/v1/buckets/{bucket}/upload/{object}':
     get:
       tags:
       - Object
@@ -571,7 +571,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/objects/{prefix}:
+  '/api/v1/buckets/{bucket}/objects/{prefix}':
     get:
       tags:
       - Object
@@ -653,7 +653,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/objects/statistics/{object}:
+  '/api/v1/buckets/{bucket}/objects/statistics/{object}':
     get:
       tags:
       - Object
@@ -689,7 +689,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/folders:
+  '/api/v1/buckets/{bucket}/folders':
     post:
       tags:
       - Folder
@@ -764,7 +764,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/metrics/summary:
+  '/api/v1/buckets/{bucket}/metrics/summary':
     get:
       tags:
       - Metrics
@@ -795,7 +795,7 @@ paths:
         500:
           description: server does not response
           content: {}
-  /api/v1/buckets/{bucket}/metrics/historical:
+  '/api/v1/buckets/{bucket}/metrics/historical':
     get:
       tags:
       - Metrics

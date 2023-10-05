@@ -21,7 +21,7 @@ tags:
   - name: Reports
     description: Reports of your app
 paths:
-  /v1/databases/{id}:
+  '/v1/databases/{id}':
     get:
       tags:
       - Databases
@@ -121,7 +121,7 @@ paths:
           description: Conflict
           content: {}
       x-codegen-request-body-name: Create a databases
-  /v1/databases/{id}/actions/scale:
+  '/v1/databases/{id}/actions/scale':
     post:
       tags:
       - Databases
@@ -160,7 +160,7 @@ paths:
           description: Database not found
           content: {}
       x-codegen-request-body-name: scale
-  /v1/databases/{id}/resize:
+  '/v1/databases/{id}/resize':
     post:
       tags:
       - Databases
@@ -200,7 +200,7 @@ paths:
           description: Database not found
           content: {}
       x-codegen-request-body-name: resize
-  /v1/databases/{id}/backups:
+  '/v1/databases/{id}/backups':
     get:
       tags:
       - Backups
@@ -251,7 +251,7 @@ paths:
         404:
           description: Database not found
           content: {}
-  /v1/databases/{id}/backups/{name}/download:
+  '/v1/databases/{id}/backups/{name}/download':
     post:
       tags:
       - Backups
@@ -284,7 +284,7 @@ paths:
         404:
           description: Database not found
           content: {}
-  /v1/databases/{id}/control-panel/{status}:
+  '/v1/databases/{id}/control-panel/{status}':
     post:
       tags:
       - Databases
@@ -321,7 +321,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/databases/{id}/public-network/{status}:
+  '/v1/databases/{id}/public-network/{status}':
     patch:
       tags:
       - Databases
@@ -358,7 +358,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/databases/{id}/metrics/cpu:
+  '/v1/databases/{id}/metrics/cpu':
     get:
       tags:
       - Reports
@@ -391,7 +391,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/memory:
+  '/v1/databases/{id}/metrics/memory':
     get:
       tags:
       - Reports
@@ -424,7 +424,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/network-receive:
+  '/v1/databases/{id}/metrics/network-receive':
     get:
       tags:
       - Reports
@@ -457,7 +457,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/network-transmit:
+  '/v1/databases/{id}/metrics/network-transmit':
     get:
       tags:
       - Reports
@@ -490,7 +490,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  /v1/databases/{id}/metrics/summary:
+  '/v1/databases/{id}/metrics/summary':
     get:
       tags:
       - Reports

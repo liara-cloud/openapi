@@ -88,7 +88,7 @@ paths:
           description: Conflict
           content: {}
       x-codegen-request-body-name: create app
-  /v1/projects/{name}:
+  '/v1/projects/{name}':
     get:
       tags:
       - Apps
@@ -141,7 +141,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/actions/scale:
+  '/v1/projects/{name}/actions/scale':
     post:
       tags:
       - Apps
@@ -178,7 +178,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: scale
-  /v1/projects/{name}/actions/restart:
+  '/v1/projects/{name}/actions/restart':
     post:
       tags:
       - Apps
@@ -202,7 +202,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v2/projects/{name}/sources:
+  '/v2/projects/{name}/sources':
     post:
       tags:
       - Deploy
@@ -242,7 +242,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v2/projects/{name}/releases:
+  '/v2/projects/{name}/releases':
     post:
       tags:
       - Deploy
@@ -276,7 +276,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: deploy releases
-  /v1/projects/{id}/zero-downtime/{status}:
+  '/v1/projects/{id}/zero-downtime/{status}':
     post:
       tags:
       - Settings
@@ -311,7 +311,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/projects/{id}/default-subdomain/{status}:
+  '/v1/projects/{id}/default-subdomain/{status}':
     post:
       tags:
       - Settings
@@ -346,7 +346,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/projects/{id}/fixed-ip/{status}:
+  '/v1/projects/{id}/fixed-ip/{status}':
     post:
       tags:
       - Settings
@@ -411,7 +411,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: update envs
-  /v1/projects/{name}/resize:
+  '/v1/projects/{name}/resize':
     post:
       tags:
       - Apps
@@ -451,7 +451,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: plan
-  /v1/projects/{id}/disks:
+  '/v1/projects/{id}/disks':
     get:
       tags:
       - Disks
@@ -478,7 +478,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{id}/disks/{name}/backups:
+  '/v1/projects/{id}/disks/{name}/backups':
     get:
       tags:
       - Disks
@@ -543,7 +543,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{id}/disks/{dname}/backups/manual/{bname}/download:
+  '/v1/projects/{id}/disks/{dname}/backups/manual/{bname}/download':
     post:
       tags:
       - Disks
@@ -582,7 +582,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/disks:
+  '/v1/projects/{name}/disks':
     post:
       tags:
       - Disks
@@ -625,7 +625,7 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: disk
-  /v1/projects/{id}/disks/{name}:
+  '/v1/projects/{id}/disks/{name}':
     delete:
       tags:
       - Disks
@@ -661,7 +661,7 @@ paths:
         409:
           description: Conflict
           content: {}
-  /v1/domains/{id}/check:
+  '/v1/domains/{id}/check':
     get:
       tags:
       - Domains
@@ -691,7 +691,7 @@ paths:
         404:
           description: Domain does not exists.
           content: {}
-  /v1/projects/{name}/logs:
+  '/v1/projects/{name}/logs':
     get:
       tags:
       - Apps
@@ -724,7 +724,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/applets:
+  '/v1/projects/{name}/applets':
     get:
       tags:
       - Apps
@@ -754,7 +754,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/releases:
+  '/v1/projects/{name}/releases':
     get:
       tags:
       - Apps
@@ -798,7 +798,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/summary:
+  '/v1/projects/{name}/metrics/summary':
     get:
       tags:
       - Reports
@@ -825,7 +825,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/cpu:
+  '/v1/projects/{name}/metrics/cpu':
     get:
       tags:
       - Reports
@@ -858,7 +858,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/memory:
+  '/v1/projects/{name}/metrics/memory':
     get:
       tags:
       - Reports
@@ -891,7 +891,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/network-receive:
+  '/v1/projects/{name}/metrics/network-receive':
     get:
       tags:
       - Reports
@@ -924,7 +924,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  /v1/projects/{name}/metrics/network-transmit:
+  '/v1/projects/{name}/metrics/network-transmit':
     get:
       tags:
       - Reports
@@ -1065,7 +1065,7 @@ paths:
           description: App or domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{id}/set-redirect:
+  '/v1/domains/{id}/set-redirect':
     post:
       tags:
       - Domains
@@ -1109,7 +1109,7 @@ paths:
           description: Domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{id}/ssl/disable:
+  '/v1/domains/{id}/ssl/disable':
     post:
       tags:
       - Domains
@@ -1169,7 +1169,7 @@ paths:
           description: Domain does not exists.
           content: {}
       x-codegen-request-body-name: domain
-  /v1/domains/{id}:
+  '/v1/domains/{id}':
     delete:
       tags:
       - Domains
