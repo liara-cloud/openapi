@@ -11,10 +11,24 @@ externalDocs:
   description: Find out more about Liara Mail Server
   url: https://docs.liara.ir/email/create-mail-server/
 servers:
-- url: https://mail-service.iran.liara.ir/
+- url: https://mail-service.iran.liara.ir
 security:
 - jwt: []
-tags: []
+tags:
+  - name: mails
+    description: Everything about your mails
+  - name: smtp
+    description: smtp endpoints
+  - name: accounts
+    description: accounts of your mails
+  - name: messages
+    description: messages endpoints
+  - name: forward
+    description: forward endpoints
+  - name: attachments
+    description: attachments endpoints
+  - name: event
+    description: event endpoints
 paths:
   /api/v1/mails:
     get:

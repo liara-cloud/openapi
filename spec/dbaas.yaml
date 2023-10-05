@@ -10,9 +10,16 @@ externalDocs:
   description: Find out more about DBaaS
   url: http://liara.ir
 servers:
-- url: https://api.iran.liara.ir/
+- url: https://api.iran.liara.ir
 security:
 - jwt: []
+tags:
+  - name: Databases
+    description: Everything about your Databases
+  - name: Backups
+    description: Backups endpoints
+  - name: Reports
+    description: Reports of your app
 paths:
   /v1/databases/{id}:
     get:

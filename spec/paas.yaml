@@ -25,9 +25,22 @@ externalDocs:
   description: Find out more about PaaS
   url: http://liara.ir
 servers:
-- url: https://api.iran.liara.ir/
+- url: https://api.iran.liara.ir
 security:
 - jwt: []
+tags:
+  - name: Apps
+    description: Everything about your Apps
+  - name: Deploy
+    description: Deploy endpoints
+  - name: Settings
+    description: Settings of your app
+  - name: Disks
+    description: Disks of your app
+  - name: Domains
+    description: Domains of your app
+  - name: Reports
+    description: Reports of your app
 paths:
   /v1/projects:
     get:

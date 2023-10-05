@@ -10,9 +10,16 @@ externalDocs:
   description: Find out more about DNS
   url: http://liara.ir
 servers:
-- url: https://dns-service.iran.liara.ir/
+- url: https://dns-service.iran.liara.ir
 security:
 - jwt: []
+tags:
+  - name: Zone
+    description: Everything about your Zones
+  - name: Check Name Servers
+    description: Check Name Servers endpoints
+  - name: Dns Record
+    description: Dns Record of your zones
 paths:
   /api/v1/zones:
     get:

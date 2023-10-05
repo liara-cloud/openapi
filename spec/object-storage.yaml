@@ -12,7 +12,7 @@ externalDocs:
   description: Find out more about Liara Object Storage
   url: https://docs.liara.ir/buckets/about/
 servers:
-- url: https://storage-service.iran.liara.ir/
+- url: https://storage-service.iran.liara.ir
 security:
 - jwt: []
 tags:
