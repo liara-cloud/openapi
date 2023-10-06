@@ -232,7 +232,13 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sourceID:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -265,7 +271,13 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  releaseID:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -372,6 +384,9 @@ paths:
             application/json:
               schema:
                 type: object
+                properties:
+                  IP:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -400,7 +415,13 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -451,6 +472,123 @@ paths:
           description: App does not exists.
           content: {}
       x-codegen-request-body-name: plan
+  '/v1/projects/{name}/disks/{dname}/ftp':  
+    post:
+      tags:
+      - Disks
+      summary: Create ftp
+      description: create ftp that user owns
+      operationId: createFtp
+      parameters:
+      - name: name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
+          type: string
+      - name: dname
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: The plan of your app
+        content:
+          application/json:
+            schema:
+              required:
+              - username
+              - readOnly
+              type: object
+              properties:
+                username:
+                  type: string
+                readOnly:
+                  type: boolean
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  password:
+                    type: string
+                  host:
+                    type: string
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+      x-codegen-request-body-name: create ftp
+    get:
+      tags:
+      - Disks
+      summary: Get ftps
+      description: get ftps that user owns
+      operationId: getFtps
+      parameters:
+      - name: name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
+          type: string
+      - name: dname
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accesses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        disk:
+                          type: string
+                        username:
+                          type: string
+                        password:
+                          type: string
+                        readOnly:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+                        __v:
+                          type: integer
+                  host:
+                    type: string
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
   '/v1/projects/{id}/disks':
     get:
       tags:
@@ -468,7 +606,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Get-disks'
         400:
           description: Bad request
           content: {}
@@ -501,7 +642,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Get-disk-backup'
         400:
           description: Bad request
           content: {}
@@ -572,6 +716,57 @@ paths:
       responses:
         200:
           description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link:
+                    type: string
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+  '/v1/projects/{name}/disks/{dname}/resize':
+    post:
+      tags:
+      - Disks
+      summary: Resize disk
+      description: resize disk that user owns
+      operationId: resizeDisk
+      parameters:
+      - name: name
+        in: path
+        description: The name of your app
+        required: true
+        schema:
+          type: string
+      - name: dname
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: The size of your disk
+        content:
+          application/json:
+            schema:
+              required:
+              - size
+              type: object
+              properties:
+                size:
+                  type: string
+        required: true
+      responses:
+        200:
+          description: Successful operation
           content: {}
         400:
           description: Bad request
@@ -582,6 +777,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
+      x-codegen-request-body-name: resize disk
   '/v1/projects/{name}/disks':
     post:
       tags:
@@ -661,6 +857,36 @@ paths:
         409:
           description: Conflict
           content: {}
+  '/v1/ftp/{fname}':
+    delete:
+      tags:
+      - Disks
+      summary: Delete a ftp
+      description: delete a ftp that user owns
+      operationId: deleteFtp
+      parameters:
+      - name: fname
+        in: path
+        description: The name of your ftp
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        409:
+          description: Conflict
+          content: {}
   '/v1/domains/{id}/check':
     get:
       tags:
@@ -714,7 +940,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logs'
         400:
           description: Bad request
           content: {}
@@ -815,7 +1044,42 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cpuUsage:
+                    type: array 
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: array
+                        applet:
+                          type: string
+                  memoryUsage:
+                    type: array 
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: array
+                        applet:
+                          type: string
+                  disksUsage:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        size:
+                          type: string
+                        usage:
+                          type: string
+                        reportedAt:
+                          type: string
+                        name:
+                          type: string
         400:
           description: Bad request
           content: {}
@@ -848,7 +1112,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -881,7 +1148,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -914,7 +1184,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -947,7 +1220,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -1013,9 +1289,18 @@ paths:
                   default: PROJECT
         required: true
       responses:
-        200:
+        201:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
         400:
           description: Bad request
           content: {}
@@ -1158,7 +1443,13 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -1235,7 +1526,7 @@ components:
               type: boolean
               description: The zeroDowntime status of project
             scale:
-              type: string
+              type: number
               description: The being on of project
             envs:
               type: array
@@ -1272,7 +1563,7 @@ components:
               type: number
               description: The hourlyPrice of project
             isDeployed:
-              type: string
+              type: boolean
               description: The deployment status of project
             reservedDiskSpace:
               type: number
@@ -1298,7 +1589,7 @@ components:
                 type: string
                 description: The status of project
               scale:
-                type: string
+                type: number
                 description: The being on of project
               planID:
                 type: string
@@ -1307,8 +1598,19 @@ components:
                 type: string
                 description: The time to create the project
               isDeployed:
-                type: string
+                type: boolean
                 description: The project deployment status
+    Logs: 
+      type: array
+      items:
+        type: object
+        properties:
+            type:
+              type: string
+            datetime: 
+              type: string
+            message:
+              type: string
     Deploy-releases:
       type: object
       properties:
@@ -1455,8 +1757,36 @@ components:
                 description: The port of release
               gitInfo:
                 type: object
-                properties: {}
-                description: The gitInfo of release
+                properties: 
+                  branch:
+                    type: string
+                    nullable: true
+                  message:
+                    type: string
+                    nullable: true
+                  commit:
+                    type: string
+                    nullable: true
+                  committedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  remote:
+                    type: string
+                    nullable: true
+                  author:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        nullable: true
+                      name:
+                        type: string
+                        nullable: true
+                  tags:
+                    type: array
+                    items:
+                      type: string
               client:
                 type: string
                 description: The client of release
@@ -1472,6 +1802,65 @@ components:
               sourceAvailable:
                 type: boolean
                 description: The sourceAvailable of release
+        platform:
+          type: string
+    Get-disks:
+      type: object
+      properties:
+        disks:
+          type: array
+          items:
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+              size:
+                type: integer
+              updatedAt:
+                type: string
+              createdAt:
+                type: string
+        mounts:
+          type: array
+          items:
+            properties:
+              name:
+                type: string
+              mountedTo:
+                type: string
+    Get-disk-backup:
+      type: object
+      properties:
+        backups:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              lastModified:
+                type: string
+              etag:
+                type: string
+              size:
+                type: number
+    Reports:
+      type: object
+      properties:
+        end:
+          type: number
+        result:
+          type: array
+          items:
+            type: object
+            properties:
+              values:
+                type: array
+                items:
+                  type: array
+              applet:
+                type: string
     CheckDomain:
       type: object
       properties:
@@ -1489,74 +1878,10 @@ components:
             project:
               type: object
               properties:
-                current_service:
-                  type: object
-                  properties:
-                    port:
-                      type: integer
-                    name:
-                      type: string
-                fixedNode:
-                  type: boolean
                 _id:
-                  type: string
-                user:
                   type: string
                 project_id:
                   type: string
-                type:
-                  type: string
-                status:
-                  type: string
-                readOnlyRootFilesystem:
-                  type: boolean
-                defaultSubdomain:
-                  type: boolean
-                zeroDowntime:
-                  type: boolean
-                isOneClickApp:
-                  type: boolean
-                isWPPlus:
-                  type: boolean
-                scale:
-                  type: number
-                envs:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      key:
-                        type: string
-                      value:
-                        type: string
-                      encrypted:
-                        type: boolean
-                      _id:
-                        type: string
-                planID:
-                  type: string
-                hasVolume:
-                  type: boolean
-                fixedIPStatus:
-                  type: string
-                managedBySystem:
-                  type: boolean
-                updated_at:
-                  type: string
-                created_at:
-                  type: string
-                __v:
-                  type: number
-                node:
-                  type: string
-                currentRelease:
-                  type: string
-                lastScaleStartedAt:
-                  type: string
-                lastScaleFinishedAt:
-                  type: string
-                resizes:
-                  type: number
             status:
               type: string
             certificatesStatus:
@@ -1576,6 +1901,8 @@ components:
             __v:
               type: number
             CNameRecord:
+              type: string
+            issuedAt:
               type: string
   securitySchemes:
     jwt:
