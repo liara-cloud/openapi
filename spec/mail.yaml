@@ -1150,6 +1150,8 @@ components:
               type: number
             events:
               type: array
+              items:
+                type: object
     MailAttachments:
       type: object
       properties:
