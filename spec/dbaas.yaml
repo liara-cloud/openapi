@@ -38,7 +38,7 @@ paths:
         200:
           description: Successful operation
           content:
-            Databaselication/json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/DB-details'
         400:
@@ -86,7 +86,7 @@ paths:
         200:
           description: Successful operation
           content:
-            Databaselication/json:
+            application/json:
               schema:
                 $ref: '#/components/schemas/DBs-details'
         400:
@@ -103,14 +103,20 @@ paths:
       operationId: createDatabase
       requestBody:
         content:
-          Databaselication/json:
+          application/json:
             schema:
               $ref: '#/components/schemas/Create-databases'
         required: true
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  databaseID:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -137,7 +143,7 @@ paths:
       requestBody:
         description: 1 for power on or 0 for power off
         content:
-          Databaselication/json:
+          application/json:
             schema:
               required:
               - scale
@@ -175,7 +181,7 @@ paths:
           type: string
       requestBody:
         content:
-          Databaselication/json:
+          application/json:
             schema:
               required:
               - planID
@@ -216,7 +222,24 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        lastModified:
+                          type: string
+                        etag:
+                          type: string
+                        size:
+                          type: number
         400:
           description: Bad request
           content: {}
@@ -274,7 +297,13 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -308,7 +337,13 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  controlPanelID:
+                    type: string
         400:
           description: Bad request
           content: {}
@@ -381,7 +416,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -414,7 +452,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -447,7 +488,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -480,7 +524,10 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reports'
         400:
           description: Bad request
           content: {}
@@ -507,7 +554,40 @@ paths:
       responses:
         200:
           description: Successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cpuUsage:
+                    type: array 
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: array
+                        applet:
+                          type: string
+                  memoryUsage:
+                    type: array 
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: array
+                        applet:
+                          type: string
+                  disksUsage:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        size:
+                          type: string
+                        usage:
+                          type: string
+                        reportedAt:
+                          type: string
         400:
           description: Bad request
           content: {}
@@ -525,6 +605,11 @@ components:
         hostname:
           type: string
           description: The hostname of databases that you want to create
+        options:
+          type: object  
+          properties:
+            standaloneReplicaSet:
+              type: boolean
         publicNetwork:
           type: boolean
           description: The publicNetwork of databases that you want to create
@@ -570,19 +655,12 @@ components:
             volumeSize:
               type: integer
               description: The size of the database volume
-            metaData:
-              type: object
-              properties:
-                standaloneReplicaSet:
-                  type: boolean
-                  description: Indicates if the database uses a standalone replica
-                    set
-                privateNetwork:
-                  type: boolean
-                  description: Indicates if the database is on a private network
             created_at:
               type: string
               description: The creation timestamp of the database
+            dbName:
+              type: string
+              description: The name of db
             node:
               type: object
               properties:
@@ -607,9 +685,35 @@ components:
             hourlyPrice:
               type: number
               description: The hourly price of the database
+            metaData:
+              type: object
+              properties:
+                standaloneReplicaSet:
+                  type: boolean
+                  description: Indicates if the database uses a standalone replica
+                    set
+                privateNetwork:
+                  type: boolean
+                  description: Indicates if the database is on a private network
             username:
               type: string
               description: The username associated with the database
+    Reports:
+      type: object
+      properties:
+        end:
+          type: number
+        result:
+          type: array
+          items:
+            type: object
+            properties:
+              values:
+                type: array
+                items:
+                  type: array
+              applet:
+                type: string
     DBs-details:
       type: object
       properties:
