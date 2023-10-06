@@ -35,7 +35,10 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List-Bucket'
         401:
           description: Missing authentication
           content: {}
@@ -52,14 +55,20 @@ paths:
         description: 'create bucket. Acceptable values for permission: ( private /
           public ) and for plan: ( 20g, 40g, 80g, 160g )'
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Create-Bucket'
         required: true
       responses:
         201:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -83,7 +92,15 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  migrations: 
+                    type: array
         400:
           description: Bad Request
           content: {}
@@ -118,7 +135,15 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  permission:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -152,7 +177,15 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  quota: 
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -186,7 +219,16 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  bucket:
+                    $ref: '#/components/schemas/Bucket'
+
         401:
           description: Missing authentication
           content: {}
@@ -237,7 +279,13 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -263,7 +311,7 @@ paths:
       requestBody:
         description: Migrate buckets
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Migrate-Bucket'
         required: true
@@ -316,7 +364,10 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Keys'
         400:
           description: Bad Request
           content: {}
@@ -345,7 +396,20 @@ paths:
       responses:
         201:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data: 
+                    type: object
+                    properties:
+                      accessKey: 
+                        type: string
+                      secretKey:
+                        type: string
         400:
           description: Bad Request
           content: {}
@@ -434,14 +498,20 @@ paths:
       requestBody:
         description: Declare Buckets for access key
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Create-Key'
         required: true
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema: 
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -474,7 +544,17 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object  
+                properties:
+                  status: 
+                    type: string
+                  accessKey: 
+                    type: string
+                  secretKey: 
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -517,7 +597,18 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data: 
+                    type: object
+                    properties:
+                      url:
+                        type: string
         400:
           description: Bad Request
           content: {}
@@ -555,7 +646,18 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data: 
+                    type: object
+                    properties:
+                      url:
+                        type: string
         400:
           description: Bad Request
           content: {}
@@ -601,7 +703,10 @@ paths:
       responses:
         200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Objects'
         400:
           description: Bad Request
           content: {}
@@ -671,9 +776,12 @@ paths:
         schema:
           type: string
       responses:
-        204:
+        200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stat'
         400:
           description: Bad Request
           content: {}
@@ -704,14 +812,25 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Create-Folder'
         required: true
       responses:
         201:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      folder:
+                        type: string
         400:
           description: Bad Request
           content: {}
@@ -740,11 +859,14 @@ paths:
         required: true
         schema:
           type: string
-      - name: path
-        in: query
-        required: true
-        schema:
-          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
       responses:
         204:
           description: successful operation
@@ -777,9 +899,27 @@ paths:
         schema:
           type: string
       responses:
-        204:
+        200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      bucket:
+                        type: string
+                      metrics:
+                        type: object
+                        properties:
+                          totol_objects:
+                            type: array
+                          total_bytes:
+                            type: array
         400:
           description: Bad Request
           content: {}
@@ -814,9 +954,25 @@ paths:
         schema:
           type: string
       responses:
-        204:
+        200:
           description: successful operation
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      bucket:
+                        type: string
+                      metrics:
+                        type: object
+                        properties:
+                          totol_objects:
+                            type: array
         400:
           description: Bad Request
           content: {}
@@ -834,6 +990,146 @@ paths:
           content: {}
 components:
   schemas:
+    Stat:
+      type: object
+      properties:
+        status: 
+          type: string
+        data:
+          type: object
+          properties:
+            object:
+              type: object
+              properties:
+                size: 
+                  type: number
+                metaData:
+                  type: object
+                  properties:
+                    content-type:
+                      type: string
+                lastModified:
+                  type: string
+                versionId:
+                  type: string
+                etag:
+                  type: string
+    Objects:
+      type: object
+      properties:
+        status:
+          type: string
+        data: 
+          type: object
+          properties:
+            objects:
+              type: object 
+              properties:
+                IsTruncated: 
+                  type: boolean
+                Contents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      Key:
+                        type: string
+                      LastModified:
+                        type: string
+                      ETag:
+                        type: string
+                      ChecksumAlgorithm:
+                        type: array
+                      Size:
+                        type: number
+                      StorageClass:
+                        type: string
+                Name:
+                  type: string
+                Prefix:
+                  type: string
+                Delimiter:
+                  type: string
+                MaxKeys:
+                  type: number
+                CommonPrefixes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      Prefix:
+                        type: string
+                KeyCount:
+                  type: number
+    Key:
+      type: object
+      properties:
+        id:
+          type: string
+        buckets:
+          type: array
+          items:
+            type: object 
+            properties:
+              id: 
+                type: string
+              name: 
+                type: string
+              plan: 
+                type: string
+              status: 
+                type: string
+              permission: 
+                type: string
+              createdAt: 
+                type: string
+              updatedAt: 
+                type: string
+        status:
+          type: string
+        accessKey: 
+          type: string
+        description: 
+          type: string
+        createdAt: 
+          type: string
+        updatedAt: 
+          type: string
+    Keys:
+      type: object
+      properties:
+        status:
+          type: string
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/Key'
+    Bucket:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        plan:
+          type: string
+        status:
+          type: string
+        permission:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    List-Bucket:
+      type: object
+      properties:
+        status:
+          type: string
+        buckets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bucket'
     Migrate-Bucket:
       type: object
       properties:
