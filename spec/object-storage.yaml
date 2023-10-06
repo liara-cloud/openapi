@@ -389,7 +389,7 @@ paths:
       requestBody:
         description: Declare Buckets for access key
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Create-Key'
         required: true
