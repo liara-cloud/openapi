@@ -40,7 +40,7 @@ paths:
         200:
           description: Ok
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MailServers'
         500:
@@ -53,14 +53,20 @@ paths:
       operationId: postMails
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model1'
         required: false
       responses:
         201:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Invalid request for plan
           content: {}
@@ -91,7 +97,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MailServer'
         400:
@@ -142,14 +148,20 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model8'
         required: false
       responses:
         200:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -177,7 +189,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/SMTP'
         400:
@@ -203,7 +215,7 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model4'
         required: false
@@ -211,7 +223,7 @@ paths:
         201:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/CreateSMTP'
         400:
@@ -241,7 +253,7 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model9'
         required: false
@@ -249,7 +261,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/CreateSMTP'
         400:
@@ -280,13 +292,13 @@ paths:
         schema:
           maximum: 180
           minimum: 1
-          type: integer
+          type: number
           default: 30
       responses:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/CountMailPerDay'
         400:
@@ -315,7 +327,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/CheckDNS'
         404:
@@ -339,7 +351,13 @@ paths:
       responses:
         200:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -363,7 +381,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/RemainingFreeMails'
         400:
@@ -392,7 +410,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MailAccounts'
         400:
@@ -418,14 +436,20 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model5'
         required: false
       responses:
         201:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -452,7 +476,7 @@ paths:
       - name: page
         in: query
         schema:
-          type: integer
+          type: number
           default: 1
           x-constraint:
             sign: positive
@@ -462,7 +486,7 @@ paths:
         in: query
         schema:
           maximum: 100
-          type: integer
+          type: number
           default: 15
           x-constraint:
             sign: positive
@@ -496,7 +520,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MailMessages'
         400:
@@ -522,14 +546,20 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model3'
         required: false
       responses:
         201:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -572,9 +602,17 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
-                $ref: '#/components/schemas/MailMessage'
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object  
+                    properties:
+                      message:
+                        $ref: '#/components/schemas/MailMessage'
         400:
           description: Bad Request
           content: {}
@@ -607,7 +645,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MailForwards'
         400:
@@ -639,14 +677,20 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model6'
         required: false
       responses:
         201:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -686,7 +730,13 @@ paths:
       responses:
         200:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -772,7 +822,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MailAttachments'
         400:
@@ -809,7 +859,7 @@ paths:
       - name: page
         in: query
         schema:
-          type: integer
+          type: number
           default: 1
           x-constraint:
             sign: positive
@@ -819,7 +869,7 @@ paths:
         in: query
         schema:
           maximum: 100
-          type: integer
+          type: number
           default: 15
           x-constraint:
             sign: positive
@@ -829,7 +879,7 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/MailEvents'
         400:
@@ -870,9 +920,17 @@ paths:
         200:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
-                $ref: '#/components/schemas/MailAttachment'
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      attachment:
+                        $ref: '#/components/schemas/MailAttachment'
         400:
           description: Bad Request
           content: {}
@@ -907,13 +965,13 @@ paths:
         schema:
           maximum: 168
           minimum: 1
-          type: integer
+          type: number
           default: 1
       responses:
         201:
           description: OK
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/TmpAccess'
         400:
@@ -1044,14 +1102,20 @@ paths:
           type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/Model10'
         required: false
       responses:
         200:
           description: OK
-          content: {}
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         400:
           description: Bad Request
           content: {}
@@ -1073,8 +1137,7 @@ components:
           type: object
           properties:
             token:
-              type: object
-              properties: {}
+              type: string
     MailEvents:
       type: object
       properties:
@@ -1086,8 +1149,7 @@ components:
             total:
               type: number
             events:
-              type: object
-              properties: {}
+              type: array
     MailAttachments:
       type: object
       properties:
@@ -1111,6 +1173,8 @@ components:
           type: string
         createdAt:
           type: string
+        id:
+          type: string
         data:
           type: string
     MailForwards:
@@ -1122,8 +1186,18 @@ components:
           type: object
           properties:
             forwarders:
-              type: object
-              properties: {}
+              type: array
+              items:
+                type: object
+                properties:
+                  account:
+                    type: string
+                  address:
+                    type: string
+                  createdAt:
+                    type: string
+                  id:
+                    type: string
     MailMessages:
       type: object
       properties:
@@ -1135,7 +1209,9 @@ components:
             total:
               type: number
             messages:
-              $ref: '#/components/schemas/MailMessage'
+              type: array
+              items:
+                $ref: '#/components/schemas/MailMessage'
     MailMessage:
       type: object
       properties:
@@ -1161,7 +1237,15 @@ components:
           type: string
         status:
           type: object
-          properties: {}
+          properties: 
+            event:
+              type: string
+            state:
+              type: string
+            details:
+              type: string
+        id: 
+          type: string
         spamReson:
           type: object
           properties: {}
@@ -1176,8 +1260,16 @@ components:
             domain:
               type: string
             accounts:
-              type: object
-              properties: {}
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  createdAt:
+                    type: string
+                  id:
+                    type: string
     RemainingFreeMails:
       type: object
       properties:
@@ -1188,20 +1280,101 @@ components:
           properties:
             count:
               type: number
+    CheckDNSResponse:
+      type: object
+      properties:
+        dns_setup:
+          type: object
+          properties:
+            dkim:
+              type: object
+              properties:
+                dkim_error:
+                  type: string
+                dkim_record:
+                  type: string
+                dkim_record_name:
+                  type: string
+                dkim_status:
+                  type: string
+            mx_record:
+              type: object
+              properties:
+                mx_error:
+                  type: string
+                mx_status:
+                  type: string
+                mx_record_value:
+                  type: string
+            return_path:
+              type: object
+              properties:
+                return_path_domain:
+                  type: string
+                return_path_error:
+                  type: string
+                return_path_status:
+                  type: string
+                return_path_value:
+                  type: string
+            spf:
+              type: object
+              properties:
+                spf_error:
+                  type: string
+                spf_record:
+                  type: string
+                spf_status:
+                  type: string
+        user:
+          type: string
+        domain:
+          type: string
+        recordsStatus:
+          type: string
+        mode:
+          type: string
+        status:
+          type: string
+        checkDNSRecord:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        id:
+          type: string
+        smtp_server:
+          type: string
+        smtp_port:
+          type: number
     CheckDNS:
       type: object
       properties:
         status:
           type: string
-        date:
-          $ref: '#/components/schemas/MailServer'
+        data:
+          type: object
+          properties:
+            mailServer:
+              $ref: '#/components/schemas/CheckDNSResponse'
     CountMailPerDay:
       type: object
       properties:
         status:
           type: string
-        date:
-          type: number
+        data:
+          type: object
+          properties:
+            emailPerDay:
+              type: array
+              items:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  date:
+                    type: number
     CreateSMTP:
       type: object
       properties:
@@ -1222,41 +1395,110 @@ components:
         data:
           type: object
           properties:
-            description:
-              type: string
-            createdAt:
-              type: string
-            username:
-              type: string
-    MailServer:
+            credentials:
+              type: array
+              items:
+                type: object
+                properties:
+                  description:
+                    type: string
+                  createdAt:
+                    type: string
+                  username:
+                    type: string
+    MailServerResponse:
       type: object
       properties:
-        id:
-          type: string
-        mode:
+        dns_setup:
+          type: object
+          properties:
+            dkim:
+              type: object
+              properties:
+                dkim_error:
+                  type: string
+                dkim_record:
+                  type: string
+                dkim_record_name:
+                  type: string
+                dkim_status:
+                  type: string
+            mx_record:
+              type: object
+              properties:
+                mx_error:
+                  type: string
+                mx_status:
+                  type: string
+                mx_record_value:
+                  type: string
+            return_path:
+              type: object
+              properties:
+                return_path_domain:
+                  type: string
+                return_path_error:
+                  type: string
+                return_path_status:
+                  type: string
+                return_path_value:
+                  type: string
+            spf:
+              type: object
+              properties:
+                spf_error:
+                  type: string
+                spf_record:
+                  type: string
+                spf_status:
+                  type: string
+        domain:
           type: string
         recordsStatus:
           type: string
-        smtp_port:
-          type: string
-        smtp_server:
-          type: string
-        plan:
-          type: object
-          properties: {}
-        domain:
-          type: string
-        createdAt:
-          type: string
-        dns_setup:
+        status:
           type: string
         rateLimitTier:
           type: object
-          properties: {}
+          properties:
+            hourly:
+              type: number
+            daily:
+              type: number
+            monthly:
+              type: number
+        createdAt:
+          type: string
+        id:
+          type: string
+        smtp_server:
+          type: string
+        smtp_port:
+          type: number
+        rootPartOfDomain:
+          type: string
+    MailServer:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            mailServer:
+              $ref: '#/components/schemas/MailServerResponse'
     MailServers:
-      type: array
-      items:
-        $ref: '#/components/schemas/MailServer'
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            mailServers:
+              type: array
+              items:
+                $ref: '#/components/schemas/MailServerResponse'
     mode:
       type: string
       enum:

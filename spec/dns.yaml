@@ -59,7 +59,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Zone'
+                $ref: '#/components/schemas/Create-zone'
         400:
           description: Bad Request
           content: {}
@@ -83,7 +83,7 @@ paths:
       parameters:
       - name: zone
         in: path
-        description: The name of the zone to delete
+        description: The name of the zone
         required: true
         schema:
           type: string
@@ -93,7 +93,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Zone'
+                $ref: '#/components/schemas/Create-zone'
         401:
           description: Missing authentication
           content: {}
@@ -116,7 +116,10 @@ paths:
       responses:
         200:
           description: Your request has been submitted.
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submitted'
         204:
           description: Zone deleted.
           content: {}
@@ -349,6 +352,8 @@ components:
     Zone:
       type: object
       properties:
+        id:
+          type: string
         name:
           type: string
           description: 'The name of the zone, “liara.ir”, max length: 253, pattern:
@@ -357,11 +362,11 @@ components:
           type: string
           description: 'The status of the zone, valid values: [CREATING, PENDING,
             ACTIVE, DELETING]'
-        nameServers:
+        currentNameServers:
           type: array
           items:
             type: string
-        currentNameServers:
+        nameServers:
           type: array
           items:
             type: string
@@ -371,10 +376,22 @@ components:
         createdAt:
           type: string
           description: Time when zone was created
+    Create-zone:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          $ref: '#/components/schemas/Zone'
     Zones:
-      type: array
-      items:
-        $ref: '#/components/schemas/Zone'
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Zone'
     Dns-record:
       type: object
       properties:
