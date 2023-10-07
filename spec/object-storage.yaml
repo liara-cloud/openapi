@@ -101,6 +101,8 @@ paths:
                     type: string
                   migrations: 
                     type: array
+                    items:
+                      type: object
         400:
           description: Bad Request
           content: {}
@@ -859,14 +861,11 @@ paths:
         required: true
         schema:
           type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                path:
-                  type: string
+      - name: path
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         204:
           description: successful operation
@@ -918,8 +917,16 @@ paths:
                         properties:
                           totol_objects:
                             type: array
+                            items:
+                              oneOf:
+                                - type: number
+                                - type: string
                           total_bytes:
                             type: array
+                            items:
+                              oneOf:
+                                - type: number
+                                - type: string
         400:
           description: Bad Request
           content: {}
@@ -973,6 +980,10 @@ paths:
                         properties:
                           totol_objects:
                             type: array
+                            items:
+                              oneOf:
+                                - type: number
+                                - type: string
         400:
           description: Bad Request
           content: {}
@@ -1040,6 +1051,9 @@ components:
                         type: string
                       ChecksumAlgorithm:
                         type: array
+                        items:
+                          type: object
+                          properties: {}
                       Size:
                         type: number
                       StorageClass:
