@@ -566,6 +566,10 @@ paths:
                       properties:
                         value:
                           type: array
+                          items:
+                            oneOf:
+                              - type: number
+                              - type: string
                         applet:
                           type: string
                   memoryUsage:
@@ -575,6 +579,10 @@ paths:
                       properties:
                         value:
                           type: array
+                          items:
+                            oneOf:
+                              - type: number
+                              - type: string
                         applet:
                           type: string
                   disksUsage:
@@ -712,6 +720,10 @@ components:
                 type: array
                 items:
                   type: array
+                  items:
+                    oneOf:
+                      - type: number
+                      - type: string
               applet:
                 type: string
     DBs-details:
