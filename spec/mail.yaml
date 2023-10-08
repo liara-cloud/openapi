@@ -11,29 +11,31 @@ externalDocs:
   description: Find out more about Liara Mail Server
   url: https://docs.liara.ir/email/create-mail-server/
 servers:
-- url: https://mail-service.iran.liara.ir
+  - url: https://mail-service.iran.liara.ir
 security:
-- jwt: []
+  - jwt: []
 tags:
   - name: mails
     description: Everything about your mails
+  - name: inboundrules
+    description: Email address (or domain) that you would like to block from sending.
   - name: smtp
-    description: smtp endpoints
+    description: SMTP endpoints.
   - name: accounts
-    description: accounts of your mails
+    description: Accounts of your mails.
   - name: messages
-    description: messages endpoints
+    description: Messages endpoints.
   - name: forward
-    description: forward endpoints
+    description: Forward endpoints.
   - name: attachments
-    description: attachments endpoints
+    description: Attachments endpoints.
   - name: event
-    description: event endpoints
+    description: Event endpoints.
 paths:
   /api/v1/mails:
     get:
       tags:
-      - mails
+        - mails
       summary: get all mail servers
       operationId: getMails
       responses:
@@ -48,7 +50,7 @@ paths:
           content: {}
     post:
       tags:
-      - mails
+        - mails
       summary: create mail server
       operationId: postMails
       requestBody:
@@ -60,7 +62,7 @@ paths:
       responses:
         201:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -83,16 +85,16 @@ paths:
   '/api/v1/mails/{mailServerID}':
     get:
       tags:
-      - mails
+        - mails
       summary: get single mail server
       operationId: getSingleMailServer
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -111,16 +113,16 @@ paths:
           content: {}
     delete:
       tags:
-      - mails
+        - mails
       summary: delete mail server
       operationId: deleteMailServer
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         204:
           description: OK
@@ -136,16 +138,16 @@ paths:
           content: {}
     patch:
       tags:
-      - mails
-      summary: chagen mail server mode
-      operationId: changeMailServerMode
+        - mails
+      summary: edit mail server
+      operationId: editMailServer
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -155,7 +157,7 @@ paths:
       responses:
         200:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -175,16 +177,16 @@ paths:
   '/api/v1/mails/{mailServerID}/smtp-credentials':
     get:
       tags:
-      - smtp
+        - smtp
       summary: get credential to connect to mail server with SMTP
       operationId: getCredential
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -203,16 +205,16 @@ paths:
           content: {}
     post:
       tags:
-      - smtp
+        - smtp
       summary: generate credentials to connet mail server with SMTP
       operationId: generateCredentials
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -241,16 +243,16 @@ paths:
       x-codegen-request-body-name: body
     patch:
       tags:
-      - smtp
+        - smtp
       summary: revoke credentials to connect mail server with SMTP
       operationId: revokeCredentials
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -277,23 +279,23 @@ paths:
   '/api/v1/mails/{mailServerID}/counts':
     get:
       tags:
-      - mails
+        - mails
       summary: count number of sent mails every day
       operationId: getCountMails
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: lastNDays
-        in: query
-        schema:
-          maximum: 180
-          minimum: 1
-          type: number
-          default: 30
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: lastNDays
+          in: query
+          schema:
+            maximum: 180
+            minimum: 1
+            type: number
+            default: 30
       responses:
         200:
           description: OK
@@ -313,16 +315,16 @@ paths:
   '/api/v1/mails/{mailServerID}/dns-check':
     get:
       tags:
-      - mails
+        - mails
       summary: mail server check dns status
       operationId: checkMailServerDnsStatus
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -339,19 +341,19 @@ paths:
   '/api/v1/mails/{domain}/check-availability':
     get:
       tags:
-      - mails
+        - mails
       summary: check if domain name is available
       operationId: checkDomainAvailable
       parameters:
-      - name: domain
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: domain
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         200:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -367,16 +369,16 @@ paths:
   '/api/v1/mails/{mailServerID}/remaining-free-emails':
     get:
       tags:
-      - mails
+        - mails
       summary: count number of free mails every month
       operationId: getCountFreeMails
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -396,16 +398,16 @@ paths:
   '/api/v1/mails/{mailServerID}/accounts':
     get:
       tags:
-      - accounts
+        - accounts
       summary: get all mail accounts
       operationId: getAllMailAccounts
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -424,16 +426,16 @@ paths:
           content: {}
     post:
       tags:
-      - accounts
+        - accounts
       summary: add mail account
       operationId: createMailACcount
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -443,7 +445,7 @@ paths:
       responses:
         201:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -460,62 +462,163 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
+  '/api/v1/mails/{mailServerID}/inboundrules':
+    get:
+      tags:
+        - inboundrules
+      summary: get all inbound rules.
+      operationId: getAllInboundRules
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MailInboundRules'
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        409:
+          description: Rule already exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    post:
+      tags:
+        - inboundrules
+      summary: add inbound rule.
+      operationId: addInboundRule
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Model11'
+        required: false
+      responses:
+        201:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mail/{mailServerID}/inboundrules/{inboundruleID}':
+    delete:
+      tags:
+        - inboundrules
+      summary: delete inbound rule.
+      operationId: deleteInboundRule
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: inboundruleID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        204:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Inbound rule not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
   '/api/v1/mails/{mailServerID}/messages':
     get:
       tags:
-      - messages
+        - messages
       summary: get all mails
       operationId: getAllMails
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: page
-        in: query
-        schema:
-          type: number
-          default: 1
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: number
+            default: 1
+            x-constraint:
+              sign: positive
           x-constraint:
             sign: positive
-        x-constraint:
-          sign: positive
-      - name: count
-        in: query
-        schema:
-          maximum: 100
-          type: number
-          default: 15
+        - name: count
+          in: query
+          schema:
+            maximum: 100
+            type: number
+            default: 15
+            x-constraint:
+              sign: positive
           x-constraint:
             sign: positive
-        x-constraint:
-          sign: positive
-      - name: direction
-        in: query
-        required: true
-        schema:
-          type: string
-          enum:
-          - incoming
-          - outgoing
-      - name: state
-        in: query
-        schema:
-          type: string
-      - name: subject
-        in: query
-        schema:
-          type: string
-      - name: from
-        in: query
-        schema:
-          type: string
-      - name: to
-        in: query
-        schema:
-          type: string
+        - name: direction
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - incoming
+              - outgoing
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: subject
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
       responses:
         200:
           description: OK
@@ -534,16 +637,16 @@ paths:
           content: {}
     post:
       tags:
-      - messages
+        - messages
       summary: send a mail
       operationId: sendMail
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -553,7 +656,7 @@ paths:
       responses:
         201:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -582,22 +685,22 @@ paths:
   '/api/v1/mails/{mailServerID}/messages/{messageID}':
     get:
       tags:
-      - messages
+        - messages
       summary: get single mail
       operationId: getSingleMail
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: messageID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -609,7 +712,7 @@ paths:
                   status:
                     type: string
                   data:
-                    type: object  
+                    type: object
                     properties:
                       message:
                         $ref: '#/components/schemas/MailMessage'
@@ -625,22 +728,22 @@ paths:
   '/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards':
     get:
       tags:
-      - forward
+        - forward
       summary: get all extra address to forwarding mails
       operationId: getListAddressForwarding
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: accountID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: accountID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -659,22 +762,22 @@ paths:
           content: {}
     post:
       tags:
-      - forward
+        - forward
       summary: add address endpoint to forwarding mails
       operationId: createAddressForwarding
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: accountID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: accountID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -684,7 +787,7 @@ paths:
       responses:
         201:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -710,27 +813,27 @@ paths:
   '/api/v1/mails/{mailServerID}/accounts/{accountName}/check-availability':
     get:
       tags:
-      - accounts
+        - accounts
       summary: check if mail account is available
       operationId: checkMailAvailable
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: accountName
-        in: path
-        required: true
-        schema:
-          maxLength: 64
-          pattern: ^[a-z0-9]+([.-][a-z0-9]+)*$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: accountName
+          in: path
+          required: true
+          schema:
+            maxLength: 64
+            pattern: ^[a-z0-9]+([.-][a-z0-9]+)*$
+            type: string
       responses:
         200:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -752,33 +855,33 @@ paths:
   '/api/v1/mails/{mailServerID}/messages/{messageID}/render':
     get:
       tags:
-      - messages
+        - messages
       summary: get single mail html
       operationId: getSingleMailHtml
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: messageID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: token
-        in: query
-        required: true
-        schema:
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            x-format:
+              guid:
+                version: uuidv4
           x-format:
             guid:
               version: uuidv4
-        x-format:
-          guid:
-            version: uuidv4
       responses:
         200:
           description: success and returns some html text
@@ -802,22 +905,22 @@ paths:
   '/api/v1/mails/{mailServerID}/messages/{messageID}/attachments':
     get:
       tags:
-      - attachments
+        - attachments
       summary: get all attachments for message
       operationId: getAllAttachments
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: messageID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -840,41 +943,41 @@ paths:
   '/api/v1/mails/{mailServerID}/messages/{messageID}/events':
     get:
       tags:
-      - event
+        - event
       summary: get all events for message
       operationId: getAllEvents
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: messageID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: page
-        in: query
-        schema:
-          type: number
-          default: 1
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: number
+            default: 1
+            x-constraint:
+              sign: positive
           x-constraint:
             sign: positive
-        x-constraint:
-          sign: positive
-      - name: count
-        in: query
-        schema:
-          maximum: 100
-          type: number
-          default: 15
+        - name: count
+          in: query
+          schema:
+            maximum: 100
+            type: number
+            default: 15
+            x-constraint:
+              sign: positive
           x-constraint:
             sign: positive
-        x-constraint:
-          sign: positive
       responses:
         200:
           description: OK
@@ -894,28 +997,28 @@ paths:
   '/api/v1/mails/{mailServerID}/messages/{messageID}/attachments/{attachmentID}':
     get:
       tags:
-      - attachments
+        - attachments
       summary: download attachment
       operationId: downloadAttachments
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: messageID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: attachmentID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: attachmentID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         200:
           description: OK
@@ -943,30 +1046,30 @@ paths:
   '/api/v1/mails/{mailServerID}/messages/{messageID}/temporary-access':
     post:
       tags:
-      - messages
+        - messages
       summary: generate temporary access to email html
       operationId: generateTemporary
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: messageID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: expiration
-        in: query
-        description: Specifying hourly expiration schedule options
-        schema:
-          maximum: 168
-          minimum: 1
-          type: number
-          default: 1
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: expiration
+          in: query
+          description: Specifying hourly expiration schedule options
+          schema:
+            maximum: 168
+            minimum: 1
+            type: number
+            default: 1
       responses:
         201:
           description: OK
@@ -989,22 +1092,22 @@ paths:
   '/api/v1/mails/{mailServerID}/accounts/{accountID}':
     delete:
       tags:
-      - accounts
+        - accounts
       summary: delete mail account
       operationId: deleteMailAccount
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: accountID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: accountID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         204:
           description: OK
@@ -1021,21 +1124,21 @@ paths:
   '/api/v1/mails/{mailServerID}/smtp-credentials/{username}':
     delete:
       tags:
-      - smtp
+        - smtp
       summary: delete smtp credential
       operationId: deleteSmtpCredential
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: username
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         204:
           description: OK
@@ -1052,28 +1155,28 @@ paths:
   '/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards/{addressID}':
     delete:
       tags:
-      - forward
+        - forward
       summary: delete extra endpoint address
       operationId: deleteExtraEndpoint
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: accountID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
-      - name: addressID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: accountID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: addressID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       responses:
         204:
           description: OK
@@ -1090,16 +1193,16 @@ paths:
   '/api/v1/mails/{mailServerID}/plans':
     put:
       tags:
-      - mails
+        - mails
       summary: change mail server plan
       operationId: changeMailServerPlan
       parameters:
-      - name: mailServerID
-        in: path
-        required: true
-        schema:
-          pattern: ^[0-9a-fA-F]{24}$
-          type: string
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
       requestBody:
         content:
           application/json:
@@ -1109,7 +1212,7 @@ paths:
       responses:
         200:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
@@ -1239,18 +1342,37 @@ components:
           type: string
         status:
           type: object
-          properties: 
+          properties:
             event:
               type: string
             state:
               type: string
             details:
               type: string
-        id: 
+        id:
           type: string
         spamReson:
           type: object
           properties: {}
+    MailInboundRules:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            mailInboundrules:
+              type: array
+              items:
+                type: object
+                properties:
+                  createdAt:
+                    type: string
+                  rule:
+                    type: string
+                  mailServer:
+                    type: string
     MailAccounts:
       type: object
       properties:
@@ -1504,13 +1626,13 @@ components:
     mode:
       type: string
       enum:
-      - DEV
-      - LIVE
+        - DEV
+        - LIVE
     Model1:
       required:
-      - domain
-      - mode
-      - plan
+        - domain
+        - mode
+        - plan
       type: object
       properties:
         plan:
@@ -1524,9 +1646,9 @@ components:
           $ref: '#/components/schemas/mode'
     Model2:
       required:
-      - content_type
-      - data
-      - name
+        - content_type
+        - data
+        - name
       type: object
       properties:
         name:
@@ -1542,9 +1664,9 @@ components:
         $ref: '#/components/schemas/Model2'
     Model3:
       required:
-      - from
-      - subject
-      - to
+        - from
+        - subject
+        - to
       type: object
       properties:
         html:
@@ -1573,7 +1695,7 @@ components:
           type: string
     Model5:
       required:
-      - name
+        - name
       type: object
       properties:
         name:
@@ -1582,60 +1704,40 @@ components:
           type: string
     Model6:
       required:
-      - address
+        - address
       type: object
       properties:
         address:
           type: string
           x-format:
             email: true
-    timeout:
-      type: string
-      default: "5"
-      enum:
-      - "5"
-      - "15"
-      - "30"
-      - "60"
-      - "300"
-    Model7:
+    Model11:
       required:
-      - address
-      - name
+        - rule
       type: object
       properties:
-        description:
-          maxLength: 512
+        rule:
           type: string
-        name:
-          maxLength: 64
-          type: string
-        attachment:
-          type: boolean
-          default: true
-        address:
-          type: string
-          x-format:
-            uri: true
-        timeout:
-          $ref: '#/components/schemas/timeout'
     Model8:
       required:
-      - mode
+        - mode
+        - inboundSpamThreshold
       type: object
       properties:
         mode:
           $ref: '#/components/schemas/mode'
+        inboundSpamThreshold:
+          type: number
     Model9:
       required:
-      - username
+        - username
       type: object
       properties:
         username:
           type: string
     Model10:
       required:
-      - plan
+        - plan
       type: object
       properties:
         plan:
