@@ -953,6 +953,59 @@ paths:
         404:
           description: App does not exists.
           content: {}
+  '/v1/projects/{name}/events':
+    get:
+      tags:
+        - Apps
+      summary: Get events of the app
+      description: get events of the app owned by user
+      operationId: getAppEvents
+      parameters:
+        - name: name
+          in: path
+          description: The name of the app
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Show events since timestamp
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+           application/json:
+             schema:
+               required:
+                 - data
+               type: object
+               properties:
+                 data:
+                   type: array
+                   items:
+                     type: object
+                     properties:
+                       metaData:
+                         type: object
+                       values:
+                         type: array
+                         items:
+                           type: array
+                           items:
+                             - type: string
+                             - type: string
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
   '/v1/projects/{name}/applets':
     get:
       tags:
