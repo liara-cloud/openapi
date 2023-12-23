@@ -605,6 +605,59 @@ paths:
         404:
           description: Database does not exists.
           content: {}
+  '/v1/databases/{name}/events':
+    get:
+      tags:
+        - Apps
+      summary: Get events of the database
+      description: get events of the database owned by user
+      operationId: getDatabaseEvents
+      parameters:
+        - name: name
+          in: path
+          description: The name of database
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Show events since timestamp
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        metaData:
+                          type: object
+                        values:
+                          type: array
+                          items:
+                            type: array
+                            items:
+                              - type: string
+                              - type: string
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Database does not exists.
+          content: {}
 components:
   schemas:
     Create-databases:
