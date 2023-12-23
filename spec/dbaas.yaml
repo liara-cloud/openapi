@@ -605,7 +605,7 @@ paths:
         404:
           description: Database does not exists.
           content: {}
-  '/v1/projects/{name}/events':
+  '/v1/databases/{name}/events':
     get:
       tags:
         - Apps
