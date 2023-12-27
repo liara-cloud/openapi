@@ -967,10 +967,10 @@ paths:
           required: true
           schema:
             type: string
-        - name: since
+        - name: search
           in: query
-          description: Show events since timestamp
-          required: true
+          description: Show events based on search query
+          required: false
           schema:
             type: string
       responses:
