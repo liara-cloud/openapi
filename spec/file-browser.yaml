@@ -1,0 +1,628 @@
+openapi: 3.0.1
+info:
+  title: Liara File Browser API Documentaion
+  description: For managing files in your disks
+  contact:
+    name: liara
+    url: https://liara.ir
+    email: support@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara File Browser 
+  url: https://docs.liara.ir/disks/file-browser/
+servers:
+  - url: https://{filebrowser-url}
+    variables:
+      filebrowser-url:
+        default: Example
+        description: This value is assigned by the service provider.
+security:
+  - jwt: []
+tags:
+  - name: Disks
+    description: Everything about your File Browser in Disks
+paths:
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/list:
+    get:
+      tags:
+        - Disks
+      summary: Get list from FileBrowser
+      operationId: getList
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      - name: sortType
+        in: query
+        description: The sortType for pagination. valid values:["name", "size", "modTime"]
+        schema:
+          type: string
+      - name: sortDirection
+        in: query
+        description: The sortDirection for pagination. valid values:["asc", "desc"]
+        schema:
+          type: string
+      - name: page
+        in: query
+        description: The page for pagination. min 1
+        schema:
+          type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/list'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/search:
+    get:
+      tags:
+        - Disks
+      summary: Search file or dir in FileBrowser
+      operationId: search
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      - name: sortType
+        in: query
+        description: The sortType for pagination. valid values:["name", "size", "modTime"]
+        schema:
+          type: string
+      - name: sortDirection
+        in: query
+        description: The sortDirection for pagination. valid values:["asc", "desc"]
+        schema:
+          type: string
+      - name: page
+        in: query
+        description: The page for pagination. min 1
+        schema:
+          type: number
+      - name: targetPath
+        in: query
+        description: The targetPath of your disk
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/search'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/serve:
+    get:
+      tags:
+        - Disks
+      summary: Serve file from FileBrowser
+      operationId: serve
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of createLink query route
+        required: true
+        schema:
+          type: string
+      - name: type
+        in: query
+        description: The path of createLink query route
+        required: true
+        schema:
+          type: string
+      - name: token
+        in: query
+        description: The path of createLink query route
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/createLink:
+    post:
+      tags:
+        - Disks
+      summary: Create link for file in FileBrowser
+      operationId: createLink
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      - name: type
+        in: query
+        description: The type of your request. valid values:["preview", "download"]
+        schema:
+          type: string
+      - name: expire
+        in: query
+        description: The expire of your link. valid values:["1h", "6h", "1d", "3d", "7d"]
+        schema:
+          type: string
+      responses:
+        201:
+          description: Successful operation
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queries:
+                    type: object
+                    properties:
+                      path:
+                        type: string
+                      type:
+                        type: string
+                      token: 
+                        type: string
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/rename:
+    post:
+      tags:
+        - Disks
+      summary: Rename file or dir in FileBrowser
+      operationId: rename
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      - name: newName
+        in: query
+        description: The newName of your path
+        schema:
+          type: string
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/create:
+    post:
+      tags:
+        - Disks
+      summary: Create file or dir in FileBrowser
+      operationId: create
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      - name: type
+        in: query
+        description: The type of your request. valid values:["file", "dir"]
+        schema:
+          type: string
+      - name: name
+        in: query
+        description: The name of your file or dir
+        schema:
+          type: string
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/extract:
+    post:
+      tags:
+        - Disks
+      summary: Extract file in FileBrowser
+      operationId: extract
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      - name: output
+        in: query
+        description: The output path of your request
+        schema:
+          type: string
+      - name: overwrite
+        in: query
+        description: The overwrite of your request
+        schema:
+          type: string
+          default: no
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/upload:
+    post:
+      tags:
+        - Disks
+      summary: Upload file in FileBrowser
+      operationId: upload
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      - name: overwrite
+        in: query
+        description: The overwrite of your request
+        schema:
+          type: string
+          default: no
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/delete:
+    delete:
+      tags:
+        - Disks
+      summary: Delete file or dir in FileBrowser
+      operationId: delete
+      parameters:
+      - name: projectID
+        in: path
+        description: The id of your project
+        required: true
+        schema:
+          type: string
+      - name: diskName
+        in: path
+        description: The name of your disk
+        required: true
+        schema:
+          type: string
+      - name: path
+        in: query
+        description: The path of your disk
+        required: true
+        schema:
+          type: string
+      responses:
+        202:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+components:
+  schemas:
+    list:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              name:
+                type: string
+              size:
+                type: number
+              extension:
+                type: string
+              isDir:
+                type: boolean
+              isSymlink:
+                type: boolean
+              targetSymlink:
+                type: string
+              type:
+                type: string
+              mode:
+                type: number
+              createAt:
+                type: string
+              modifiedAt:
+                type: string
+        diskName:
+          type: string
+        sorting:
+          type: object
+          properties:
+            sortType:
+              type: string
+            sortDirection:
+              type: string
+            page:
+              type: number
+        path:
+          type: string
+        name:
+          type: string
+        numDirs:
+          type: number
+        numFiles:
+          type: number
+        size:
+          type: number
+        extension:
+          type: string
+        isDir:
+          type: boolean
+        isSymlink:
+          type: boolean
+        targetSymlink:
+          type: string
+        type:
+          type: string
+        mode:
+          type: number
+        createAt:
+          type: string
+        modifiedAt:
+          type: string
+    search:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              name:
+                type: string
+              size:
+                type: number
+              extension:
+                type: string
+              isDir:
+                type: boolean
+              isSymlink:
+                type: boolean
+              targetSymlink:
+                type: string
+              type:
+                type: string
+              mode:
+                type: number
+              createAt:
+                type: string
+              modifiedAt:
+                type: string
+        diskName:
+          type: string
+        sorting:
+          type: object
+          properties:
+            sortType:
+              type: string
+            sortDirection:
+              type: string
+            page:
+              type: number
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
+      name: Authorization
+      in: header
