@@ -607,8 +607,6 @@ paths:
           content: {}
   '/v1/databases/{name}/events':
     get:
-      tags:
-        - Apps
       summary: Get events of the database
       description: get events of the database owned by user
       operationId: getDatabaseEvents
@@ -625,6 +623,20 @@ paths:
           required: false
           schema:
             type: string
+        - name: start
+          in: query
+          description: start timestamp
+          example: 1704028315
+          required: false
+          schema:
+            type: number
+        - name: end
+          in: query
+          description: end timestamp
+          example: 1704028315
+          required: false
+          schema:
+            type: number
       responses:
         200:
           description: Successful operation
