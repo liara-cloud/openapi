@@ -1617,6 +1617,9 @@ components:
             defaultSubdomain:
               type: boolean
               description: The defaultSubdomain status of project
+            readOnlyRootFilesystem:
+              type: boolean
+              description: The readOnlyRootFilesystem of project
             zeroDowntime:
               type: boolean
               description: The zeroDowntime status of project
