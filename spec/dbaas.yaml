@@ -647,8 +647,7 @@ paths:
                           items:
                             type: array
                             items:
-                              - type: string
-                              - type: string
+                              type: string
         400:
           description: Bad request
           content: {}

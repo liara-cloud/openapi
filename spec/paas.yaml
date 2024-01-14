@@ -399,6 +399,41 @@ paths:
         409:
           description: Conflict
           content: {}
+  '/v1/projects/{id}/read-only/{status}':
+    post:
+      tags:
+      - Settings
+      summary: Read only
+      description: read only that user owns
+      operationId: readOnly
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: status
+        in: path
+        description: disable or enable
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        409:
+          description: Conflict
+          content: {}
   /v1/projects/update-envs:
     post:
       tags:
@@ -977,26 +1012,25 @@ paths:
         200:
           description: Successful operation
           content:
-           application/json:
-             schema:
-               required:
-                 - data
-               type: object
-               properties:
-                 data:
-                   type: array
-                   items:
-                     type: object
-                     properties:
-                       metaData:
-                         type: object
-                       values:
-                         type: array
-                         items:
-                           type: array
-                           items:
-                             - type: string
-                             - type: string
+            application/json:
+              schema:
+                required:
+                  - data
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        metaData:
+                          type: object
+                        values:
+                          type: array
+                          items:
+                            type: array
+                            items:
+                              type: string
         400:
           description: Bad request
           content: {}
