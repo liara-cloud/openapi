@@ -1718,6 +1718,9 @@ components:
         type:
           type: string
           description: The platform of your app
+        readOnlyRootFilesystem:
+          type: boolean
+          description: For filesystem
     Update-envs:
       type: object
       properties:
