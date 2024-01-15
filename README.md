@@ -1,6 +1,6 @@
 # Liara's OpenAPI Specification
 
-This repository contains [OpenAPI specifications](https://www.openapis.org/) for Liara's API.
+This repository contains [OpenAPI specifications](https://openapi.liara.ir/) for Liara's API.
 
 ## Contribution
 
