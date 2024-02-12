@@ -12,5 +12,6 @@ services:
         { url: '/spec/mail.yaml', name: 'Mail'},
         { url: '/spec/paas.yaml', name: 'PaaS' },
         { url: '/spec/dbaas.yaml', name: 'DBaaS' },
-        { url: '/spec/object-storage.yaml', name: 'Object Storage' }
+        { url: '/spec/object-storage.yaml', name: 'Object Storage' },
+        { url: '/spec/file-browser.yaml', name: 'File Browser' },
         ]"
