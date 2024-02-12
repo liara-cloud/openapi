@@ -1596,6 +1596,12 @@ components:
         platform:
           type: string
           description: The platform of app that you want to create
+        readOnlyRootFilesystem:
+          type: boolean
+          description: For filesystem
+        network: 
+          type: string
+          description: For project
     ProjectAllDetails:
       type: object
       properties:
@@ -1721,9 +1727,6 @@ components:
         type:
           type: string
           description: The platform of your app
-        readOnlyRootFilesystem:
-          type: boolean
-          description: For filesystem
     Update-envs:
       type: object
       properties:
