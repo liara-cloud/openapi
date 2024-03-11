@@ -274,6 +274,38 @@ paths:
         404:
           description: Database not found
           content: {}
+  '/v1/databases/{id}/settings':
+    patch:
+      tags:
+      - Databases
+      summary: Settings a database
+      description: settings a database that user owns
+      operationId: databasesSettings
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Databases-settings'
+        required: true
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Database not found
+          content: {}
   '/v1/databases/{id}/backups/{name}/download':
     post:
       tags:
@@ -816,6 +848,27 @@ components:
               id:
                 type: string
                 description: The unique ID of the database
+    Databases-settings:
+      type: object
+      properties:
+        type: 
+          type: string
+        maxConnections:
+          type: number
+        netBufferLength:
+          type: number
+        selectLimit:
+          type: number
+        maxAllowedPacket:
+          type: number
+        connectTimeout:
+          type: number
+        maxJoinSize:
+          type: number
+        clientEncoding:
+          type: string
+        sharedBuffers:
+          type: number
   securitySchemes:
     jwt:
       type: apiKey
