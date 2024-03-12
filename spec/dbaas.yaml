@@ -853,22 +853,25 @@ components:
       properties:
         type: 
           type: string
-        maxConnections:
-          type: number
-        netBufferLength:
-          type: number
-        selectLimit:
-          type: number
-        maxAllowedPacket:
-          type: number
-        connectTimeout:
-          type: number
-        maxJoinSize:
-          type: number
-        clientEncoding:
-          type: string
-        sharedBuffers:
-          type: number
+        options:
+          type: object
+          properties:
+            maxConnections:
+              type: number
+            netBufferLength:
+              type: number
+            selectLimit:
+              type: number
+            maxAllowedPacket:
+              type: number
+            connectTimeout:
+              type: number
+            maxJoinSize:
+              type: number
+            clientEncoding:
+              type: string
+            sharedBuffers:
+              type: number
   securitySchemes:
     jwt:
       type: apiKey
