@@ -722,7 +722,7 @@ paths:
         404:
           description: App does not exists.
           content: {}
-  '/v1/projects/{id}/disks/{dname}/backups/manual/{bname}/download':
+  '/v1/projects/{id}/disks/{dname}/backups/{bname}/download':
     post:
       tags:
       - Disks
