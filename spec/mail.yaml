@@ -619,6 +619,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: isTrash
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
         200:
           description: OK
@@ -1229,6 +1234,76 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/':
+    patch:
+      tags:
+        - messages
+      summary: trash and untrash a message
+      operationId: trashMessage
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Model19'
+        required: true
+        description: Pass "false" to untrash
+      responses:
+        200:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Message not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+      x-codegen-request-body-name: body
+    '/api/v1/mails/{mailServerID}/messages/{messageID}/':
+    delete:
+      tags:
+        - messages
+      summary: delete a message permenantly
+      operationId: deleteMessage
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content: {}
+        404:
+          description: Mail Server or Mail Message not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+      x-codegen-request-body-name: body
 components:
   schemas:
     TmpAccess:
@@ -1743,6 +1818,13 @@ components:
         plan:
           maxLength: 64
           type: string
+    Model19:
+      required:
+        - trash
+      type: object
+      properties:
+        trash:
+          type: boolean
   securitySchemes:
     jwt:
       type: apiKey
