@@ -22,7 +22,7 @@ tags:
   - name: Disks
     description: Everything about your File Browser in Disks
 paths:
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/list:
+ /v1/projects/{projectID}/disks/{diskName}/list:
     get:
       tags:
         - Disks
@@ -81,7 +81,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/search:
+ /v1/projects/{projectID}/disks/{diskName}/search:
     get:
       tags:
         - Disks
@@ -145,7 +145,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/serve:
+ /v1/projects/{projectID}/disks/{diskName}/serve:
     get:
       tags:
         - Disks
@@ -198,7 +198,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/createLink:
+ /v1/projects/{projectID}/disks/{diskName}/createLink:
     post:
       tags:
         - Disks
@@ -262,7 +262,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/rename:
+ /v1/projects/{projectID}/disks/{diskName}/rename:
     post:
       tags:
         - Disks
@@ -308,7 +308,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/create:
+ /v1/projects/{projectID}/disks/{diskName}/create:
     post:
       tags:
         - Disks
@@ -359,7 +359,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/extract:
+ /v1/projects/{projectID}/disks/{diskName}/extract:
     post:
       tags:
         - Disks
@@ -411,7 +411,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/upload:
+ /v1/projects/{projectID}/disks/{diskName}/upload:
     post:
       tags:
         - Disks
@@ -469,7 +469,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/fileBrowser/projects/{projectID}/disks/{diskName}/delete:
+ /v1/projects/{projectID}/disks/{diskName}/delete:
     delete:
       tags:
         - Disks
