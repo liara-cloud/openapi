@@ -31,6 +31,8 @@ tags:
     description: Attachments endpoints.
   - name: event
     description: Event endpoints.
+  - name: tags
+    description: tags endpoints.
 paths:
   /api/v1/mails:
     get:
@@ -366,35 +368,35 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/remaining-free-emails':
-    get:
-      tags:
-        - mails
-      summary: count number of free mails every month
-      operationId: getCountFreeMails
-      parameters:
-        - name: mailServerID
-          in: path
-          required: true
-          schema:
-            pattern: ^[0-9a-fA-F]{24}$
-            type: string
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RemainingFreeMails'
-        400:
-          description: Bad Request
-          content: {}
-        404:
-          description: Mail Server not found
-          content: {}
-        500:
-          description: Unexpected error
-          content: {}
+  # '/api/v1/mails/{mailServerID}/remaining-free-emails':
+  #   get:
+  #     tags:
+  #       - mails
+  #     summary: count number of free mails every month
+  #     operationId: getCountFreeMails
+  #     parameters:
+  #       - name: mailServerID
+  #         in: path
+  #         required: true
+  #         schema:
+  #           pattern: ^[0-9a-fA-F]{24}$
+  #           type: string
+  #     responses:
+  #       200:
+  #         description: OK
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/RemainingFreeMails'
+  #       400:
+  #         description: Bad Request
+  #         content: {}
+  #       404:
+  #         description: Mail Server not found
+  #         content: {}
+  #       500:
+  #         description: Unexpected error
+  #         content: {}
   '/api/v1/mails/{mailServerID}/accounts':
     get:
       tags:
@@ -457,6 +459,9 @@ paths:
           content: {}
         404:
           description: Mail Server not found
+          content: {}
+        403:
+          description: Max number of accounts reached
           content: {}
         500:
           description: Unexpected error
@@ -798,7 +803,7 @@ paths:
           description: Bad Request
           content: {}
         403:
-          description: Max number of forwarders
+          description: Reached maximum mail forwarder per account.
           content: {}
         404:
           description: Mail Server or Mail Account not found
@@ -1190,12 +1195,67 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/plans':
-    put:
+  '/api/v1/mails/{mailServerID}/unfreeze':
+    patch:
+      tags: 
+       - mails
+      summary: unfreeze mail server - If you had reserved a plan, it will be your new plan.
+      operationId: unfreeze
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        204:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Account not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mails/{mailServerID}/metrics': 
+    get:
       tags:
-        - mails
-      summary: change mail server plan
-      operationId: changeMailServerPlan
+       - mails 
+      summary: gain more info on recent usage
+      operationId: getMetrics
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MailServerMetrics'
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Account not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mails/{mailServerID}/tags':
+    post:
+      tags:
+        - tags
+      summary: create a new tag 
+      operationId: createTag
       parameters:
         - name: mailServerID
           in: path
@@ -1207,8 +1267,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model10'
-        required: false
+              type: object
+              properties:
+                tag:
+                  type: string
+              data:
+                type: object
+                properties:
+                  tag:
+                  type: string
       responses:
         200:
           description: OK
@@ -1219,16 +1286,16 @@ paths:
                 properties:
                   status:
                     type: string
-        400:
-          description: Bad Request
-          content: {}
-        404:
-          description: Mail Server or Mail Account not found
-          content: {}
-        500:
-          description: Unexpected error
-          content: {}
-      x-codegen-request-body-name: body
+        #   400:
+        #     description: Bad Request
+        #     content: {}
+        #   404:
+        #     description: Mail Server or Mail Account not found
+        #     content: {}
+        #   500:
+        #     description: Unexpected error
+        #     content: {}
+        # x-codegen-request-body-name: body
 components:
   schemas:
     TmpAccess:
@@ -1394,16 +1461,16 @@ components:
                     type: string
                   id:
                     type: string
-    RemainingFreeMails:
-      type: object
-      properties:
-        status:
-          type: string
-        data:
-          type: object
-          properties:
-            count:
-              type: number
+    # RemainingFreeMails:
+    #   type: object
+    #   properties:
+    #     status:
+    #       type: string
+    #     data:
+    #       type: object
+    #       properties:
+    #         count:
+    #           type: number
     CheckDNSResponse:
       type: object
       properties:
@@ -1743,6 +1810,21 @@ components:
         plan:
           maxLength: 64
           type: string
+    MailServerMetrics:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            metrics:
+              type: object
+              properties:
+                messagesCountToday:
+                  type: number
+                messagesCountThisMonth:
+                  type: number
   securitySchemes:
     jwt:
       type: apiKey
