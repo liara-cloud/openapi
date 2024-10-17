@@ -32,7 +32,9 @@ tags:
   - name: event
     description: Event endpoints.
   - name: tags
-    description: tags endpoints.
+    description: Tags endpoints.
+  - name: plan
+    description: Plan endpoints.
 paths:
   /api/v1/mails:
     get:
@@ -624,6 +626,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: isTrash
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
         200:
           description: OK
@@ -1195,6 +1202,75 @@ paths:
         500:
           description: Unexpected error
           content: {}
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/':
+    patch:
+      tags:
+      - messages
+      summary: trash and untrash a message
+      operationId: trashMessage
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Model19'
+        required: true
+        description: Pass "false" to untrash
+      responses:
+        200:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Message not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+      x-codegen-request-body-name: body
+    delete:
+      tags:
+        - messages
+      summary: delete a message permenantly
+      operationId: deleteMessage
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content: {}
+        404:
+          description: Mail Server or Mail Message not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+      x-codegen-request-body-name: body
   '/api/v1/mails/{mailServerID}/unfreeze':
     patch:
       tags: 
@@ -1277,6 +1353,73 @@ paths:
                   tag:
                   type: string
       responses:
+        201:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Account not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    get:
+      tags:
+        - tags
+      summary: get all tags 
+      operationId: getTags
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tag:
+                    type: string  
+                  createdAt: 
+                    type: string
+                    format: date-time 
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Account not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mails/{mailServerID}/tags/stats':
+    get:
+      tags:
+        - tags
+      summary: get all tags 
+      operationId: getTags
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: lastNDays
+          in: query
+          schema:
+            maximum: 180
+            minimum: 1
+            type: number
+            default: 30
+      responses:
         200:
           description: OK
           content:
@@ -1284,18 +1427,24 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-        #   400:
-        #     description: Bad Request
-        #     content: {}
-        #   404:
-        #     description: Mail Server or Mail Account not found
-        #     content: {}
-        #   500:
-        #     description: Unexpected error
-        #     content: {}
-        # x-codegen-request-body-name: body
+                  date:
+                    type: integer
+                    description: Unix timestamp
+                  tag:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        description: count of occurrences
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Account not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
 components:
   schemas:
     TmpAccess:
