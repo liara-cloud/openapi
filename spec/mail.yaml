@@ -31,6 +31,10 @@ tags:
     description: Attachments endpoints.
   - name: event
     description: Event endpoints.
+  - name: tags
+    description: Tags endpoints.
+  - name: plan
+    description: Plan endpoints.
 paths:
   /api/v1/mails:
     get:
@@ -366,35 +370,35 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/remaining-free-emails':
-    get:
-      tags:
-        - mails
-      summary: count number of free mails every month
-      operationId: getCountFreeMails
-      parameters:
-        - name: mailServerID
-          in: path
-          required: true
-          schema:
-            pattern: ^[0-9a-fA-F]{24}$
-            type: string
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RemainingFreeMails'
-        400:
-          description: Bad Request
-          content: {}
-        404:
-          description: Mail Server not found
-          content: {}
-        500:
-          description: Unexpected error
-          content: {}
+  # '/api/v1/mails/{mailServerID}/remaining-free-emails':
+  #   get:
+  #     tags:
+  #       - mails
+  #     summary: count number of free mails every month
+  #     operationId: getCountFreeMails
+  #     parameters:
+  #       - name: mailServerID
+  #         in: path
+  #         required: true
+  #         schema:
+  #           pattern: ^[0-9a-fA-F]{24}$
+  #           type: string
+  #     responses:
+  #       200:
+  #         description: OK
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: '#/components/schemas/RemainingFreeMails'
+  #       400:
+  #         description: Bad Request
+  #         content: {}
+  #       404:
+  #         description: Mail Server not found
+  #         content: {}
+  #       500:
+  #         description: Unexpected error
+  #         content: {}
   '/api/v1/mails/{mailServerID}/accounts':
     get:
       tags:
@@ -457,6 +461,9 @@ paths:
           content: {}
         404:
           description: Mail Server not found
+          content: {}
+        403:
+          description: Max number of accounts reached
           content: {}
         500:
           description: Unexpected error
@@ -619,6 +626,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: isTrash
+          in: query
+          schema:
+            type: boolean
+            default: false
       responses:
         200:
           description: OK
@@ -798,7 +810,7 @@ paths:
           description: Bad Request
           content: {}
         403:
-          description: Max number of forwarders
+          description: Reached maximum mail forwarder per account.
           content: {}
         404:
           description: Mail Server or Mail Account not found
@@ -1190,12 +1202,136 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/plans':
-    put:
+  '/api/v1/mails/{mailServerID}/messages/{messageID}/':
+    patch:
       tags:
-        - mails
-      summary: change mail server plan
-      operationId: changeMailServerPlan
+      - messages
+      summary: trash and untrash a message
+      operationId: trashMessage
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Model19'
+        required: true
+        description: Pass "false" to untrash
+      responses:
+        200:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server or Mail Message not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+      x-codegen-request-body-name: body
+    delete:
+      tags:
+        - messages
+      summary: delete a message permenantly
+      operationId: deleteMessage
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: messageID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content: {}
+        404:
+          description: Mail Server or Mail Message not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+      x-codegen-request-body-name: body
+  '/api/v1/mails/{mailServerID}/unfreeze':
+    patch:
+      tags: 
+       - mails
+      summary: unfreeze mail server - If you had reserved a plan, it will be your new plan.
+      operationId: unfreeze
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        204:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mails/{mailServerID}/metrics': 
+    get:
+      tags:
+       - mails 
+      summary: gain more info on recent usage
+      operationId: getMetrics
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MailServerMetrics'
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mails/{mailServerID}/tags':
+    post:
+      tags:
+        - tags
+      summary: create a new tag 
+      operationId: createTag
       parameters:
         - name: mailServerID
           in: path
@@ -1207,8 +1343,82 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model10'
-        required: false
+              type: object
+              properties:
+                tag:
+                  type: string
+              data:
+                type: object
+                properties:
+                  tag:
+                  type: string
+      responses:
+        201:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    get:
+      tags:
+        - tags
+      summary: get all tags 
+      operationId: getTags
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tag:
+                    type: string  
+                  createdAt: 
+                    type: string
+                    format: date-time 
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mails/{mailServerID}/tags/stats':
+    get:
+      tags:
+        - tags
+      summary: get all tags 
+      operationId: getTags
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+        - name: lastNDays
+          in: query
+          schema:
+            maximum: 180
+            minimum: 1
+            type: number
+            default: 30
       responses:
         200:
           description: OK
@@ -1217,18 +1427,162 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
+                  date:
+                    type: integer
+                    description: Unix timestamp
+                  tag:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        description: count of occurrences
         400:
           description: Bad Request
           content: {}
         404:
-          description: Mail Server or Mail Account not found
+          description: Mail Server not found
           content: {}
         500:
           description: Unexpected error
           content: {}
-      x-codegen-request-body-name: body
+  '/api/v1/mails/{mailServerID}/plan': 
+    post:
+      tags:
+       - plan
+      summary: change mail server plan
+      description: Upgrades take effect immediately, while downgrades are scheduled and applied after the current plan ends. Click on the request body schema to see all available plans.
+      operationId: changePlan
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                planName:
+                  type: string
+                  enum:
+                    - m1
+                    - m2
+                    - m3
+                    - m4
+                    - m5
+                    - m6
+                    - m7
+                    - m8
+                  default: "m3"
+      responses:
+        200:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request - Invalid request for plan
+          content: {}
+        402:
+          description: Not enough balance.
+          content: {}
+        403:
+          description: You are allowed to create only one Mail Server on the free plan.
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        428:
+          description: You are already on the same plan
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}                
+    get:
+      tags:
+       - plan
+      summary: get cuurent mail server plan history
+      operationId: getCurrentPlanHistory
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object     
+                    properties:
+                      currentPlanHistory:
+                        type: object
+                        description: details on current plan
+                      nextPlanStartDate:
+                        type: string
+                        format: date-time
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    delete:
+      tags:
+        - plan
+      summary: remove a reserved plan
+      description: Click on the request body schema to see all available plans.
+      operationId: deleteReservation
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reservedPlan:
+                  type: string
+                  enum:
+                    - m1
+                    - m2
+                    - m3
+                    - m4
+                    - m5
+                    - m6
+                    - m7
+                    - m8
+      responses:
+        200:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail server not found - Plan not found.
+          content: {}
+        428:
+          description: You are already on the same plan
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
 components:
   schemas:
     TmpAccess:
@@ -1394,16 +1748,16 @@ components:
                     type: string
                   id:
                     type: string
-    RemainingFreeMails:
-      type: object
-      properties:
-        status:
-          type: string
-        data:
-          type: object
-          properties:
-            count:
-              type: number
+    # RemainingFreeMails:
+    #   type: object
+    #   properties:
+    #     status:
+    #       type: string
+    #     data:
+    #       type: object
+    #       properties:
+    #         count:
+    #           type: number
     CheckDNSResponse:
       type: object
       properties:
@@ -1743,6 +2097,21 @@ components:
         plan:
           maxLength: 64
           type: string
+    MailServerMetrics:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            metrics:
+              type: object
+              properties:
+                messagesCountToday:
+                  type: number
+                messagesCountThisMonth:
+                  type: number
   securitySchemes:
     jwt:
       type: apiKey
