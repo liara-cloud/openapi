@@ -1292,7 +1292,7 @@ paths:
           description: Bad Request
           content: {}
         404:
-          description: Mail Server or Mail Account not found
+          description: Mail Server not found
           content: {}
         500:
           description: Unexpected error
@@ -1321,7 +1321,7 @@ paths:
           description: Bad Request
           content: {}
         404:
-          description: Mail Server or Mail Account not found
+          description: Mail Server not found
           content: {}
         500:
           description: Unexpected error
@@ -1360,7 +1360,7 @@ paths:
           description: Bad Request
           content: {}
         404:
-          description: Mail Server or Mail Account not found
+          description: Mail Server not found
           content: {}
         500:
           description: Unexpected error
@@ -1394,7 +1394,7 @@ paths:
           description: Bad Request
           content: {}
         404:
-          description: Mail Server or Mail Account not found
+          description: Mail Server not found
           content: {}
         500:
           description: Unexpected error
@@ -1440,7 +1440,145 @@ paths:
           description: Bad Request
           content: {}
         404:
-          description: Mail Server or Mail Account not found
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  '/api/v1/mails/{mailServerID}/plan': 
+    post:
+      tags:
+       - plan
+      summary: change mail server plan
+      description: Upgrades take effect immediately, while downgrades are scheduled and applied after the current plan ends. Click on the request body schema to see all available plans.
+      operationId: changePlan
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                planName:
+                  type: string
+                  enum:
+                    - m1
+                    - m2
+                    - m3
+                    - m4
+                    - m5
+                    - m6
+                    - m7
+                    - m8
+                  default: "m3"
+      responses:
+        200:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request - Invalid request for plan
+          content: {}
+        402:
+          description: Not enough balance.
+          content: {}
+        403:
+          description: You are allowed to create only one Mail Server on the free plan.
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        428:
+          description: You are already on the same plan
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}                
+    get:
+      tags:
+       - plan
+      summary: get cuurent mail server plan history
+      operationId: getCurrentPlanHistory
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object     
+                    properties:
+                      currentPlanHistory:
+                        type: object
+                        description: details on current plan
+                      nextPlanStartDate:
+                        type: string
+                        format: date-time
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail Server not found
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    delete:
+      tags:
+        - plan
+      summary: remove a reserved plan
+      description: Click on the request body schema to see all available plans.
+      operationId: deleteReservation
+      parameters:
+        - name: mailServerID
+          in: path
+          required: true
+          schema:
+            pattern: ^[0-9a-fA-F]{24}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reservedPlan:
+                  type: string
+                  enum:
+                    - m1
+                    - m2
+                    - m3
+                    - m4
+                    - m5
+                    - m6
+                    - m7
+                    - m8
+      responses:
+        200:
+          description: OK
+          content: {}
+        400:
+          description: Bad Request
+          content: {}
+        404:
+          description: Mail server not found - Plan not found.
+          content: {}
+        428:
+          description: You are already on the same plan
           content: {}
         500:
           description: Unexpected error
