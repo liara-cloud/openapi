@@ -387,6 +387,7 @@ paths:
       - name: output
         in: query
         description: The output path of your request
+        required: true
         schema:
           type: string
       - name: overwrite
