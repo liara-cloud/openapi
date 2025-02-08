@@ -1,0 +1,503 @@
+openapi: 3.0.1
+info:
+  title: Liara Database Inspector API Documentaion
+  description: For managing databases in console
+  contact:
+    name: liara
+    url: https://liara.ir
+    email: support@liara.ir
+  version: 1.0.0
+# externalDocs:
+#   description: Find out more about Liara Database Inspector
+#   url: --
+servers:
+  - url: https://{database-inspector-url}
+    variables:
+      databse-nspector-url:
+        default: Example
+        description: This value is assigned by the service provider.
+security:
+  - jwt: []
+tags:
+  - name: Database Inspector
+paths:
+  /v1/databases/{databaseID}/roles:
+    get:
+      tags:
+        - Database Inspector
+      summary: Get All Roles in Database
+      operationId: getAllRoles
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of project
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/list"
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    post:
+      tags:
+        - Database Inspector
+      summary: Create Role in database
+      operationId: createRole
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queries:
+                    type: object
+                    properties:
+                      path:
+                        type: string
+                      type:
+                        type: string
+                      token:
+                        type: string
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/databases/{databaseID}/datasets:
+    get:
+      tags:
+        - Database Inspector
+      summary: get all datasets in database (for example tables in SQL databases)
+      operationId: getAllDatasets
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/search"
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/databases/{databaseID}/datasets/{datasetName}:
+    get:
+      tags:
+        - Database Inspector
+      summary: get dataset in database using its name
+      operationId: getDatasetByName
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of databse
+          required: true
+          schema:
+            type: string
+        - name: datasetName
+          in: path
+          description: The name of dataset (for example table in sql databases)
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/databases/{databaseID}/queries:
+    post:
+      tags:
+        - Database Inspector
+      summary: Execute custom query
+      operationId: queries
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/databases/{databaseID}/datasets/{datasetName}/filter:
+    post:
+      tags:
+        - Database Inspector
+      summary: Filter dataset data
+      operationId: filterDataset
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: datasetName
+          in: path
+          description: The name of dataset
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/databases/{databaseID}/datasets/{datasetName}/data:
+    post:
+      tags:
+        - Database Inspector
+      summary: Create data in dataset
+      operationId: createData
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: datasetName
+          in: path
+          description: The name of dataset
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    delete:
+      tags:
+        - Database Inspector
+      summary: Delete data in dataset
+      operationId: deleteData
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: datasetName
+          in: path
+          description: The name of dataset
+          required: true
+          schema:
+            type: string
+      responses:
+        202:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+  /v1/databases/{databaseID}/roles/{roleName}:
+    put:
+      tags:
+        - Database Inspector
+      summary: Update Role
+      operationId: updateRole
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: roleName
+          in: path
+          description: The name of role
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+    delete:
+      tags:
+        - Database Inspector
+      summary: Delete Role
+      operationId: deleteRole
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: roleName
+          in: path
+          description: The name of role
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: Successful operation
+          content: {}
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: App does not exists.
+          content: {}
+        500:
+          description: Unexpected error
+          content: {}
+components:
+  schemas:
+    list:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              name:
+                type: string
+              size:
+                type: number
+              extension:
+                type: string
+              isDir:
+                type: boolean
+              isSymlink:
+                type: boolean
+              targetSymlink:
+                type: string
+              type:
+                type: string
+              mode:
+                type: number
+              createAt:
+                type: string
+              modifiedAt:
+                type: string
+        diskName:
+          type: string
+        sorting:
+          type: object
+          properties:
+            sortType:
+              type: string
+            sortDirection:
+              type: string
+            page:
+              type: number
+        path:
+          type: string
+        name:
+          type: string
+        numDirs:
+          type: number
+        numFiles:
+          type: number
+        size:
+          type: number
+        extension:
+          type: string
+        isDir:
+          type: boolean
+        isSymlink:
+          type: boolean
+        targetSymlink:
+          type: string
+        type:
+          type: string
+        mode:
+          type: number
+        createAt:
+          type: string
+        modifiedAt:
+          type: string
+    search:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              name:
+                type: string
+              size:
+                type: number
+              extension:
+                type: string
+              isDir:
+                type: boolean
+              isSymlink:
+                type: boolean
+              targetSymlink:
+                type: string
+              type:
+                type: string
+              mode:
+                type: number
+              createAt:
+                type: string
+              modifiedAt:
+                type: string
+        diskName:
+          type: string
+        sorting:
+          type: object
+          properties:
+            sortType:
+              type: string
+            sortDirection:
+              type: string
+            page:
+              type: number
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
+      name: Authorization
+      in: header
