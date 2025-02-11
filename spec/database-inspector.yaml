@@ -102,11 +102,162 @@ paths:
             type: string
       responses:
         201:
-          description: Successfully retrieved all roles
+          description: Successfully Created a database Role.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DatabaseRolesResponse"
+                $ref: "#/components/schemas/CreateRoleResponse"
+        400:
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
+        401:
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
+        404:
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                noRolesFound:
+                  summary: No roles found in the database
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "No roles found for the specified database"
+        430:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
+          content: {}
+        500:
+          description: Unexpected server error
+          content: {}
+  /v1/databases/{databaseID}/roles/{roleName}:
+    put:
+      tags:
+        - Database Inspector
+      summary: Update Role
+      operationId: updateRole
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: roleName
+          in: path
+          description: The name of role
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Successfully Updated a database Role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateRoleResponse"
+        400:
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
+        401:
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
+        404:
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                noRolesFound:
+                  summary: No roles found in the database
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "No roles found for the specified database"
+        430:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
+          content: {}
+        500:
+          description: Unexpected server error
+          content: {}
+    delete:
+      tags:
+        - Database Inspector
+      summary: Delete Role
+      operationId: deleteRole
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: roleName
+          in: path
+          description: The name of role
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Successfully Deleted a database Role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteRoleResponse"
         400:
           description: Bad request (invalid database ID)
           content:
@@ -357,75 +508,6 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  /v1/databases/{databaseID}/roles/{roleName}:
-    put:
-      tags:
-        - Database Inspector
-      summary: Update Role
-      operationId: updateRole
-      parameters:
-        - name: databaseID
-          in: path
-          description: The id of database
-          required: true
-          schema:
-            type: string
-        - name: roleName
-          in: path
-          description: The name of role
-          required: true
-          schema:
-            type: string
-      responses:
-        201:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        500:
-          description: Unexpected error
-          content: {}
-    delete:
-      tags:
-        - Database Inspector
-      summary: Delete Role
-      operationId: deleteRole
-      parameters:
-        - name: databaseID
-          in: path
-          description: The id of database
-          required: true
-          schema:
-            type: string
-        - name: roleName
-          in: path
-          description: The name of role
-          required: true
-          schema:
-            type: string
-      responses:
-        201:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        500:
-          description: Unexpected error
-          content: {}
 components:
   schemas:
     DatabaseRolesResponse:
@@ -473,7 +555,24 @@ components:
         inherited_roles:
           type: string
           example: "{}"
-
+    CreateRoleResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Role created."
+    UpdateRoleResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Role updated."
+    DeleteRoleResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Role deleted."
     Error400Response:
       type: object
       properties:
@@ -499,22 +598,6 @@ components:
             error:
               type: string
               example: "Unauthorized."
-
-    ErrorResponse:
-      type: object
-      properties:
-        error:
-          type: object
-          properties:
-            statusCode:
-              type: integer
-              example: 404
-            error:
-              type: string
-              example: "Not Found"
-            message:
-              type: string
-              example: "The database host is unreachable"
   securitySchemes:
     jwt:
       type: apiKey
