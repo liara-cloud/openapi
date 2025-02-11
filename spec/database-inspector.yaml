@@ -30,28 +30,63 @@ paths:
       parameters:
         - name: databaseID
           in: path
-          description: The id of project
+          description: The ID of the database
           required: true
           schema:
             type: string
       responses:
         200:
-          description: Successful operation
+          description: Successfully retrieved all roles
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/list"
+                $ref: "#/components/schemas/DatabaseRolesResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                noRolesFound:
+                  summary: No roles found in the database
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "No roles found for the specified database"
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
           content: {}
     post:
       tags:
@@ -67,32 +102,60 @@ paths:
             type: string
       responses:
         201:
-          description: Successful operation
+          description: Successfully retrieved all roles
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  queries:
-                    type: object
-                    properties:
-                      path:
-                        type: string
-                      type:
-                        type: string
-                      token:
-                        type: string
+                $ref: "#/components/schemas/DatabaseRolesResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                noRolesFound:
+                  summary: No roles found in the database
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "No roles found for the specified database"
+        430:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
           content: {}
   /v1/databases/{databaseID}/datasets:
     get:
@@ -113,7 +176,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/search"
+                # $ref: "#/components/schemas/search"
         400:
           description: Bad request
           content: {}
@@ -313,17 +376,6 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - file
-              properties:
-                file:
-                  type: string
-                  format: binary
       responses:
         201:
           description: Successful operation
@@ -358,17 +410,6 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - file
-              properties:
-                file:
-                  type: string
-                  format: binary
       responses:
         201:
           description: Successful operation
@@ -387,114 +428,93 @@ paths:
           content: {}
 components:
   schemas:
-    list:
+    DatabaseRolesResponse:
       type: object
       properties:
-        items:
+        data:
           type: array
           items:
-            type: object
-            properties:
-              path:
-                type: string
-              name:
-                type: string
-              size:
-                type: number
-              extension:
-                type: string
-              isDir:
-                type: boolean
-              isSymlink:
-                type: boolean
-              targetSymlink:
-                type: string
-              type:
-                type: string
-              mode:
-                type: number
-              createAt:
-                type: string
-              modifiedAt:
-                type: string
-        diskName:
-          type: string
-        sorting:
-          type: object
-          properties:
-            sortType:
-              type: string
-            sortDirection:
-              type: string
-            page:
-              type: number
-        path:
-          type: string
-        name:
-          type: string
-        numDirs:
-          type: number
-        numFiles:
-          type: number
-        size:
-          type: number
-        extension:
-          type: string
-        isDir:
-          type: boolean
-        isSymlink:
-          type: boolean
-        targetSymlink:
-          type: string
-        type:
-          type: string
-        mode:
-          type: number
-        createAt:
-          type: string
-        modifiedAt:
-          type: string
-    search:
+            $ref: "#/components/schemas/DatabaseRole"
+
+    DatabaseRole:
       type: object
       properties:
-        items:
-          type: array
-          items:
-            type: object
-            properties:
-              path:
-                type: string
-              name:
-                type: string
-              size:
-                type: number
-              extension:
-                type: string
-              isDir:
-                type: boolean
-              isSymlink:
-                type: boolean
-              targetSymlink:
-                type: string
-              type:
-                type: string
-              mode:
-                type: number
-              createAt:
-                type: string
-              modifiedAt:
-                type: string
-        diskName:
+        rolename:
           type: string
-        sorting:
+          example: "root"
+        is_superuser:
+          type: boolean
+          example: true
+        can_inherit_roles:
+          type: boolean
+          example: true
+        can_create_roles:
+          type: boolean
+          example: true
+        can_create_databases:
+          type: boolean
+          example: true
+        can_login:
+          type: boolean
+          example: true
+        can_replicate:
+          type: boolean
+          example: true
+        connection_limit:
+          type: integer
+          example: -1
+        valid_until:
+          type: string
+          nullable: true
+          example: null
+        member_of:
+          type: string
+          example: "{}"
+        inherited_roles:
+          type: string
+          example: "{}"
+
+    Error400Response:
+      type: object
+      properties:
+        error:
           type: object
           properties:
-            sortType:
+            statusCode:
+              type: integer
+              example: 400
+            error:
               type: string
-            sortDirection:
+              example: "Bad Request"
+            message:
               type: string
-            page:
-              type: number
+              example: "Invalid id"
+
+    Error401Response:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            error:
+              type: string
+              example: "Unauthorized."
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            statusCode:
+              type: integer
+              example: 404
+            error:
+              type: string
+              example: "Not Found"
+            message:
+              type: string
+              example: "The database host is unreachable"
   securitySchemes:
     jwt:
       type: apiKey
