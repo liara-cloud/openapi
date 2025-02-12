@@ -100,6 +100,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoleRequest"
       responses:
         201:
           description: Successfully Created a database Role.
@@ -141,14 +147,7 @@ paths:
                       statusCode: 404
                       error: "Not Found"
                       message: "The database host is unreachable"
-                noRolesFound:
-                  summary: No roles found in the database
-                  value:
-                    error:
-                      statusCode: 404
-                      error: "Not Found"
-                      message: "No roles found for the specified database"
-        430:
+        422:
           description: Validation error
           content: {}
         409:
@@ -176,6 +175,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoleRequest"
       responses:
         201:
           description: Successfully Updated a database Role.
@@ -223,8 +228,8 @@ paths:
                     error:
                       statusCode: 404
                       error: "Not Found"
-                      message: "No roles found for the specified database"
-        430:
+                      message: "role does not exist"
+        422:
           description: Validation error
           content: {}
         409:
@@ -293,13 +298,13 @@ paths:
                       error: "Not Found"
                       message: "The database host is unreachable"
                 noRolesFound:
-                  summary: No roles found in the database
+                  summary: role does not exist
                   value:
                     error:
                       statusCode: 404
                       error: "Not Found"
-                      message: "No roles found for the specified database"
-        430:
+                      message: "role does not exist"
+        422:
           description: Validation error
           content: {}
         409:
@@ -322,23 +327,54 @@ paths:
           schema:
             type: string
       responses:
-        200:
-          description: Successful operation
+        201:
+          description: Successfully got datasets.
           content:
             application/json:
               schema:
-                # $ref: "#/components/schemas/search"
+                $ref: "#/components/schemas/GetDatasetsResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+        422:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
           content: {}
   /v1/databases/{databaseID}/datasets/{datasetName}:
     get:
@@ -359,21 +395,76 @@ paths:
           required: true
           schema:
             type: string
+        - name: page
+          in: query
+          description: page
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: count
+          in: query
+          description: count
+          required: false
+          schema:
+            type: integer
+          example: 50
       responses:
-        200:
-          description: Successful operation
-          content: {}
+        201:
+          description: Successfully got dataset by name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetDatabaseByNameResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                datasetNotFound:
+                  summary: dataset does not exist
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "dataset does not exist"
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+        422:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
           content: {}
   /v1/databases/{databaseID}/queries:
     post:
@@ -388,21 +479,68 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryRequest"
       responses:
         201:
-          description: Successful operation
-          content: {}
+          description: Successfully got dataset by name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetDatabaseByNameResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                datasetNotFound:
+                  summary: dataset does not exist
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "dataset does not exist"
+        422:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
           content: {}
   /v1/databases/{databaseID}/datasets/{datasetName}/filter:
     post:
@@ -423,21 +561,82 @@ paths:
           required: true
           schema:
             type: string
+        - name: page
+          in: query
+          description: page
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: count
+          in: query
+          description: count
+          required: false
+          schema:
+            type: integer
+          example: 50
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FilterDataRequest"
       responses:
         201:
-          description: Successful operation
-          content: {}
+          description: Successfully got dataset by name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetDatabaseByNameResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                datasetNotFound:
+                  summary: dataset does not exist
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "dataset does not exist"
+        422:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
           content: {}
   /v1/databases/{databaseID}/datasets/{datasetName}/data:
     post:
@@ -460,19 +659,135 @@ paths:
             type: string
       responses:
         201:
-          description: Successful operation
-          content: {}
+          description: Successfully inserted the data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateDataResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                datasetNotFound:
+                  summary: dataset does not exist
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "dataset does not exist"
+        422:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
+          content: {}
+    put:
+      tags:
+        - Database Inspector
+      summary: Update data in dataset
+      operationId: updateData
+      parameters:
+        - name: databaseID
+          in: path
+          description: The id of database
+          required: true
+          schema:
+            type: string
+        - name: datasetName
+          in: path
+          description: The name of dataset
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: Successfully updated data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateDataResponse"
+        400:
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
+        401:
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
+        404:
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                datasetNotFound:
+                  summary: dataset does not exist
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "dataset does not exist"
+        422:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
+          content: {}
+        500:
+          description: Unexpected server error
           content: {}
     delete:
       tags:
@@ -493,23 +808,132 @@ paths:
           schema:
             type: string
       responses:
-        202:
-          description: Successful operation
-          content: {}
+        201:
+          description: Successfully got dataset by name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteDataResponse"
         400:
-          description: Bad request
-          content: {}
+          description: Bad request (invalid database ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400Response"
+              example:
+                error:
+                  statusCode: 400
+                  error: "Bad Request"
+                  message: "Invalid id"
         401:
-          description: Missing authentication
-          content: {}
+          description: Unauthorized (missing or invalid authentication)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error401Response"
+              example:
+                error:
+                  error: "Unauthorized."
         404:
-          description: App does not exists.
+          description: Not Found (host unreachable or no roles found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                hostNotFound:
+                  summary: The database host was not found
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "The database host is unreachable"
+                datasetNotFound:
+                  summary: dataset does not exist
+                  value:
+                    error:
+                      statusCode: 404
+                      error: "Not Found"
+                      message: "dataset does not exist"
+        422:
+          description: Validation error
+          content: {}
+        409:
+          description: Database-related error (e.g., database or bridge in an invalid state)
           content: {}
         500:
-          description: Unexpected error
+          description: Unexpected server error
           content: {}
 components:
   schemas:
+    CreateRoleRequest:
+      type: object
+      properties:
+        rolename:
+          type: string
+          description: Role name
+          example: "new_role"
+        password:
+          type: string
+          description: Password for the role (optional)
+          nullable: true
+          example: "securepassword123"
+        connectionLimit:
+          type: integer
+          description: Maximum number of connections for the role (optional)
+          nullable: true
+          example: 10
+        validUntil:
+          type: string
+          format: date-time
+          description: Expiration date for the role (optional)
+          nullable: true
+          example: "2025-12-31T23:59:59Z"
+        privileges:
+          type: array
+          description: List of privileges for the role
+          items:
+            type: string
+            enum:
+              - createdb
+              - inherit
+              - superuser
+              - createrole
+              - bypassrls
+              - replication
+          example: ["createdb", "superuser"]
+    UpdateRoleRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          description: Password for the role (optional)
+          nullable: true
+          example: "securepassword123"
+        connectionLimit:
+          type: integer
+          description: Maximum number of connections for the role (optional)
+          nullable: true
+          example: 10
+        validUntil:
+          type: string
+          format: date-time
+          description: Expiration date for the role (optional)
+          nullable: true
+          example: "2025-12-31T23:59:59Z"
+        privileges:
+          type: array
+          description: List of privileges for the role
+          items:
+            type: string
+            enum:
+              - createdb
+              - inherit
+              - superuser
+              - createrole
+              - bypassrls
+              - replication
+          example: ["createdb", "superuser"]
     DatabaseRolesResponse:
       type: object
       properties:
@@ -573,6 +997,67 @@ components:
         message:
           type: string
           example: "Role deleted."
+    CreateDataResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Data created."
+    UpdateDataResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Data updated."
+    DeleteDataResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Data deleted."
+    GetDatasetsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              dataset_name:
+                type: string
+                example: "users"
+    GetDatabaseByNameResponse:
+      type: object
+      properties:
+        data: 
+          type: array
+          items:
+            type: object
+        schema:
+          type: object
+        count: 
+          type: integer
+    QueryRequest: 
+      type: object
+      properties:
+        query:
+          type: string
+    FilterDataRequest: 
+      type: object
+      properties:
+        filter:
+          type: array
+          items:
+            type: object
+            properties:
+              column:
+                type: string
+                example: "id"
+              operator:
+                type: string
+                example: ">="
+              value:
+                example: 2
     Error400Response:
       type: object
       properties:
@@ -598,6 +1083,19 @@ components:
             error:
               type: string
               example: "Unauthorized."
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            statusCode:
+              type: integer
+            error:
+              type: string
+            message:
+              type: string
+
   securitySchemes:
     jwt:
       type: apiKey
