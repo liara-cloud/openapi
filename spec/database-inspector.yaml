@@ -542,102 +542,102 @@ paths:
         500:
           description: Unexpected server error
           content: {}
-  /v1/databases/{databaseID}/datasets/{datasetName}/filter:
-    post:
-      tags:
-        - Database Inspector
-      summary: Filter dataset data
-      operationId: filterDataset
-      parameters:
-        - name: databaseID
-          in: path
-          description: The id of database
-          required: true
-          schema:
-            type: string
-        - name: datasetName
-          in: path
-          description: The name of dataset
-          required: true
-          schema:
-            type: string
-        - name: page
-          in: query
-          description: page
-          required: false
-          schema:
-            type: integer
-          example: 1
-        - name: count
-          in: query
-          description: count
-          required: false
-          schema:
-            type: integer
-          example: 50
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FilterDataRequest"
-      responses:
-        201:
-          description: Successfully got dataset by name.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetDatabaseByNameResponse"
-        400:
-          description: Bad request (invalid database ID)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error400Response"
-              example:
-                error:
-                  statusCode: 400
-                  error: "Bad Request"
-                  message: "Invalid id"
-        401:
-          description: Unauthorized (missing or invalid authentication)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error401Response"
-              example:
-                error:
-                  error: "Unauthorized."
-        404:
-          description: Not Found (host unreachable or no roles found)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-              examples:
-                hostNotFound:
-                  summary: The database host was not found
-                  value:
-                    error:
-                      statusCode: 404
-                      error: "Not Found"
-                      message: "The database host is unreachable"
-                datasetNotFound:
-                  summary: dataset does not exist
-                  value:
-                    error:
-                      statusCode: 404
-                      error: "Not Found"
-                      message: "dataset does not exist"
-        422:
-          description: Validation error
-          content: {}
-        409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
-          content: {}
-        500:
-          description: Unexpected server error
-          content: {}
+  # /v1/databases/{databaseID}/datasets/{datasetName}/filter:
+  #   post:
+  #     tags:
+  #       - Database Inspector
+  #     summary: Filter dataset data
+  #     operationId: filterDataset
+  #     parameters:
+  #       - name: databaseID
+  #         in: path
+  #         description: The id of database
+  #         required: true
+  #         schema:
+  #           type: string
+  #       - name: datasetName
+  #         in: path
+  #         description: The name of dataset
+  #         required: true
+  #         schema:
+  #           type: string
+  #       - name: page
+  #         in: query
+  #         description: page
+  #         required: false
+  #         schema:
+  #           type: integer
+  #         example: 1
+  #       - name: count
+  #         in: query
+  #         description: count
+  #         required: false
+  #         schema:
+  #           type: integer
+  #         example: 50
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/FilterDataRequest"
+  #     responses:
+  #       201:
+  #         description: Successfully got dataset by name.
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/GetDatabaseByNameResponse"
+  #       400:
+  #         description: Bad request (invalid database ID)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Error400Response"
+  #             example:
+  #               error:
+  #                 statusCode: 400
+  #                 error: "Bad Request"
+  #                 message: "Invalid id"
+  #       401:
+  #         description: Unauthorized (missing or invalid authentication)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Error401Response"
+  #             example:
+  #               error:
+  #                 error: "Unauthorized."
+  #       404:
+  #         description: Not Found (host unreachable or no roles found)
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/ErrorResponse"
+  #             examples:
+  #               hostNotFound:
+  #                 summary: The database host was not found
+  #                 value:
+  #                   error:
+  #                     statusCode: 404
+  #                     error: "Not Found"
+  #                     message: "The database host is unreachable"
+  #               datasetNotFound:
+  #                 summary: dataset does not exist
+  #                 value:
+  #                   error:
+  #                     statusCode: 404
+  #                     error: "Not Found"
+  #                     message: "dataset does not exist"
+  #       422:
+  #         description: Validation error
+  #         content: {}
+  #       409:
+  #         description: Database-related error (e.g., database or bridge in an invalid state)
+  #         content: {}
+  #       500:
+  #         description: Unexpected server error
+  #         content: {}
   /v1/databases/{databaseID}/datasets/{datasetName}/data:
     post:
       tags:
@@ -1042,22 +1042,22 @@ components:
       properties:
         query:
           type: string
-    FilterDataRequest: 
-      type: object
-      properties:
-        filter:
-          type: array
-          items:
-            type: object
-            properties:
-              column:
-                type: string
-                example: "id"
-              operator:
-                type: string
-                example: ">="
-              value:
-                example: 2
+    # FilterDataRequest: 
+    #   type: object
+    #   properties:
+    #     filter:
+    #       type: array
+    #       items:
+    #         type: object
+    #         properties:
+    #           column:
+    #             type: string
+    #             example: "id"
+    #           operator:
+    #             type: string
+    #             example: ">="
+    #           value:
+    #             example: 2
     Error400Response:
       type: object
       properties:
