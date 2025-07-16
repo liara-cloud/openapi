@@ -1,0 +1,175 @@
+openapi: 3.0.1
+info:
+  title: Liara Iaas API Documentaion
+  description: Manage your vms and its resources
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Iaas
+  url: http://liara.ir
+servers:
+  - url: https://iaas-api.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: VMs
+    description: Manage your VMs
+
+paths:
+  /vm:
+    get:
+      tags:
+        - VMs
+      summary: Get all vms
+      description: get all vms that user owns
+      operationId: getVMs
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getVMsResponse'
+        401:
+          description: Missing authentication
+          content: {}
+
+  /vm/{id}:
+    get:
+      tags:
+        - VMs
+      summary: Get vm details
+      description: get a vm that user owns
+      operationId: getVMDetails
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getVMDetails'
+        401:
+          description: Missing authentication
+          content: {}
+
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    getVMsResponse:
+      type: object
+      properties:
+        vms:
+          type: array
+          description: List of vms belonging to the user
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+                description: Unique identifier of the vm
+              plan:
+                type: string
+                description: vm plan identifier
+              OS:
+                type: string
+                description: Operating system used
+              state:
+                type: string
+                description: Current state of the vm
+                enum: [CREATED,CREATING,FROZEN,DELETED,DELETING]
+              name:
+                type: string
+                description: vm name
+              createdAt:
+                type: string
+                description: vm creation timestamp
+              power:
+                type: string
+                description: Power state of the vm
+                enum: [POWERED_ON, POWERED_OFF ,SUSPENDED]
+
+    getVMDetails:
+      type: object
+      properties:
+        _id:
+          type: string
+        plan:
+          type: string
+        OS:
+          type: string
+        state:
+          type: string
+          enum: [CREATED, RUNNING, STOPPED, DELETED]
+        config:
+          type: object
+          properties:
+            SSHKeys:
+              type: array
+              items:
+                type: string
+            rootPassword:
+              type: string
+            hostname:
+              type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+        guestState:
+          type: string
+        power:
+          type: string
+          enum: [POWERED_ON, POWERED_OFF]
+        IPs:
+          type: array
+          items:
+            type: object
+            properties:
+              address:
+                type: string
+              version:
+                type: string
+        planDetails:
+          type: object
+          properties:
+            available:
+              type: boolean
+            region:
+              type: string
+            monthlyPrice:
+              type: number
+            hourlyPrice:
+              type: number
+            volume:
+              type: number
+            RAM:
+              type: object
+              properties:
+                amount:
+                  type: number
+            CPU:
+              type: object
+              properties:
+                amount:
+                  type: number
+            IPv4MonthlyPrice:
+              type: array
+              items:
+                type: number
+            IPv4HourlyPrice:
+              type: array
+              items:
+                type: number

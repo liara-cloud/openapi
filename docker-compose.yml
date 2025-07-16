@@ -15,4 +15,5 @@ services:
         { url: '/spec/object-storage.yaml', name: 'Object Storage' },
         { url: '/spec/file-browser.yaml', name: 'File Browser' },
         { url: '/spec/database-inspector.yaml', name: 'Database Inspector' },
+        { url: '/spec/Iaas.yaml', name: 'Iaas' },
         ]"
