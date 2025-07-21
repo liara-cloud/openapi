@@ -31,9 +31,50 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getVMsResponse'
+                $ref: '#/components/schemas/GetVMsResponse'
         401:
           description: Missing authentication
+          content: {}
+    post:
+      tags:
+        - VMs
+      summary: Create a vm
+      description: create a vm that user owns
+      operationId: createVM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVMRequest"
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskID:
+                    type: string
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+        412:
+          description: Precondition failed
+          content: {}
+        429:
+          description: Too many request
+          content: {}
+        402:
+          description: Payment required
+          content: {}
+        409:
+          description: Conflict
           content: {}
 
   /vm/{id}:
@@ -55,9 +96,37 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getVMDetails'
+                $ref: '#/components/schemas/GetVMDetails'
         401:
           description: Missing authentication
+          content: {}
+    delete:
+      tags:
+        - VMs
+      summary: Delete a vm 
+      description: delete a vm that user owns
+      operationId: deleteVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskID:
+                    type: string
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
           content: {}
 
 components:
@@ -68,7 +137,7 @@ components:
       bearerFormat: JWT
 
   schemas:
-    getVMsResponse:
+    GetVMsResponse:
       type: object
       properties:
         vms:
@@ -101,7 +170,7 @@ components:
                 description: Power state of the vm
                 enum: [POWERED_ON, POWERED_OFF ,SUSPENDED]
 
-    getVMDetails:
+    GetVMDetails:
       type: object
       properties:
         _id:
@@ -173,3 +242,26 @@ components:
               type: array
               items:
                 type: number
+
+    CreateVMRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Lowercase vm name
+        OS:
+          type: string
+          enum: [ubuntu-24.04, ubuntu-22.04, debian-12.9]
+          description: The os name
+        plan:
+          type: string
+          enum: [standard-base-g2,standard-plus-g2,pro-g2,pro-plus-g2,express-g2,express-plus-g2]
+          description: The plan of app that you want to create
+        config:
+          description: The config of vm that you want to create
+          type: object
+          properties:
+            SSHKeys:
+              type: array
+              items:
+                type: string
