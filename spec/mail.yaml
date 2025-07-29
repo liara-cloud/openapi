@@ -2072,6 +2072,13 @@ components:
       properties:
         rule:
           type: string
+    Model19:
+      required:
+        - isTrash
+      type: object
+      properties:
+        isTrash:
+          type: boolean
     Model8:
       required:
         - mode
