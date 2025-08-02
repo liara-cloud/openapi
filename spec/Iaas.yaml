@@ -128,6 +128,131 @@ paths:
         404:
           description: VM not found
           content: {}
+  
+  /vm/unfreeze/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Unfreeze a vm
+      description: unfreeze a vm that user owns
+      operationId: unfreezeVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
+          content: {}
+        402:
+          description: Not enough balance
+          content: {}
+  /vm/traffic-graph/{id}:
+    get:
+      tags: 
+        - VMs
+      summary: Get traffic graph of a vm 
+      description: get traffic graph of a vm that user owns
+      operationId: getVMTrafficGraph 
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VMTrafficGhraphResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
+          content: {}
+  /vm/traffic-volume/{id}:
+    get:
+      tags: 
+        - VMs
+      summary: Get traffic volume of a vm 
+      description: get traffic volume of a vm that user owns
+      operationId: getVMTrafficVolume 
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VMTrafficVolumeResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
+          content: {}
+  /vm/power/{id}:
+      patch:
+        tags:
+          - VMs
+        summary: Set vm power
+        description: set power of a vm that user owns
+        operationId: setVMPower
+        parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  action:
+                    type: string
+
+        responses:
+          200:
+            description: Successful operation
+
+          400:
+            description: Bad request
+            content: {}
+
+          401:
+            description: Missing authentication
+            content: {}
+            
+          409:
+            description: Conflict
+            content: {}
 
 components:
   securitySchemes:
@@ -265,3 +390,24 @@ components:
               type: array
               items:
                 type: string
+    VMTrafficGhraphResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          minute:
+            type: integer
+          dstip:
+            type: string
+          sumbytes:
+            type: string
+    VMTrafficVolumeResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          dstip:
+            type: string
+          sumbytes:
+            type: string
+
