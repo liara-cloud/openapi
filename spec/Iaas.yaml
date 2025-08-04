@@ -96,7 +96,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetVMDetails'
+                $ref: '#/components/schemas/GetVMDetailsResponse'
         401:
           description: Missing authentication
           content: {}
@@ -176,7 +176,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VMTrafficGhraphResponse'
+                $ref: '#/components/schemas/GetVMTrafficGhraphResponse'
         400:
           description: Bad request
           content: {}
@@ -205,7 +205,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VMTrafficVolumeResponse'
+                $ref: '#/components/schemas/GetVMTrafficVolumeResponse'
         400:
           description: Bad request
           content: {}
@@ -314,7 +314,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VMDiskDetailsResponse'
+                $ref: '#/components/schemas/GetVMDiskDetailsResponse'
         400:
           description: Bad request
           content: {}
@@ -409,6 +409,188 @@ paths:
           description: There is not enough space
           content: {}
 
+  /vm/reset-network/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Reset a vm network
+      description: reset network a vm that user owns
+      operationId: resetVMNetwork
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        409:
+          description: VM is not powered off
+          content: {}
+
+  /vm/operation/{id}:
+    get:
+      tags: 
+        - VMs
+      summary: Get vm operations
+      description: get operations of a vm that user owns
+      operationId: getVMOperations 
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetVMOperationsResponse'
+        400:
+          description: Bad request
+          content: {}
+          
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+  /vm/reset-password/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Reset a vm password
+      description: reset password of a vm that user owns
+      operationId: resetVMPassword
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  password:
+                    type: string
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        409:
+          description: VM is not powered off
+          content: {}
+          
+  /vm/resize/{id}:
+    patch:
+      tags:
+        - VMs
+      summary: Resize a vm
+      description: resize a vm that user owns
+      operationId: resizeVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plan:
+                  type: string
+                  enum: [standard-base-g2,standard-plus-g2,pro-g2,pro-plus-g2,express-g2,express-plus-g2]
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskID:
+                    type: string
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+  /plans:
+    get:
+      tags:
+        - VMs
+      summary: Get all plans
+      description: get all Iaas plans  
+      operationId: getPlans
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPlansResponse'
+  /oss:
+    get:
+      tags:
+        - VMs
+      summary: Get all available operating systems
+      description: get all available operating systems
+      operationId: getOperatingSystems
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ubuntu:
+                    type: array
+                    items:
+                      type: string
+                  debian:
+                    type: array
+                    items:
+                      type: string
+
 
 components:
   securitySchemes:
@@ -444,7 +626,7 @@ components:
                 type: string
                 enum: [POWERED_ON, POWERED_OFF ,SUSPENDED]
 
-    GetVMDetails:
+    GetVMDetailsResponse:
       type: object
       properties:
         _id:
@@ -539,7 +721,7 @@ components:
               type: array
               items:
                 type: string
-    VMTrafficGhraphResponse:
+    GetVMTrafficGhraphResponse:
       type: array
       items:
         type: object
@@ -550,7 +732,7 @@ components:
             type: string
           sumbytes:
             type: string
-    VMTrafficVolumeResponse:
+    GetVMTrafficVolumeResponse:
       type: array
       items:
         type: object
@@ -559,7 +741,7 @@ components:
             type: string
           sumbytes:
             type: string
-    VMDiskDetailsResponse:
+    GetVMDiskDetailsResponse:
       type: object
       properties:
         availableSize:
@@ -577,4 +759,53 @@ components:
                 type: number
               createdAt:
                 type: string
-                
+    GetVMOperationsResponse:
+      type: object
+      properties:
+        operations:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              state:
+                type: string
+              createdAt:
+                type: string
+    GetPlansResponse:
+      type: object
+      properties:
+        plans:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              available:
+                type: boolean
+              region:
+                type: string
+              monthlyPrice:
+                type: number
+              hourlyPrice:
+                type: number
+              volume:
+                type: number
+              RAM:
+                type: object
+                properties:
+                  amount:
+                    type: number
+              CPU:
+                type: object
+                properties:
+                  amount:
+                    type: number
+              IPv4MonthlyPrice:
+                type: array
+                items:
+                  type: number
+              IPv4HourlyPrice:
+                type: array
+                items:
+                  type: number
