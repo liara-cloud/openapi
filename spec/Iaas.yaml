@@ -1,0 +1,811 @@
+openapi: 3.0.1
+info:
+  title: Liara Iaas API Documentaion
+  description: Manage your vms and its resources
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Iaas
+  url: http://liara.ir
+servers:
+  - url: https://iaas-api.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: VMs
+    description: Manage your VMs
+
+paths:
+  /vm:
+    get:
+      tags:
+        - VMs
+      summary: Get all vms
+      description: get all vms that user owns
+      operationId: getVMs
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetVMsResponse'
+        401:
+          description: Missing authentication
+          content: {}
+    post:
+      tags:
+        - VMs
+      summary: Create a vm
+      description: create a vm that user owns
+      operationId: createVM
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVMRequest"
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskID:
+                    type: string
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+        412:
+          description: Precondition failed
+          content: {}
+        429:
+          description: Too many request
+          content: {}
+        402:
+          description: Payment required
+          content: {}
+        409:
+          description: Conflict
+          content: {}
+
+  /vm/{id}:
+    get:
+      tags:
+        - VMs
+      summary: Get vm details
+      description: get a vm that user owns
+      operationId: getVMDetails
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetVMDetailsResponse'
+        401:
+          description: Missing authentication
+          content: {}
+    delete:
+      tags:
+        - VMs
+      summary: Delete a vm 
+      description: delete a vm that user owns
+      operationId: deleteVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskID:
+                    type: string
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
+          content: {}
+  
+  /vm/unfreeze/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Unfreeze a vm
+      description: unfreeze a vm that user owns
+      operationId: unfreezeVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
+          content: {}
+        402:
+          description: Not enough balance
+          content: {}
+  /vm/traffic-graph/{id}:
+    get:
+      tags: 
+        - VMs
+      summary: Get traffic graph of a vm 
+      description: get traffic graph of a vm that user owns
+      operationId: getVMTrafficGraph 
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetVMTrafficGhraphResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
+          content: {}
+  /vm/traffic-volume/{id}:
+    get:
+      tags: 
+        - VMs
+      summary: Get traffic volume of a vm 
+      description: get traffic volume of a vm that user owns
+      operationId: getVMTrafficVolume 
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetVMTrafficVolumeResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: VM not found
+          content: {}
+  /vm/power/{id}:
+    patch:
+      tags:
+        - VMs
+      summary: Set vm power
+      description: set power of a vm that user owns
+      operationId: setVMPower
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+
+      responses:
+        200:
+          description: Successful operation
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+          
+        409:
+          description: Conflict
+          content: {}
+  /vm/disk/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Create a new disk for a VM
+      description: create a disk for a vm that user owns
+      operationId: createVMDisk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                size:
+                  type: number
+      responses:
+        200:
+          description: Disk successfully created
+          content: {}
+          
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+        428:
+          description: There is not enough space
+          content: {}
+
+    get:
+      tags: 
+        - VMs
+      summary: Get disk details
+      description: get disk details of a vm that user owns
+      operationId: getVMDiskDetails 
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetVMDiskDetailsResponse'
+        400:
+          description: Bad request
+          content: {}
+          
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+  /vm/disk/{vmID}/{diskID}:
+    delete:
+      tags: 
+        - VMs
+      summary: Delete a disk
+      description: Delete a disk of a vm that user owns
+      operationId: DeleteVMDisk
+      parameters:
+        - name: vmID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diskID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+    post:
+      tags:
+        - VMs
+      summary: Extend a vm Disk
+      description: extend a vm that user owns
+      operationId: extendVMDisk
+      parameters:
+        - name: vmID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diskID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newSize:
+                  type: number
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskID:
+                    type: string
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        428:
+          description: There is not enough space
+          content: {}
+
+  /vm/reset-network/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Reset a vm network
+      description: reset network a vm that user owns
+      operationId: resetVMNetwork
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content: {}
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        409:
+          description: VM is not powered off
+          content: {}
+
+  /vm/operation/{id}:
+    get:
+      tags: 
+        - VMs
+      summary: Get vm operations
+      description: get operations of a vm that user owns
+      operationId: getVMOperations 
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetVMOperationsResponse'
+        400:
+          description: Bad request
+          content: {}
+          
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+  /vm/reset-password/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Reset a vm password
+      description: reset password of a vm that user owns
+      operationId: resetVMPassword
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  password:
+                    type: string
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        409:
+          description: VM is not powered off
+          content: {}
+          
+  /vm/resize/{id}:
+    patch:
+      tags:
+        - VMs
+      summary: Resize a vm
+      description: resize a vm that user owns
+      operationId: resizeVM
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                plan:
+                  type: string
+                  enum: [standard-base-g2,standard-plus-g2,pro-g2,pro-plus-g2,express-g2,express-plus-g2]
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  taskID:
+                    type: string
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+  /plans:
+    get:
+      tags:
+        - VMs
+      summary: Get all plans
+      description: get all Iaas plans  
+      operationId: getPlans
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPlansResponse'
+  /oss:
+    get:
+      tags:
+        - VMs
+      summary: Get all available operating systems
+      description: get all available operating systems
+      operationId: getOperatingSystems
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ubuntu:
+                    type: array
+                    items:
+                      type: string
+                  debian:
+                    type: array
+                    items:
+                      type: string
+
+
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    GetVMsResponse:
+      type: object
+      properties:
+        vms:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              plan:
+                type: string
+              OS:
+                type: string
+              state:
+                type: string
+                enum: [CREATED,CREATING,FROZEN,DELETED,DELETING]
+              name:
+                type: string
+                description: vm name
+              createdAt:
+                type: string
+              power:
+                type: string
+                enum: [POWERED_ON, POWERED_OFF ,SUSPENDED]
+
+    GetVMDetailsResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        plan:
+          type: string
+        OS:
+          type: string
+        state:
+          type: string
+          enum: [CREATED, RUNNING, STOPPED, DELETED]
+        config:
+          type: object
+          properties:
+            SSHKeys:
+              type: array
+              items:
+                type: string
+            rootPassword:
+              type: string
+            hostname:
+              type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+        guestState:
+          type: string
+        power:
+          type: string
+          enum: [POWERED_ON, POWERED_OFF]
+        IPs:
+          type: array
+          items:
+            type: object
+            properties:
+              address:
+                type: string
+              version:
+                type: string
+        planDetails:
+          type: object
+          properties:
+            available:
+              type: boolean
+            region:
+              type: string
+            monthlyPrice:
+              type: number
+            hourlyPrice:
+              type: number
+            volume:
+              type: number
+            RAM:
+              type: object
+              properties:
+                amount:
+                  type: number
+            CPU:
+              type: object
+              properties:
+                amount:
+                  type: number
+            IPv4MonthlyPrice:
+              type: array
+              items:
+                type: number
+            IPv4HourlyPrice:
+              type: array
+              items:
+                type: number
+
+    CreateVMRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Lowercase vm name
+        OS:
+          type: string
+          enum: [ubuntu-24.04, ubuntu-22.04, debian-12.9]
+          description: The os name
+        plan:
+          type: string
+          enum: [standard-base-g2,standard-plus-g2,pro-g2,pro-plus-g2,express-g2,express-plus-g2]
+          description: The plan of app that you want to create
+        config:
+          description: The config of vm that you want to create
+          type: object
+          properties:
+            SSHKeys:
+              type: array
+              items:
+                type: string
+    GetVMTrafficGhraphResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          minute:
+            type: integer
+          dstip:
+            type: string
+          sumbytes:
+            type: string
+    GetVMTrafficVolumeResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          dstip:
+            type: string
+          sumbytes:
+            type: string
+    GetVMDiskDetailsResponse:
+      type: object
+      properties:
+        availableSize:
+          type: number
+        disks:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+              size:
+                type: number
+              createdAt:
+                type: string
+    GetVMOperationsResponse:
+      type: object
+      properties:
+        operations:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              state:
+                type: string
+              createdAt:
+                type: string
+    GetPlansResponse:
+      type: object
+      properties:
+        plans:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              available:
+                type: boolean
+              region:
+                type: string
+              monthlyPrice:
+                type: number
+              hourlyPrice:
+                type: number
+              volume:
+                type: number
+              RAM:
+                type: object
+                properties:
+                  amount:
+                    type: number
+              CPU:
+                type: object
+                properties:
+                  amount:
+                    type: number
+              IPv4MonthlyPrice:
+                type: array
+                items:
+                  type: number
+              IPv4HourlyPrice:
+                type: array
+                items:
+                  type: number
