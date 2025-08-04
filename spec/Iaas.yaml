@@ -216,43 +216,199 @@ paths:
           description: VM not found
           content: {}
   /vm/power/{id}:
-      patch:
-        tags:
-          - VMs
-        summary: Set vm power
-        description: set power of a vm that user owns
-        operationId: setVMPower
-        parameters:
+    patch:
+      tags:
+        - VMs
+      summary: Set vm power
+      description: set power of a vm that user owns
+      operationId: setVMPower
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+
+      responses:
+        200:
+          description: Successful operation
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+          
+        409:
+          description: Conflict
+          content: {}
+  /vm/disk/{id}:
+    post:
+      tags:
+        - VMs
+      summary: Create a new disk for a VM
+      description: create a disk for a vm that user owns
+      operationId: createVMDisk
+      parameters:
         - name: id
           in: path
           required: true
           schema:
             type: string
-        requestBody:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                size:
+                  type: number
+      responses:
+        200:
+          description: Disk successfully created
+          content: {}
+          
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+        428:
+          description: There is not enough space
+          content: {}
+
+    get:
+      tags: 
+        - VMs
+      summary: Get disk details
+      description: get disk details of a vm that user owns
+      operationId: getVMDiskDetails 
+      parameters:
+        - name: id
+          in: path
           required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VMDiskDetailsResponse'
+        400:
+          description: Bad request
+          content: {}
+          
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+  /vm/disk/{vmID}/{diskID}:
+    delete:
+      tags: 
+        - VMs
+      summary: Delete a disk
+      description: Delete a disk of a vm that user owns
+      operationId: DeleteVMDisk
+      parameters:
+        - name: vmID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diskID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation
+
+        400:
+          description: Bad request
+          content: {}
+
+        401:
+          description: Missing authentication
+          content: {}
+
+        404:
+          description: VM not found
+          content: {}
+
+    post:
+      tags:
+        - VMs
+      summary: Extend a vm Disk
+      description: extend a vm that user owns
+      operationId: extendVMDisk
+      parameters:
+        - name: vmID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diskID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newSize:
+                  type: number
+      responses:
+        200:
+          description: Successful operation
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  action:
+                  taskID:
                     type: string
+        400:
+          description: Bad request
+          content: {}
 
-        responses:
-          200:
-            description: Successful operation
+        401:
+          description: Missing authentication
+          content: {}
 
-          400:
-            description: Bad request
-            content: {}
+        428:
+          description: There is not enough space
+          content: {}
 
-          401:
-            description: Missing authentication
-            content: {}
-            
-          409:
-            description: Conflict
-            content: {}
 
 components:
   securitySchemes:
@@ -267,32 +423,25 @@ components:
       properties:
         vms:
           type: array
-          description: List of vms belonging to the user
           items:
             type: object
             properties:
               _id:
                 type: string
-                description: Unique identifier of the vm
               plan:
                 type: string
-                description: vm plan identifier
               OS:
                 type: string
-                description: Operating system used
               state:
                 type: string
-                description: Current state of the vm
                 enum: [CREATED,CREATING,FROZEN,DELETED,DELETING]
               name:
                 type: string
                 description: vm name
               createdAt:
                 type: string
-                description: vm creation timestamp
               power:
                 type: string
-                description: Power state of the vm
                 enum: [POWERED_ON, POWERED_OFF ,SUSPENDED]
 
     GetVMDetails:
@@ -410,4 +559,22 @@ components:
             type: string
           sumbytes:
             type: string
-
+    VMDiskDetailsResponse:
+      type: object
+      properties:
+        availableSize:
+          type: number
+        disks:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+              size:
+                type: number
+              createdAt:
+                type: string
+                
