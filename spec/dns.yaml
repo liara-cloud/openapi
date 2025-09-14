@@ -1,7 +1,12 @@
 openapi: 3.0.1
 info:
   title: DNS
-  description: Manage dns zones and records
+  description: |-
+    Manage dns zones and records
+
+    Parameters:
+    - `teamID`: To access services in a team
+    
   termsOfService: '#'
   contact:
     email: info@liara.ir

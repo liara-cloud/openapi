@@ -1,7 +1,12 @@
 openapi: 3.0.1
 info:
   title: Liara Mail API Documentaion
-  description: A fully featured mail delivery platform for incoming & outgoing e-mail
+  description: |- 
+    A fully featured mail delivery platform for incoming & outgoing e-mail
+    
+    Parameters:
+    - `teamID`: To access services in a team
+
   contact:
     name: liara
     url: https://liara.ir

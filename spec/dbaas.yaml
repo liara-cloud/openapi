@@ -1,7 +1,12 @@
 openapi: 3.0.1
 info:
   title: DBaaS
-  description: Manage your databases using our API
+  description: |-
+    Manage your databases using our API
+
+    Parameters:
+    - `teamID`: To access services in a team
+    
   termsOfService: '#'
   contact:
     email: info@liara.ir

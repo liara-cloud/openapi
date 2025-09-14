@@ -1,7 +1,12 @@
 openapi: 3.0.1
 info:
   title: Liara File Browser API Documentaion
-  description: For managing files in your disks
+  description: |-
+    For managing files in your disks
+
+    Parameters:
+    - `teamID`: To access services in a team
+    
   contact:
     name: liara
     url: https://liara.ir

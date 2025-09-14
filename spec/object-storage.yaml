@@ -1,8 +1,13 @@
 openapi: 3.0.1
 info:
   title: Object Storage API Documentaion
-  description: A scalable, reliable, and cost effective Object Storage solution to
+  description: |- 
+    A scalable, reliable, and cost effective Object Storage solution to
     support your application from liara-cloud
+
+    Parameters:
+    - `teamID`: To access services in a team
+    
   contact:
     name: liara
     url: https://liara.ir

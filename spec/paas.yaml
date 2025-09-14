@@ -11,6 +11,7 @@ info:
     - `token`: Your api token in liara
     - `cmd`: By default /bin/bash
     - `project_id`: The id of your project in liara
+    - `teamID`: To access services in a team
 
     This `WebSocket` endpoint allows `real-time`
     communication with the projects service hosted

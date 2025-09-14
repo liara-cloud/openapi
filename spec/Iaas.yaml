@@ -1,7 +1,12 @@
 openapi: 3.0.1
 info:
   title: Liara Iaas API Documentaion
-  description: Manage your vms and its resources
+  description: |- 
+    Manage your vms and its resources
+
+    Parameters:
+    - `teamID`: To access services in a team
+    
   termsOfService: '#'
   contact:
     email: info@liara.ir
