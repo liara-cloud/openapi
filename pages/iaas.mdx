@@ -1,0 +1,139 @@
+---
+title: IaaS API
+description: Infrastructure as a Service API for managing virtual machines
+---
+
+# IaaS API
+
+Liara's Infrastructure as a Service (IaaS) API provides full control over virtual machines and computing resources. Deploy and manage VMs with your preferred operating system and configuration.
+
+## Overview
+
+The IaaS API enables you to:
+
+- **Create and manage VMs** - Provision virtual machines with custom configurations
+- **Control power state** - Power on, power off, and restart your VMs
+- **Manage disks** - Create, extend, and delete disks attached to your VMs
+- **Access metrics** - Monitor traffic and resource usage
+- **Reset credentials** - Reset VM passwords when needed
+- **Resize plans** - Upgrade or downgrade VM plans
+
+## Key Features
+
+### Virtual Machine Management
+
+- **Multiple OS Support**: Choose from Ubuntu, Debian, and other popular operating systems
+- **Flexible Plans**: Select from various plans with different CPU, RAM, and storage configurations
+- **SSH Key Configuration**: Add SSH keys for secure access during creation
+- **IPv4 and IPv6**: Automatic IP address assignment
+
+### Power Management
+
+- **Power On**: Start a stopped VM
+- **Power Off**: Gracefully shut down a VM
+- **Restart**: Reboot the VM
+
+### Disk Management
+
+- **Create Disks**: Add additional storage to your VMs
+- **Extend Disks**: Increase disk size as needed
+- **Delete Disks**: Remove unused disks
+
+### Monitoring
+
+- **Traffic Graph**: View network traffic over time
+- **Traffic Volume**: Monitor data transfer by destination
+- **Operations History**: Track VM operations and their status
+
+## Base URL
+
+```
+https://iaas-api.liara.ir
+```
+
+## Available Plans
+
+Choose from various plan tiers to match your computing needs:
+
+| Plan | CPU | RAM | Storage |
+|------|-----|-----|---------|
+| standard-base-g2 | Entry-level | Basic | Standard |
+| standard-plus-g2 | Entry-level+ | Enhanced | Standard |
+| pro-g2 | Professional | High | Extended |
+| pro-plus-g2 | Professional+ | Higher | Extended |
+| express-g2 | High Performance | Maximum | Large |
+| express-plus-g2 | Maximum Performance | Maximum | Largest |
+
+## Supported Operating Systems
+
+- **Ubuntu**: 24.04, 22.04
+- **Debian**: 12.9
+
+Additional operating systems may be available. Check the `/oss` endpoint for the current list.
+
+## Common Operations
+
+### Creating a VM
+
+When creating a VM, specify:
+- **name**: A unique name for your VM (lowercase)
+- **OS**: The operating system to install
+- **plan**: The resource plan
+- **config.SSHKeys**: SSH public keys for access (optional)
+
+### Power Management
+
+Control VM power state:
+- Use the power endpoint with actions like "start", "stop", "restart"
+- Some operations require the VM to be in a specific state
+
+### Disk Operations
+
+- Create new disks with specified size
+- Extend existing disks to increase capacity
+- Delete disks when no longer needed
+
+### Network Management
+
+- Reset network configuration if needed
+- View traffic statistics and graphs
+
+## VM States
+
+- **CREATED**: VM has been created
+- **CREATING**: VM is being provisioned
+- **FROZEN**: VM is frozen (unpaid or suspended)
+- **DELETED**: VM has been deleted
+- **DELETING**: VM is being deleted
+
+## Power States
+
+- **POWERED_ON**: VM is running
+- **POWERED_OFF**: VM is stopped
+- **SUSPENDED**: VM is suspended
+
+## Getting Started
+
+1. Check available plans using the `/plans` endpoint
+2. Check available operating systems using the `/oss` endpoint
+3. Create a VM with your desired configuration
+4. Wait for the VM to be provisioned
+5. Access the VM using SSH or the provided credentials
+
+## Best Practices
+
+- Use SSH keys instead of passwords for better security
+- Regularly backup important data
+- Monitor resource usage to optimize costs
+- Choose appropriate plan sizes based on your workload
+- Keep your operating system updated with security patches
+
+## Security Considerations
+
+- Protect your API credentials
+- Use SSH keys for authentication
+- Configure firewall rules as needed
+- Regularly update your VM's operating system
+- Monitor for unusual activity through traffic graphs
+
+Explore the API endpoints below to manage your virtual infrastructure programmatically.

@@ -1,0 +1,125 @@
+---
+title: File Browser API
+description: File management API for disks attached to your applications
+---
+
+# File Browser API
+
+Liara's File Browser API provides a web-based interface for managing files in your disks. Upload, download, organize, and manage files through a simple API or the visual file browser interface.
+
+## Overview
+
+The File Browser API enables you to:
+
+- **Browse files and directories** - Navigate through your disk's file structure
+- **Upload and download files** - Transfer files to and from your disks
+- **Create and delete items** - Create new files and directories, delete existing ones
+- **Rename and organize** - Rename files and directories, organize your content
+- **Search and filter** - Find files quickly with search functionality
+- **Share files** - Generate temporary links for file sharing
+
+## Key Features
+
+### File Management
+
+- **List**: View files and directories with metadata (size, modification time, type)
+- **Search**: Find files by name within your disk
+- **Create**: Create new files and directories
+- **Rename**: Rename existing files and directories
+- **Delete**: Remove files and directories
+- **Extract**: Extract compressed archives (zip files)
+
+### File Transfer
+
+- **Upload**: Upload files to your disk with multipart form data
+- **Download**: Download files directly or via generated links
+- **Preview**: Generate preview links for supported file types
+
+### Sharing
+
+- **Temporary Links**: Create time-limited links for file access
+- **Link Expiration**: Set expiration times (1h, 6h, 1d, 3d, 7d)
+- **Access Types**: Configure links for preview or download
+
+## Base URL
+
+The File Browser API uses a dynamic URL assigned by the service provider. This URL is specific to your file browser instance.
+
+## Common Operations
+
+### Listing Files
+
+Retrieve a list of files and directories at a specific path:
+- Supports pagination
+- Sort by name, size, or modification time
+- Sort in ascending or descending order
+
+### Uploading Files
+
+Upload files using multipart form data:
+- Specify the target path
+- Optionally overwrite existing files
+
+### Creating Directories
+
+Create new directories to organize your files:
+- Specify the parent path
+- Provide a name for the new directory
+
+### Generating Share Links
+
+Create temporary access links:
+- Choose between preview or download type
+- Set expiration time
+- Use the generated token for access
+
+## File Metadata
+
+Each file and directory includes:
+- **path**: Full path to the item
+- **name**: Item name
+- **size**: File size in bytes
+- **extension**: File extension
+- **isDir**: Whether the item is a directory
+- **isSymlink**: Whether the item is a symbolic link
+- **type**: MIME type for files
+- **mode**: File permissions
+- **createAt**: Creation timestamp
+- **modifiedAt**: Last modification timestamp
+
+## Getting Started
+
+1. Ensure you have a disk attached to your application
+2. Access the File Browser through the API or web interface
+3. Navigate to your desired location
+4. Upload, create, or manage files as needed
+
+## Use Cases
+
+### Content Management
+
+- Upload and manage static assets for your applications
+- Store and organize media files
+- Manage configuration files
+
+### Backup and Restore
+
+- Download backup files from your disks
+- Upload restored data to new disks
+- Transfer data between environments
+
+### File Sharing
+
+- Generate temporary download links for clients
+- Share files with team members
+- Provide preview access to documents
+
+## Best Practices
+
+- Organize files in a logical directory structure
+- Use meaningful file names for easy identification
+- Regularly clean up unused files to save space
+- Use appropriate expiration times for share links
+- Monitor disk usage to avoid running out of space
+
+Explore the API endpoints below to integrate file management into your applications.

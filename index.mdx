@@ -1,0 +1,79 @@
+---
+title: Liara OpenAPI Documentation
+description: Complete API reference for Liara Cloud Platform services
+---
+
+# Liara OpenAPI Documentation
+
+Welcome to the official Liara Cloud Platform API documentation. Liara provides a comprehensive suite of cloud services designed to help developers build, deploy, and scale their applications with ease.
+
+## Overview
+
+Liara offers a wide range of cloud services that cater to different development needs:
+
+### Platform as a Service (PaaS)
+
+Deploy and manage your applications without worrying about infrastructure. Liara's PaaS solution supports multiple programming platforms and provides seamless deployment workflows, automatic scaling, and integrated monitoring.
+
+### Database as a Service (DBaaS)
+
+Create and manage managed databases with support for various database engines. Liara handles backups, updates, and maintenance so you can focus on your application logic.
+
+### Object Storage
+
+A scalable, reliable, and cost-effective object storage solution for storing and retrieving any amount of data. Perfect for static assets, backups, and application data.
+
+### DNS Management
+
+Manage your DNS zones and records through a simple API. Create, update, and delete DNS records with full support for various record types including A, AAAA, CNAME, MX, TXT, and more.
+
+### Mail Service
+
+A fully featured mail delivery platform for handling incoming and outgoing emails. Includes SMTP credentials management, email accounts, message tracking, and spam protection.
+
+### File Browser
+
+Manage files in your disks through a web-based interface or API. Upload, download, rename, and organize files with ease.
+
+### Infrastructure as a Service (IaaS)
+
+Provision and manage virtual machines with full control over your computing resources. Choose from various plans and operating systems to match your requirements.
+
+## Authentication
+
+All Liara APIs use JWT Bearer token authentication. To authenticate your requests, include your API token in the Authorization header:
+
+```
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+You can obtain your API token from the Liara Console at [liara.ir](https://liara.ir).
+
+## Base URLs
+
+Different services use different base URLs:
+
+| Service | Base URL |
+|---------|----------|
+| PaaS | `https://api.iran.liara.ir` |
+| DBaaS | `https://api.iran.liara.ir` |
+| Object Storage | `https://storage-service.iran.liara.ir` |
+| DNS | `https://dns-service.iran.liara.ir` |
+| Mail | `https://mail-service.iran.liara.ir` |
+| IaaS | `https://iaas-api.liara.ir` |
+
+## Rate Limits
+
+API requests are subject to rate limiting. Please refer to individual service documentation for specific rate limit information.
+
+## Support
+
+If you need assistance or have questions about the API:
+
+- **Website**: [https://liara.ir](https://liara.ir)
+- **Email**: [support@liara.ir](mailto:support@liara.ir)
+- **GitHub**: [https://github.com/liara-cloud](https://github.com/liara-cloud)
+
+## Getting Started
+
+Choose a service from the navigation menu to explore its API endpoints and learn how to integrate with Liara's cloud platform.

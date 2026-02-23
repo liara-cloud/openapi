@@ -1,0 +1,158 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "almond",
+  "name": "Liara OpenAPI Docs",
+  "logo": {
+    "light": "/logo.png",
+    "dark": "/logo.png"
+  },
+  "colors": {
+    "primary": "#009689",
+    "light": "#00BBA7",
+    "dark": "#009689"
+  },
+  "navigation": {
+    "products": [
+      {
+        "product": "PaaS",
+        "icon": "cloud",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/paas"]
+          },
+          {
+            "group": "API Endpoints",
+            "icon": "gear",
+            "openapi": {
+              "source": "spec/paas.yaml",
+              "directory": "pass"
+            }
+          }
+        ]
+      },
+      {
+        "product": "DBaaS",
+        "icon": "database",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/dbaas.mdx"]
+          },
+          {
+            "group": "API Endpoints",
+            "icon": "gear",
+            "openapi": {
+              "source": "spec/dbaas.yaml",
+              "directory": "dbass"
+            }
+          }
+        ]
+      },
+      {
+        "product": "Object Storage",
+        "icon": "bucket",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/object-storage"]
+          },
+          {
+            "group": "API Endpoints",
+            "icon": "gear",
+            "openapi": {
+              "source": "spec/object-storage.yaml",
+              "directory": "object-storage"
+            }
+          }
+        ]
+      },
+      {
+        "product": "DNS",
+        "icon": "globe",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/dns"]
+          },
+          {
+            "group": "API Endpoints",
+            "openapi": {
+              "source": "spec/dns.yaml",
+              "directory": "dns"
+            }
+          }
+        ]
+      },
+      {
+        "product": "Mail",
+        "icon": "envelope",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/mail"]
+          },
+          {
+            "group": "API Endpoints",
+            "icon": "gear",
+            "openapi": {
+              "source": "spec/mail.yaml",
+              "directory": "mail"
+            }
+          }
+        ]
+      },
+      {
+        "product": "File Browser",
+        "icon": "folder",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/file-browser"]
+          },
+          {
+            "group": "API Endpoints",
+            "icon": "gear",
+            "openapi": {
+              "source": "spec/file-browser.yaml",
+              "directory": "file-browser"
+            }
+          }
+        ]
+      },
+      {
+        "product": "IaaS",
+        "icon": "server",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/iaas"]
+          },
+          {
+            "group": "API Endpoints",
+            "icon": "gear",
+            "openapi": {
+              "source": "spec/Iaas.yaml",
+              "directory": "iaas"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "website": "https://liara.ir",
+      "github": "https://github.com/liara-cloud",
+      "linkedin": "https://linkedin.com/company/liara-cloud",
+      "x": "https://x.com/liara_cloud"
+    }
+  }
+}

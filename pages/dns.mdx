@@ -1,0 +1,138 @@
+---
+title: DNS API
+description: DNS management API for zones and records
+---
+
+# DNS API
+
+Liara's DNS API provides a comprehensive interface for managing DNS zones and records. Automate your DNS configuration and integrate DNS management into your applications and workflows.
+
+## Overview
+
+The DNS API enables you to:
+
+- **Create and manage zones** - Set up DNS zones for your domains
+- **Manage DNS records** - Create, update, and delete various record types
+- **Check nameserver status** - Verify nameserver configuration
+- **Automate DNS management** - Integrate DNS operations into your workflows
+
+## Key Concepts
+
+### Zones
+
+A zone represents a domain name and all its DNS records. Each zone:
+- Has a unique domain name
+- Is assigned Liara nameservers
+- Has a status indicating its configuration state
+- Contains all DNS records for the domain
+
+### Zone Statuses
+
+- **CREATING**: Zone is being created
+- **PENDING**: Waiting for nameserver configuration
+- **ACTIVE**: Zone is fully configured and operational
+- **DELETING**: Zone is being deleted
+
+### DNS Records
+
+Supported record types include:
+- **A**: Maps a domain to an IPv4 address
+- **AAAA**: Maps a domain to an IPv6 address
+- **CNAME**: Creates an alias to another domain
+- **MX**: Specifies mail exchange servers
+- **TXT**: Stores text information (commonly for SPF, DKIM)
+- **SRV**: Defines services and their locations
+- **SPF**: Sender Policy Framework records
+- **PTR**: Reverse DNS lookup
+- **ALIAS**: Similar to CNAME but for root domains
+
+## Key Features
+
+### Easy Zone Management
+
+Create zones for your domains and Liara automatically assigns nameservers. Update your domain registrar to point to Liara's nameservers to activate the zone.
+
+### Flexible Record Management
+
+- Create multiple records of the same type
+- Set custom TTL values
+- Update records without downtime
+- Delete records when no longer needed
+
+### Nameserver Verification
+
+Check if your domain's nameservers are correctly configured to point to Liara's nameservers through the API.
+
+## Base URL
+
+```
+https://dns-service.iran.liara.ir
+```
+
+## Common Operations
+
+### Creating a Zone
+
+To create a new zone:
+1. Specify the domain name
+2. Liara assigns nameservers to your zone
+3. Update your domain registrar with the assigned nameservers
+4. Check the zone status to verify activation
+
+### Managing Records
+
+When creating DNS records, specify:
+- **name**: The record name (@ for root, * for wildcard, or any valid subdomain)
+- **type**: The record type (A, AAAA, CNAME, MX, etc.)
+- **ttl**: Time to live in seconds
+- **contents**: Record content (varies by type)
+
+### Record Content Examples
+
+**A Record:**
+```json
+{
+  "name": "@",
+  "type": "A",
+  "ttl": 3600,
+  "contents": [{"ip": "192.168.1.1"}]
+}
+```
+
+**MX Record:**
+```json
+{
+  "name": "@",
+  "type": "MX",
+  "ttl": 3600,
+  "contents": [{"priority": 10, "host": "mail.example.com"}]
+}
+```
+
+**CNAME Record:**
+```json
+{
+  "name": "www",
+  "type": "CNAME",
+  "ttl": 3600,
+  "contents": [{"host": "example.com"}]
+}
+```
+
+## Getting Started
+
+1. Create a zone for your domain
+2. Note the assigned nameservers
+3. Update your domain registrar with the new nameservers
+4. Verify nameserver configuration using the check endpoint
+5. Add DNS records as needed
+
+## Best Practices
+
+- Use appropriate TTL values (lower for frequently changing records, higher for stable records)
+- Set up SPF and DKIM records for email deliverability
+- Create CNAME records for service aliases instead of multiple A records
+- Regularly audit your DNS records for accuracy
+- Use wildcard records carefully as they can affect subdomain routing
+
+Explore the API endpoints below to manage your DNS configuration programmatically.

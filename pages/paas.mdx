@@ -1,0 +1,76 @@
+---
+title: PaaS API
+description: Platform as a Service API for deploying and managing applications
+---
+
+# PaaS API
+
+Liara's Platform as a Service (PaaS) API enables you to deploy, manage, and scale your applications without worrying about the underlying infrastructure. This comprehensive API provides full control over your applications' lifecycle.
+
+## Overview
+
+The PaaS API allows you to:
+
+- **Create and manage applications** - Deploy new applications with your preferred platform and configuration
+- **Scale applications** - Adjust the number of instances running your application
+- **Manage deployments** - Deploy source code or Docker images with zero-downtime options
+- **Configure environment variables** - Securely manage your application's environment configuration
+- **Monitor performance** - Access CPU, memory, and network metrics
+- **Manage domains** - Configure custom domains with SSL certificates
+- **Handle disks** - Create and manage persistent storage for your applications
+
+## Key Features
+
+### Application Management
+
+Create applications with various platforms including Node.js, Python, Go, PHP, Ruby, .NET, and more. Each application can be configured with custom environment variables and resource plans.
+
+### Deployment Options
+
+- **Source Code Deployment**: Upload your source code as a compressed archive
+- **Docker Deployment**: Deploy using Docker images from registries
+- **Zero-Downtime Deployment**: Enable seamless updates without service interruption
+
+### Scaling
+
+Scale your applications up or down based on demand. Turn instances on or off programmatically to optimize resource usage and costs.
+
+### Persistent Storage
+
+Attach disks to your applications for persistent data storage. Create backups and manage disk sizes through the API.
+
+### Custom Domains
+
+Associate custom domains with your applications and provision SSL certificates automatically.
+
+## Base URL
+
+```
+https://api.iran.liara.ir
+```
+
+## WebSocket Support
+
+Connect to your application's console in real-time using WebSocket:
+
+```
+wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>
+```
+
+## Common Use Cases
+
+1. **CI/CD Integration**: Automate deployments from your CI/CD pipeline
+2. **Auto-scaling**: Implement custom scaling logic based on metrics
+3. **Multi-environment Management**: Manage development, staging, and production environments
+4. **Backup Automation**: Schedule and automate disk backups
+
+## Getting Started
+
+To start using the PaaS API, you'll need to:
+
+1. Obtain an API token from the Liara Console
+2. Create an application with your desired configuration
+3. Deploy your code or Docker image
+4. Configure domains and environment variables as needed
+
+Explore the API endpoints below to learn more about each operation.

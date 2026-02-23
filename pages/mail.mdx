@@ -1,0 +1,142 @@
+---
+title: Mail API
+description: Email delivery platform for incoming and outgoing mail
+---
+
+# Mail API
+
+Liara's Mail API provides a fully featured email delivery platform for handling both incoming and outgoing emails. Build reliable email functionality into your applications with comprehensive management and tracking capabilities.
+
+## Overview
+
+The Mail API enables you to:
+
+- **Create and manage mail servers** - Set up dedicated mail servers for your domains
+- **Manage email accounts** - Create and manage mailbox accounts
+- **Send emails** - Send emails through the API or SMTP
+- **Track messages** - Monitor email delivery status and events
+- **Configure forwarding** - Set up email forwarding to external addresses
+- **Manage SMTP credentials** - Generate credentials for SMTP authentication
+- **Handle attachments** - Send and receive email attachments
+- **Set up inbound rules** - Block specific senders or domains
+
+## Key Features
+
+### Mail Server Management
+
+Create dedicated mail servers for your domains with:
+- Custom domain configuration
+- DNS record management (SPF, DKIM, MX)
+- Multiple plan options for different volumes
+- Development and production modes
+
+### Email Accounts
+
+- Create multiple mailbox accounts per mail server
+- Check account availability before creation
+- Manage account quotas and settings
+
+### SMTP Integration
+
+- Generate SMTP credentials for authentication
+- Support for multiple credential sets
+- Revoke and regenerate credentials as needed
+
+### Message Management
+
+- Send emails with HTML and text content
+- Attach files to outgoing messages
+- Track incoming and outgoing messages
+- View message events and delivery status
+- Access message content and attachments
+
+### Forwarding
+
+- Forward incoming emails to external addresses
+- Configure multiple forwarding destinations
+- Manage forwarding rules per account
+
+### Inbound Rules
+
+- Block specific email addresses
+- Block entire domains
+- Manage spam protection settings
+
+## Base URL
+
+```
+https://mail-service.iran.liara.ir
+```
+
+## DNS Configuration
+
+For your mail server to function properly, configure the following DNS records:
+
+### MX Record
+Point your domain's MX record to the mail server address provided by Liara.
+
+### SPF Record
+Configure SPF to authorize Liara's mail servers to send email on your domain's behalf.
+
+### DKIM Record
+Set up DKIM signing for email authentication and improved deliverability.
+
+### Return Path
+Configure the return path for handling bounces and delivery notifications.
+
+## Common Operations
+
+### Creating a Mail Server
+
+When creating a mail server, specify:
+- **domain**: Your email domain
+- **mode**: DEV (development) or LIVE (production)
+- **plan**: The plan based on your email volume needs
+
+### Sending an Email
+
+To send an email through the API:
+```json
+{
+  "from": "sender@yourdomain.com",
+  "to": "recipient@example.com",
+  "subject": "Email Subject",
+  "text": "Plain text content",
+  "html": "<html>HTML content</html>",
+  "attachments": []
+}
+```
+
+### Managing SMTP Credentials
+
+1. Generate credentials for SMTP authentication
+2. Use the provided username and password in your SMTP client
+3. Connect to the SMTP server on the provided port
+4. Revoke credentials when no longer needed
+
+## Plans and Limits
+
+Mail servers are available in different plans with varying:
+- Daily email sending limits
+- Monthly email volume
+- Number of email accounts
+- Storage capacity
+
+## Getting Started
+
+1. Create a mail server for your domain
+2. Configure DNS records (MX, SPF, DKIM)
+3. Verify DNS configuration through the API
+4. Create email accounts as needed
+5. Generate SMTP credentials or use the API to send emails
+
+## Best Practices
+
+- Always configure SPF, DKIM, and DMARC for better deliverability
+- Use meaningful tags to categorize outgoing emails
+- Monitor delivery events to identify issues
+- Set up inbound rules to block spam sources
+- Use development mode for testing before going live
+- Regularly review and clean up unused accounts
+
+Explore the API endpoints below to integrate email functionality into your applications.
