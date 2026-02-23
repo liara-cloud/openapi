@@ -1,9 +1,9 @@
 openapi: 3.0.1
 info:
   title: Liara Mail API Documentaion
-  description: |- 
+  description: |-
     A fully featured mail delivery platform for incoming & outgoing e-mail
-    
+
     Parameters:
     - `teamID`: To access services in a team
 
@@ -53,7 +53,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailServers'
+                $ref: "#/components/schemas/MailServers"
         500:
           description: Unexpected error
           content: {}
@@ -66,7 +66,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model1'
+              $ref: "#/components/schemas/Model1"
         required: false
       responses:
         201:
@@ -91,7 +91,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  '/api/v1/mails/{mailServerID}':
+  "/api/v1/mails/{mailServerID}":
     get:
       tags:
         - mails
@@ -110,7 +110,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailServer'
+                $ref: "#/components/schemas/MailServer"
         400:
           description: Bad Request
           content: {}
@@ -161,7 +161,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model8'
+              $ref: "#/components/schemas/Model8"
         required: false
       responses:
         200:
@@ -183,7 +183,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  '/api/v1/mails/{mailServerID}/smtp-credentials':
+  "/api/v1/mails/{mailServerID}/smtp-credentials":
     get:
       tags:
         - smtp
@@ -202,7 +202,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SMTP'
+                $ref: "#/components/schemas/SMTP"
         400:
           description: Bad Request
           content: {}
@@ -228,7 +228,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model4'
+              $ref: "#/components/schemas/Model4"
         required: false
       responses:
         201:
@@ -236,7 +236,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateSMTP'
+                $ref: "#/components/schemas/CreateSMTP"
         400:
           description: Bad Request
           content: {}
@@ -266,7 +266,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model9'
+              $ref: "#/components/schemas/Model9"
         required: false
       responses:
         200:
@@ -274,7 +274,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateSMTP'
+                $ref: "#/components/schemas/CreateSMTP"
         400:
           description: Bad Request
           content: {}
@@ -285,7 +285,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  '/api/v1/mails/{mailServerID}/counts':
+  "/api/v1/mails/{mailServerID}/counts":
     get:
       tags:
         - mails
@@ -311,7 +311,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CountMailPerDay'
+                $ref: "#/components/schemas/CountMailPerDay"
         400:
           description: Bad Request
           content: {}
@@ -321,7 +321,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/dns-check':
+  "/api/v1/mails/{mailServerID}/dns-check":
     get:
       tags:
         - mails
@@ -340,14 +340,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CheckDNS'
+                $ref: "#/components/schemas/CheckDNS"
         404:
           description: Mail Server not found
           content: {}
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{domain}/check-availability':
+  "/api/v1/mails/{domain}/check-availability":
     get:
       tags:
         - mails
@@ -404,7 +404,7 @@ paths:
   #       500:
   #         description: Unexpected error
   #         content: {}
-  '/api/v1/mails/{mailServerID}/accounts':
+  "/api/v1/mails/{mailServerID}/accounts":
     get:
       tags:
         - accounts
@@ -423,7 +423,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailAccounts'
+                $ref: "#/components/schemas/MailAccounts"
         400:
           description: Bad Request
           content: {}
@@ -449,7 +449,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model5'
+              $ref: "#/components/schemas/Model5"
         required: false
       responses:
         201:
@@ -474,7 +474,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  '/api/v1/mails/{mailServerID}/inboundrules':
+  "/api/v1/mails/{mailServerID}/inboundrules":
     get:
       tags:
         - inboundrules
@@ -493,7 +493,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailInboundRules'
+                $ref: "#/components/schemas/MailInboundRules"
         400:
           description: Bad Request
           content: {}
@@ -522,7 +522,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model11'
+              $ref: "#/components/schemas/Model11"
         required: false
       responses:
         201:
@@ -543,7 +543,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mail/{mailServerID}/inboundrules/{inboundruleID}':
+  "/api/v1/mail/{mailServerID}/inboundrules/{inboundruleID}":
     delete:
       tags:
         - inboundrules
@@ -575,7 +575,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/messages':
+  "/api/v1/mails/{mailServerID}/messages":
     get:
       tags:
         - messages
@@ -642,7 +642,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailMessages'
+                $ref: "#/components/schemas/MailMessages"
         400:
           description: Bad Request
           content: {}
@@ -668,7 +668,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model3'
+              $ref: "#/components/schemas/Model3"
         required: false
       responses:
         201:
@@ -699,7 +699,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  '/api/v1/mails/{mailServerID}/messages/{messageID}':
+  "/api/v1/mails/{mailServerID}/messages/{messageID}":
     get:
       tags:
         - messages
@@ -732,7 +732,7 @@ paths:
                     type: object
                     properties:
                       message:
-                        $ref: '#/components/schemas/MailMessage'
+                        $ref: "#/components/schemas/MailMessage"
         400:
           description: Bad Request
           content: {}
@@ -742,7 +742,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards':
+  "/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards":
     get:
       tags:
         - forward
@@ -767,7 +767,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailForwards'
+                $ref: "#/components/schemas/MailForwards"
         400:
           description: Bad Request
           content: {}
@@ -799,7 +799,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model6'
+              $ref: "#/components/schemas/Model6"
         required: false
       responses:
         201:
@@ -827,7 +827,7 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  '/api/v1/mails/{mailServerID}/accounts/{accountName}/check-availability':
+  "/api/v1/mails/{mailServerID}/accounts/{accountName}/check-availability":
     get:
       tags:
         - accounts
@@ -869,7 +869,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/messages/{messageID}/render':
+  "/api/v1/mails/{mailServerID}/messages/{messageID}/render":
     get:
       tags:
         - messages
@@ -919,7 +919,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/messages/{messageID}/attachments':
+  "/api/v1/mails/{mailServerID}/messages/{messageID}/attachments":
     get:
       tags:
         - attachments
@@ -944,7 +944,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailAttachments'
+                $ref: "#/components/schemas/MailAttachments"
         400:
           description: Bad Request
           content: {}
@@ -957,7 +957,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/messages/{messageID}/events':
+  "/api/v1/mails/{mailServerID}/messages/{messageID}/events":
     get:
       tags:
         - event
@@ -1001,7 +1001,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailEvents'
+                $ref: "#/components/schemas/MailEvents"
         400:
           description: Bad Request
           content: {}
@@ -1011,7 +1011,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/messages/{messageID}/attachments/{attachmentID}':
+  "/api/v1/mails/{mailServerID}/messages/{messageID}/attachments/{attachmentID}":
     get:
       tags:
         - attachments
@@ -1050,7 +1050,7 @@ paths:
                     type: object
                     properties:
                       attachment:
-                        $ref: '#/components/schemas/MailAttachment'
+                        $ref: "#/components/schemas/MailAttachment"
         400:
           description: Bad Request
           content: {}
@@ -1060,7 +1060,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/messages/{messageID}/temporary-access':
+  "/api/v1/mails/{mailServerID}/messages/{messageID}/temporary-access":
     post:
       tags:
         - messages
@@ -1093,7 +1093,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TmpAccess'
+                $ref: "#/components/schemas/TmpAccess"
         400:
           description: Bad Request
           content: {}
@@ -1106,7 +1106,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/accounts/{accountID}':
+  "/api/v1/mails/{mailServerID}/accounts/{accountID}":
     delete:
       tags:
         - accounts
@@ -1138,7 +1138,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/smtp-credentials/{username}':
+  "/api/v1/mails/{mailServerID}/smtp-credentials/{username}":
     delete:
       tags:
         - smtp
@@ -1169,7 +1169,7 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards/{addressID}':
+  "/api/v1/mails/{mailServerID}/accounts/{accountID}/forwards/{addressID}":
     delete:
       tags:
         - forward
@@ -1207,10 +1207,10 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/messages/{messageID}/':
+  "/api/v1/mails/{mailServerID}/messages/{messageID}/":
     patch:
       tags:
-      - messages
+        - messages
       summary: trash and untrash a message
       operationId: trashMessage
       parameters:
@@ -1230,7 +1230,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Model19'
+              $ref: "#/components/schemas/Model19"
         required: true
         description: Pass "false" to untrash
       responses:
@@ -1276,10 +1276,10 @@ paths:
           description: Unexpected error
           content: {}
       x-codegen-request-body-name: body
-  '/api/v1/mails/{mailServerID}/unfreeze':
+  "/api/v1/mails/{mailServerID}/unfreeze":
     patch:
-      tags: 
-       - mails
+      tags:
+        - mails
       summary: unfreeze mail server - If you had reserved a plan, it will be your new plan.
       operationId: unfreeze
       parameters:
@@ -1302,10 +1302,10 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/metrics': 
+  "/api/v1/mails/{mailServerID}/metrics":
     get:
       tags:
-       - mails 
+        - mails
       summary: gain more info on recent usage
       operationId: getMetrics
       parameters:
@@ -1321,7 +1321,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MailServerMetrics'
+                $ref: "#/components/schemas/MailServerMetrics"
         400:
           description: Bad Request
           content: {}
@@ -1331,11 +1331,11 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/tags':
+  "/api/v1/mails/{mailServerID}/tags":
     post:
       tags:
         - tags
-      summary: create a new tag 
+      summary: create a new tag
       operationId: createTag
       parameters:
         - name: mailServerID
@@ -1352,11 +1352,11 @@ paths:
               properties:
                 tag:
                   type: string
-              data:
-                type: object
-                properties:
-                  tag:
-                  type: string
+                data:
+                  type: object
+                  properties:
+                    tag:
+                      type: string
       responses:
         201:
           description: OK
@@ -1373,7 +1373,7 @@ paths:
     get:
       tags:
         - tags
-      summary: get all tags 
+      summary: get all tags
       operationId: getTags
       parameters:
         - name: mailServerID
@@ -1385,16 +1385,16 @@ paths:
       responses:
         200:
           description: OK
-          content: 
+          content:
             application/json:
               schema:
                 type: object
                 properties:
                   tag:
-                    type: string  
-                  createdAt: 
                     type: string
-                    format: date-time 
+                  createdAt:
+                    type: string
+                    format: date-time
         400:
           description: Bad Request
           content: {}
@@ -1404,11 +1404,11 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/tags/stats':
+  "/api/v1/mails/{mailServerID}/tags/stats":
     get:
       tags:
         - tags
-      summary: get all tags 
+      summary: get all tags
       operationId: getTags
       parameters:
         - name: mailServerID
@@ -1450,10 +1450,10 @@ paths:
         500:
           description: Unexpected error
           content: {}
-  '/api/v1/mails/{mailServerID}/plan': 
+  "/api/v1/mails/{mailServerID}/plan":
     post:
       tags:
-       - plan
+        - plan
       summary: change mail server plan
       description: Upgrades take effect immediately, while downgrades are scheduled and applied after the current plan ends. Click on the request body schema to see all available plans.
       operationId: changePlan
@@ -1503,10 +1503,10 @@ paths:
           content: {}
         500:
           description: Unexpected error
-          content: {}                
+          content: {}
     get:
       tags:
-       - plan
+        - plan
       summary: get cuurent mail server plan history
       operationId: getCurrentPlanHistory
       parameters:
@@ -1525,7 +1525,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    type: object     
+                    type: object
                     properties:
                       currentPlanHistory:
                         type: object
@@ -1625,7 +1625,7 @@ components:
             attachments:
               type: array
               items:
-                $ref: '#/components/schemas/MailAttachment'
+                $ref: "#/components/schemas/MailAttachment"
     MailAttachment:
       type: object
       properties:
@@ -1675,7 +1675,7 @@ components:
             messages:
               type: array
               items:
-                $ref: '#/components/schemas/MailMessage'
+                $ref: "#/components/schemas/MailMessage"
     MailMessage:
       type: object
       properties:
@@ -1840,7 +1840,7 @@ components:
           type: object
           properties:
             mailServer:
-              $ref: '#/components/schemas/CheckDNSResponse'
+              $ref: "#/components/schemas/CheckDNSResponse"
     CountMailPerDay:
       type: object
       properties:
@@ -1969,7 +1969,7 @@ components:
           type: object
           properties:
             mailServer:
-              $ref: '#/components/schemas/MailServerResponse'
+              $ref: "#/components/schemas/MailServerResponse"
     MailServers:
       type: object
       properties:
@@ -1981,7 +1981,7 @@ components:
             mailServers:
               type: array
               items:
-                $ref: '#/components/schemas/MailServerResponse'
+                $ref: "#/components/schemas/MailServerResponse"
     mode:
       type: string
       enum:
@@ -2002,7 +2002,7 @@ components:
           x-convert:
             case: lower
         mode:
-          $ref: '#/components/schemas/mode'
+          $ref: "#/components/schemas/mode"
     Model2:
       required:
         - content_type
@@ -2020,7 +2020,7 @@ components:
       maxItems: 10
       type: array
       items:
-        $ref: '#/components/schemas/Model2'
+        $ref: "#/components/schemas/Model2"
     Model3:
       required:
         - from
@@ -2045,7 +2045,7 @@ components:
         replyTo:
           type: string
         attachments:
-          $ref: '#/components/schemas/attachments'
+          $ref: "#/components/schemas/attachments"
     Model4:
       type: object
       properties:
@@ -2091,7 +2091,7 @@ components:
       type: object
       properties:
         mode:
-          $ref: '#/components/schemas/mode'
+          $ref: "#/components/schemas/mode"
         inboundSpamThreshold:
           type: number
     Model9:
