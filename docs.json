@@ -24,7 +24,7 @@
           },
           {
             "group": "API Endpoints",
-            "icon": "gear",
+            "icon": "file-code",
             "openapi": {
               "source": "spec/paas.yaml",
               "directory": "pass"
@@ -43,7 +43,7 @@
           },
           {
             "group": "API Endpoints",
-            "icon": "gear",
+            "icon": "file-code",
             "openapi": {
               "source": "spec/dbaas.yaml",
               "directory": "dbass"
@@ -62,7 +62,7 @@
           },
           {
             "group": "API Endpoints",
-            "icon": "gear",
+            "icon": "file-code",
             "openapi": {
               "source": "spec/object-storage.yaml",
               "directory": "object-storage"
@@ -99,7 +99,7 @@
           },
           {
             "group": "API Endpoints",
-            "icon": "gear",
+            "icon": "file-code",
             "openapi": {
               "source": "spec/mail.yaml",
               "directory": "mail"
@@ -118,7 +118,7 @@
           },
           {
             "group": "API Endpoints",
-            "icon": "gear",
+            "icon": "file-code",
             "openapi": {
               "source": "spec/file-browser.yaml",
               "directory": "file-browser"
@@ -137,7 +137,7 @@
           },
           {
             "group": "API Endpoints",
-            "icon": "gear",
+            "icon": "file-code",
             "openapi": {
               "source": "spec/Iaas.yaml",
               "directory": "iaas"
