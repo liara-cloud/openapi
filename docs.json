@@ -2,6 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "almond",
   "name": "Liara OpenAPI Docs",
+  "favicon": { "dark": "/logo.png", "light": "/logo.png" },
   "logo": {
     "light": "/logo.png",
     "dark": "/logo.png"
@@ -12,6 +13,20 @@
     "dark": "#009689"
   },
   "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Documentation",
+          "href": "https://docs.liara.ir",
+          "icon": "book-open-cover"
+        },
+        {
+          "anchor": "Blog",
+          "href": "https://liara.ir/blog",
+          "icon": "newspaper"
+        }
+      ]
+    },
     "products": [
       {
         "product": "PaaS",
@@ -146,6 +161,19 @@
         ]
       }
     ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:info@liara.ir"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Console",
+      "href": "https://console.liara.ir"
+    }
   },
   "footer": {
     "socials": {
