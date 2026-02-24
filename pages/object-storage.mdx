@@ -1,0 +1,116 @@
+---
+title: Object Storage API
+description: Scalable object storage solution for storing and managing data
+---
+
+# Object Storage API
+
+Liara's Object Storage API provides a scalable, reliable, and cost-effective solution for storing and retrieving any amount of data. Built on industry-standard protocols, it's compatible with S3-compatible tools and SDKs.
+
+## Overview
+
+The Object Storage API enables you to:
+
+- **Create and manage buckets** - Organize your data into buckets with configurable access policies
+- **Upload and download objects** - Store and retrieve files of any size
+- **Manage access keys** - Create and manage credentials for programmatic access
+- **Organize with folders** - Structure your data with a hierarchical folder system
+- **Monitor usage** - Track storage metrics and object counts
+- **Migrate data** - Move data between buckets easily
+
+## Key Concepts
+
+### Buckets
+
+Buckets are the primary containers for storing objects. Each bucket:
+- Has a unique name within your account
+- Can be configured as public or private
+- Has an associated storage plan that determines capacity
+- Contains objects organized in a flat structure with prefix-based organization
+
+### Objects
+
+Objects are the files stored in buckets. Each object:
+- Has a unique key (path) within the bucket
+- Can be any file type or size
+- Supports metadata for additional information
+- Can be accessed via presigned URLs for secure temporary access
+
+### Access Keys
+
+Access keys provide programmatic access to your buckets:
+- **Access Key**: Similar to a username, identifies the key
+- **Secret Key**: Similar to a password, authenticates requests
+- Keys can be scoped to specific buckets with defined permissions
+
+## Key Features
+
+### S3-Compatible API
+
+Liara Object Storage is compatible with the S3 API, allowing you to use existing tools and SDKs:
+- AWS SDK for various programming languages
+- S3 CLI tools
+- Third-party applications with S3 support
+
+### Access Control
+
+- **Private Buckets**: Access restricted to authenticated users
+- **Public Buckets**: Objects accessible via public URLs
+- **Presigned URLs**: Temporary access to private objects
+
+### Storage Plans
+
+Choose from various storage plans based on your capacity needs:
+- 20GB, 40GB, 80GB, 160GB options
+- Upgrade plans as your storage needs grow
+
+### Migration Support
+
+Easily migrate data between buckets, including from other storage services.
+
+## Base URL
+
+```
+https://storage-service.iran.liara.ir
+```
+
+## Common Operations
+
+### Creating a Bucket
+
+When creating a bucket, specify:
+- **name**: A unique bucket name
+- **plan**: The storage capacity plan
+- **permission**: Access policy (private or public)
+
+### Uploading Objects
+
+1. Request a presigned upload URL
+2. Upload the file using the provided URL
+3. The object becomes available in your bucket
+
+### Downloading Objects
+
+1. Request a presigned download URL with optional expiration
+2. Download the file using the provided URL
+
+### Managing Keys
+
+Create access keys scoped to specific buckets for applications that need programmatic access to your storage.
+
+## Getting Started
+
+1. Create a bucket with your desired plan and access policy
+2. Generate access keys for your application
+3. Use the API or S3-compatible tools to upload and manage objects
+4. Configure access permissions as needed
+
+## Best Practices
+
+- Use presigned URLs for secure temporary access
+- Organize objects with meaningful prefixes
+- Regularly review and rotate access keys
+- Monitor storage metrics to optimize costs
+- Use appropriate access policies for your use case
+
+Explore the API endpoints below to integrate object storage into your applications.

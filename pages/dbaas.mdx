@@ -1,0 +1,103 @@
+---
+title: DBaaS API
+description: Database as a Service API for managing cloud databases
+---
+
+# DBaaS API
+
+Liara's Database as a Service (DBaaS) API provides a powerful interface for creating, managing, and scaling managed databases in the cloud. Focus on building your applications while Liara handles database administration, backups, and maintenance.
+
+## Overview
+
+The DBaaS API enables you to:
+
+- **Create and manage databases** - Deploy managed database instances with various database engines
+- **Scale resources** - Resize your database plans to match your performance needs
+- **Manage backups** - Create on-demand backups and restore when needed
+- **Monitor performance** - Access CPU, memory, and network metrics
+- **Configure settings** - Customize database parameters for optimal performance
+- **Control network access** - Enable or disable public network access
+
+## Supported Database Types
+
+Liara DBaaS supports multiple database engines including:
+
+- **MySQL** - Popular relational database
+- **PostgreSQL** - Advanced open-source relational database
+- **MongoDB** - NoSQL document database
+- **Redis** - In-memory data structure store
+- **MariaDB** - MySQL-compatible database server
+
+## Key Features
+
+### Managed Infrastructure
+
+Liara handles all database administration tasks including:
+- Automated backups
+- Security updates and patches
+- High availability configuration
+- Performance monitoring
+
+### Flexible Scaling
+
+Start with a plan that matches your current needs and scale up or down as your requirements change. The API allows you to resize databases with minimal downtime.
+
+### Backup Management
+
+- **Automated Backups**: Regular automated backups to protect your data
+- **Manual Backups**: Create on-demand backups before major changes
+- **Backup Downloads**: Download backup files for local storage or migration
+
+### Control Panel Access
+
+Enable or disable the database control panel for visual database management through the Liara Console.
+
+### Public Network Control
+
+Enable or disable public network access to your database for enhanced security.
+
+## Base URL
+
+```
+https://api.iran.liara.ir
+```
+
+## Common Operations
+
+### Creating a Database
+
+When creating a database, specify:
+- **hostname**: A unique identifier for your database
+- **type**: The database engine (MySQL, PostgreSQL, MongoDB, etc.)
+- **planID**: The resource plan for your database
+- **version**: The database version
+- **publicNetwork**: Whether to enable public network access
+
+### Monitoring
+
+Access detailed metrics including:
+- CPU usage over time
+- Memory consumption
+- Network receive/transmit statistics
+- Disk usage summary
+
+### Events
+
+Track database events and activities through the events endpoint, useful for auditing and troubleshooting.
+
+## Getting Started
+
+1. Choose your database type and version
+2. Select an appropriate plan based on your needs
+3. Create the database using the API
+4. Retrieve connection details from the database info endpoint
+5. Connect your application using the provided credentials
+
+## Best Practices
+
+- Use private networking when possible for better security
+- Regularly backup your database before making changes
+- Monitor resource usage to identify scaling needs
+- Keep your database version updated for security patches
+
+Explore the API endpoints below to manage your databases programmatically.
