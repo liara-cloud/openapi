@@ -39,7 +39,7 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/dbaas.mdx"]
+            "pages": ["pages/dbaas"]
           },
           {
             "group": "API Endpoints",
