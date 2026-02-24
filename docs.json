@@ -162,6 +162,10 @@
       }
     ]
   },
+  "icons": { "library": "fontawesome" },
+  "contextual": {
+    "options": ["copy", "chatgpt", "perplexity"]
+  },
   "navbar": {
     "links": [
       {
