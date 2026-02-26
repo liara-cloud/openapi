@@ -3,7 +3,7 @@
 [![OpenAPI Specification](https://img.shields.io/badge/OpenAPI-3.0-brightgreen)](https://swagger.io/specification/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Welcome to the official Liara Cloud Platform OpenAPI Specification repository. This repository contains comprehensive [OpenAPI specifications](https://openapi.liara.ir/) for all Liara API services, enabling developers to integrate with Liara's cloud platform seamlessly.
+Welcome to the official Liara Cloud Platform OpenAPI Specification repository. This repository contains comprehensive [OpenAPI specifications](https://developers.liara.ir/) for all Liara API services, enabling developers to integrate with Liara's cloud platform seamlessly.
 
 ## 📖 Overview
 
