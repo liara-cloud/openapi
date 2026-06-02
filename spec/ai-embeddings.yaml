@@ -1,0 +1,146 @@
+openapi: 3.0.1
+info:
+  title: AI - Embeddings
+  description: |-
+    Generate text embeddings using AI models. Compatible with OpenAI's embeddings API.
+
+    Parameters:
+    - `workspaceID`: The ID of the workspace to use for billing
+    - `teamID`: To access services in a team (query param or `x-teamid` header)
+
+    Authentication: API Key (Bearer token) sent via the `Authorization` header.
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+servers:
+  - url: https://ai.liara.ir
+security:
+  - apiKey: []
+tags:
+  - name: Embeddings
+    description: Generate text embeddings
+paths:
+  /api/{workspaceID}/v1/embeddings:
+    post:
+      tags:
+        - Embeddings
+      summary: Create embeddings
+      description: |-
+        Generates embeddings for the given input text. Supports single strings or arrays of strings.
+        Response includes token usage and cost information.
+      operationId: createEmbedding
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingRequest'
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        402:
+          description: Payment required - insufficient balance
+          content: {}
+        503:
+          description: "Service unavailable (feature disabled)"
+          content: {}
+      x-codegen-request-body-name: body
+components:
+  schemas:
+    EmbeddingRequest:
+      type: object
+      required:
+        - input
+        - model
+      properties:
+        input:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: Text or array of texts to embed
+        model:
+          type: string
+          description: |-
+            Embedding model ID. Supported models:
+            - `google/gemini-embedding-2`
+            - `intfloat/multilingual-e5-large`
+            - `google/gemini-embedding-001`
+            - `openai/text-embedding-3-small`
+            - `openai/text-embedding-3-large`
+            - `openai/text-embedding-ada-002`
+          example: openai/text-embedding-3-small
+        dimensions:
+          type: number
+          description: "Output dimensions (model-dependent)"
+        encoding_format:
+          type: string
+          description: Encoding format for embeddings
+        user:
+          type: string
+          description: End-user identifier
+    EmbeddingResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum: [list]
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+                enum: [embedding]
+              embedding:
+                type: array
+                items:
+                  type: number
+              index:
+                type: integer
+        model:
+          type: string
+          description: Model ID used
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+            total_tokens:
+              type: integer
+            total_cost_toman:
+              type: number
+              description: Total cost in Tomans
+            total_cost:
+              type: number
+              description: Total cost in USD
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      description: 'Enter the API key with the `Bearer: ` prefix, e.g. "Bearer <your-api-key>"'
+      name: Authorization
+      in: header

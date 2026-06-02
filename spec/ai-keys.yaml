@@ -1,0 +1,244 @@
+openapi: 3.0.1
+info:
+  title: AI - API Keys
+  description: |-
+    Manage API keys for AI workspace access. API keys are used to authenticate inference
+    requests (chat completions, embeddings, image generation).
+
+    Parameters:
+    - `teamID`: To access services in a team (query param or `x-teamid` header)
+
+    Authentication: JWT Bearer token sent via the `Authorization` header.
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+servers:
+  - url: https://ai.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: API Keys
+    description: Manage API keys for AI inference
+paths:
+  /v1/keys:
+    get:
+      tags:
+        - API Keys
+      summary: List API keys
+      description: Lists all API keys owned by the authenticated user, including workspace associations.
+      operationId: listKeys
+      parameters:
+        - name: teamID
+          in: query
+          description: Team ID for team-scoped keys
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KeyResponse'
+        401:
+          description: Missing authentication
+          content: {}
+    post:
+      tags:
+        - API Keys
+      summary: Create an API key
+      description: |-
+        Creates a new API key associated with one or more workspaces.
+        The response includes the key token which is only shown once upon creation.
+      operationId: createKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKeyRequest'
+      responses:
+        201:
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateKeyResponse'
+        400:
+          description: Bad request - at least one workspace must be selected
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        409:
+          description: Conflict - key name already exists
+          content: {}
+      x-codegen-request-body-name: key
+  /v1/keys/{keyID}:
+    put:
+      tags:
+        - API Keys
+      summary: Update an API key
+      description: Updates an API key's name, workspaces, or enabled status.
+      operationId: updateKey
+      parameters:
+        - name: keyID
+          in: path
+          required: true
+          description: The API key ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateKeyRequest'
+      responses:
+        200:
+          description: Key updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: key updated.
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Key not found
+          content: {}
+        409:
+          description: Conflict - workspace does not exist
+          content: {}
+      x-codegen-request-body-name: key
+    delete:
+      tags:
+        - API Keys
+      summary: Delete an API key
+      description: Soft-deletes an API key. The key will be marked as deleted but not permanently removed.
+      operationId: deleteKey
+      parameters:
+        - name: keyID
+          in: path
+          required: true
+          description: The API key ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        204:
+          description: Key deleted
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Key not found
+          content: {}
+components:
+  schemas:
+    CreateKeyRequest:
+      type: object
+      required:
+        - name
+        - workspaces
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 15
+          pattern: '^[A-Za-z0-9._~| -]+$'
+          description: Unique name for the API key
+        workspaces:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: Array of workspace names to associate with this key
+    CreateKeyResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        enabled:
+          type: boolean
+        workspaces:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        key:
+          type: string
+          description: "The JWT token for this API key (only shown once)"
+        createdBy:
+          type: object
+          properties:
+            fullname:
+              type: string
+        _id:
+          type: string
+    UpdateKeyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 15
+          pattern: '^[A-Za-z0-9._~| -]+$'
+          description: New name for the API key
+        workspaces:
+          type: array
+          items:
+            type: string
+          description: New array of workspace names
+        enabled:
+          type: boolean
+          description: Enable or disable the API key
+    KeyResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+        workspaces:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        createdBy:
+          type: object
+          properties:
+            fullname:
+              type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345"'
+      name: Authorization
+      in: header
