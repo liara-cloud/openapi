@@ -1,0 +1,273 @@
+openapi: 3.0.1
+info:
+  title: AI - Playground
+  description: |-
+    Playground endpoints for testing AI inference with JWT authentication and RBAC/DAC authorization.
+    These endpoints mirror the API key inference endpoints but require user-level permissions.
+
+    Required permissions: `ai.operate` or `ai.manage`
+
+    Parameters:
+    - `workspaceID`: The ID of the workspace to use
+    - `teamID`: To access services in a team (query param or `x-teamid` header)
+
+    Authentication: JWT Bearer token sent via the `Authorization` header.
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+servers:
+  - url: https://ai.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: Playground Chat
+    description: Playground chat completion endpoints
+  - name: Playground Images
+    description: Playground image generation and editing endpoints
+paths:
+  /api/v1/{workspaceID}/playground/chat/completions:
+    post:
+      tags:
+        - Playground Chat
+      summary: Playground chat completion
+      description: |-
+        Creates a chat completion in the playground. Requires `ai.operate` or `ai.manage` permission.
+        Uses the same request/response format as the API key chat completion endpoint.
+      operationId: playgroundChatCompletion
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaygroundChatRequest'
+      responses:
+        200:
+          description: "Successful response (non-streaming)"
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          description: Missing authentication
+          content: {}
+        403:
+          description: Forbidden - insufficient permissions or workspace frozen
+          content: {}
+        402:
+          description: Payment required
+          content: {}
+        503:
+          description: "Service unavailable (feature disabled)"
+          content: {}
+      x-codegen-request-body-name: body
+  /api/v1/{workspaceID}/playground/images/generations:
+    post:
+      tags:
+        - Playground Images
+      summary: Playground image generation
+      description: |-
+        Generates images in the playground. Requires `ai.operate` or `ai.manage` permission.
+        Uses the same request/response format as the API key image generation endpoint.
+      operationId: playgroundImageGeneration
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prompt
+                - model
+              properties:
+                prompt:
+                  type: string
+                model:
+                  type: string
+                n:
+                  type: number
+                size:
+                  type: string
+                quality:
+                  type: string
+                output_format:
+                  type: string
+                  enum: [png, jpeg, webp]
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          description: Missing authentication
+          content: {}
+        403:
+          description: Forbidden
+          content: {}
+        503:
+          description: "Service unavailable (feature disabled)"
+          content: {}
+      x-codegen-request-body-name: body
+  /api/v1/{workspaceID}/playground/images/edits:
+    post:
+      tags:
+        - Playground Images
+      summary: Playground image edit
+      description: |-
+        Edits images in the playground. Requires `ai.operate` or `ai.manage` permission.
+        Requires `multipart/form-data` content type.
+      operationId: playgroundImageEdit
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                prompt:
+                  type: string
+                model:
+                  type: string
+                mask:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          description: Missing authentication
+          content: {}
+        403:
+          description: Forbidden
+          content: {}
+        503:
+          description: "Service unavailable (feature disabled)"
+          content: {}
+      x-codegen-request-body-name: body
+  /api/v1/{workspaceID}/playground/models:
+    get:
+      tags:
+        - Playground Chat
+      summary: Playground list models
+      description: |-
+        Lists available models in the playground. Requires `ai.operate` or `ai.manage` permission.
+        Returns models in OpenAI-compatible format.
+      operationId: playgroundListModels
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: List of models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    enum: [list]
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        context_length:
+                          type: integer
+        401:
+          description: Missing authentication
+          content: {}
+        403:
+          description: Forbidden
+          content: {}
+components:
+  schemas:
+    PlaygroundChatRequest:
+      type: object
+      required:
+        - model
+        - messages
+      properties:
+        model:
+          type: string
+          description: Model ID
+        messages:
+          type: array
+          items:
+            type: object
+            required:
+              - role
+            properties:
+              role:
+                type: string
+                enum: [user, assistant, system, developer, tool]
+              content:
+                oneOf:
+                  - type: string
+                  - type: array
+                    items:
+                      type: object
+        stream:
+          type: boolean
+          default: false
+        temperature:
+          type: number
+        max_tokens:
+          type: integer
+        tools:
+          type: array
+          items:
+            type: object
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345"'
+      name: Authorization
+      in: header

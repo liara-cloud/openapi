@@ -1,0 +1,520 @@
+openapi: 3.0.1
+info:
+  title: AI - Workspaces
+  description: |-
+    Manage AI workspaces. Workspaces are the primary organizational unit for AI resources.
+    Each workspace has a plan (base, standard, pro), a state (ACTIVE, FROZEN), and provider preferences.
+
+    Parameters:
+    - `teamID`: To access services in a team (query param or `x-teamid` header)
+
+    Authentication: JWT Bearer token sent via the `Authorization` header.
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+servers:
+  - url: https://ai.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: Workspaces
+    description: Workspace CRUD operations
+  - name: Workspace Actions
+    description: "Workspace actions (resize, unfreeze, provider preferences)"
+  - name: Workspace Activity
+    description: Usage activity and free token tracking
+  - name: Model Limits
+    description: Model-specific limits within a workspace
+paths:
+  /v1/workspaces:
+    get:
+      tags:
+        - Workspaces
+      summary: List workspaces
+      description: Lists all workspaces owned by the authenticated user.
+      operationId: listWorkspaces
+      responses:
+        200:
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceListResponse'
+        401:
+          description: Missing authentication
+          content: {}
+    post:
+      tags:
+        - Workspaces
+      summary: Create a workspace
+      description: |-
+        Creates a new AI workspace. Only one free (base) workspace is allowed per user.
+        The workspace name must be unique.
+      operationId: createWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkspaceRequest'
+      responses:
+        200:
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateWorkspaceResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        402:
+          description: Payment required - insufficient balance
+          content: {}
+        403:
+          description: Forbidden - already have a free workspace
+          content: {}
+        409:
+          description: Conflict - workspace name already exists
+          content: {}
+        410:
+          description: Gone - plan not available
+          content: {}
+      x-codegen-request-body-name: workspace
+  /v1/workspaces/{workspaceName}/check-availability:
+    get:
+      tags:
+        - Workspaces
+      summary: Check workspace name availability
+      description: Checks if a workspace name is available for use.
+      operationId: checkWorkspaceAvailability
+      parameters:
+        - name: workspaceName
+          in: path
+          required: true
+          description: The workspace name to check
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 50
+            pattern: '^[a-z0-9][a-z0-9-]+[a-z0-9]$'
+      responses:
+        200:
+          description: Name is available
+          content: {}
+        409:
+          description: Name already taken
+          content: {}
+  /v1/workspaces/{workspaceID}:
+    get:
+      tags:
+        - Workspaces
+      summary: Get workspace details
+      description: Gets detailed information about a specific workspace.
+      operationId: getWorkspace
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceDetailResponse'
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+    delete:
+      tags:
+        - Workspaces
+      summary: Delete a workspace
+      description: Soft-deletes a workspace. The workspace will be marked as deleted but not permanently removed.
+      operationId: deleteWorkspace
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Workspace deleted
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+  /v1/workspaces/{workspaceID}/change-provider-preferences:
+    patch:
+      tags:
+        - Workspace Actions
+      summary: Change provider preferences
+      description: |-
+        Changes the provider routing preference for a workspace.
+        This affects how requests are routed to AI providers.
+      operationId: changeProviderPreferences
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeProviderPreferencesRequest'
+      responses:
+        200:
+          description: Preferences updated
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+      x-codegen-request-body-name: preferences
+  /v1/workspaces/{workspaceID}/resize:
+    post:
+      tags:
+        - Workspace Actions
+      summary: Resize workspace (change plan)
+      description: |-
+        Changes the plan of a workspace. The user must have sufficient balance
+        for the new plan's hourly price.
+      operationId: resizeWorkspace
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResizeWorkspaceRequest'
+      responses:
+        200:
+          description: Workspace resized
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        402:
+          description: Payment required - insufficient balance
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+        410:
+          description: Gone - plan not available
+          content: {}
+      x-codegen-request-body-name: resize
+  /v1/workspaces/{workspaceID}/unfreeze:
+    post:
+      tags:
+        - Workspace Actions
+      summary: Unfreeze workspace
+      description: |-
+        Unfreezes a frozen workspace. The user must have sufficient balance
+        to cover the workspace's hourly plan cost.
+      operationId: unfreezeWorkspace
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Workspace unfrozen
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        402:
+          description: Payment required - insufficient balance
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+  /v1/workspaces/{workspaceID}/free-tokens:
+    get:
+      tags:
+        - Workspace Activity
+      summary: Get free token usage
+      description: Calculates the free token usage for a workspace.
+      operationId: getFreeTokens
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Free token usage data
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+  /v1/workspaces/{workspaceID}/models/{modelID}/limits:
+    get:
+      tags:
+        - Model Limits
+      summary: Get model limits
+      description: |-
+        Gets the minimum balance and maximum tokens for a specific model within a workspace.
+        Only applies to chat completion models.
+      operationId: getModelLimits
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+        - name: modelID
+          in: path
+          required: true
+          description: The model ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Model limits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelLimitsResponse'
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Workspace or model not found
+          content: {}
+  /v1/workspaces/{workspaceID}/activity:
+    get:
+      tags:
+        - Workspace Activity
+      summary: Get workspace activity
+      description: |-
+        Gets aggregated usage activity for a workspace grouped by date and model.
+        Time filter availability depends on the workspace plan:
+        - `base`: hour, day, week
+        - `standard`: hour, day, week, month
+        - `pro`: all filters available
+      operationId: getWorkspaceActivity
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+        - name: filter
+          in: query
+          description: Time filter for activity aggregation
+          schema:
+            type: string
+            enum: [twoMonth, month, day, hour, week]
+            default: day
+        - name: key
+          in: query
+          description: Filter by API key name
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 15
+      responses:
+        200:
+          description: Activity data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityEntry'
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+        416:
+          description: Filter not available on current plan
+          content: {}
+components:
+  schemas:
+    CreateWorkspaceRequest:
+      type: object
+      required:
+        - name
+        - plan
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-z0-9][a-z0-9-]+[a-z0-9]$'
+          description: |-
+            Unique workspace name (lowercase, 3-50 chars).
+            Cannot be "liara".
+        plan:
+          type: string
+          enum: [base, standard, pro]
+          description: Workspace plan tier
+    CreateWorkspaceResponse:
+      type: object
+      properties:
+        workspace:
+          type: object
+          properties:
+            _id:
+              type: string
+              description: Workspace ID
+    WorkspaceListResponse:
+      type: object
+      properties:
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceSummary'
+    WorkspaceSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        state:
+          type: string
+          enum: [ACTIVE, FROZEN]
+        plan:
+          type: string
+          enum: [base, standard, pro]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    WorkspaceDetailResponse:
+      type: object
+      properties:
+        workspace:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            state:
+              type: string
+              enum: [ACTIVE, FROZEN]
+            plan:
+              type: string
+              enum: [base, standard, pro]
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            providerPreferences:
+              type: string
+              enum: [price, throughput]
+    ChangeProviderPreferencesRequest:
+      type: object
+      required:
+        - preference
+      properties:
+        preference:
+          type: string
+          enum: [price, throughput, latency]
+          description: Provider routing preference
+    ResizeWorkspaceRequest:
+      type: object
+      required:
+        - plan
+      properties:
+        plan:
+          type: string
+          enum: [base, standard, pro]
+          description: New plan for the workspace
+    ModelLimitsResponse:
+      type: object
+      properties:
+        minimumBalance:
+          type: number
+          nullable: true
+          description: "Minimum balance required (null if not a chat completion model)"
+        maximumToken:
+          type: integer
+          nullable: true
+          description: "Maximum tokens allowed (null if not a chat completion model)"
+    ActivityEntry:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Date of activity
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              model:
+                type: string
+              total_tokens:
+                type: integer
+              total_cost_tomans:
+                type: number
+              request_count:
+                type: integer
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345"'
+      name: Authorization
+      in: header

@@ -1,0 +1,296 @@
+openapi: 3.0.1
+info:
+  title: AI - Models
+  description: |-
+    Public model catalog for browsing available AI models. No authentication required.
+
+    Browse, search, and filter models by provider, modality, pricing, context length, and more.
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+servers:
+  - url: https://ai.liara.ir
+tags:
+  - name: Model Catalog V1
+    description: Basic model listing
+  - name: Model Catalog V2
+    description: Filtered, sorted, and paginated model listing
+paths:
+  /v1/models:
+    get:
+      tags:
+        - Model Catalog V1
+      summary: List all models
+      description: Returns all available AI models with full details. No authentication required.
+      operationId: listModels
+      responses:
+        200:
+          description: List of all models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelListResponse'
+  /v1/models/{modelID}:
+    get:
+      tags:
+        - Model Catalog V1
+      summary: Get a model
+      description: Gets a single model by its ID. No authentication required.
+      operationId: getModel
+      parameters:
+        - name: modelID
+          in: path
+          required: true
+          description: "The model ID (MongoDB ObjectID)"
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Model details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelDetailResponse'
+        404:
+          description: Model not found
+          content: {}
+  /v2/models:
+    get:
+      tags:
+        - Model Catalog V2
+      summary: List models with filters
+      description: |-
+        Returns paginated model list with filtering, sorting, and search capabilities.
+        No authentication required. Page size is 20.
+      operationId: listModelsFiltered
+      parameters:
+        - name: search
+          in: query
+          description: Search models by name (regex match)
+          schema:
+            type: string
+            maxLength: 100
+        - name: sort
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [newest, price_input_low, price_input_high, context_length]
+            default: newest
+        - name: input_modalities
+          in: query
+          description: Filter by input modalities
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: output_modalities
+          in: query
+          description: Filter by output modalities
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: context_length_min
+          in: query
+          description: Minimum context length
+          schema:
+            type: integer
+        - name: context_length_max
+          in: query
+          description: Maximum context length
+          schema:
+            type: integer
+        - name: input_price_min
+          in: query
+          description: "Minimum input price (per token, USD)"
+          schema:
+            type: number
+        - name: input_price_max
+          in: query
+          description: "Maximum input price (per token, USD)"
+          schema:
+            type: number
+        - name: providers
+          in: query
+          description: Filter by provider prefix (e.g. anthropic, openai)
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: supported_params
+          in: query
+          description: Filter by supported parameters
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: page
+          in: query
+          description: "Page number (1-based)"
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        200:
+          description: Filtered and paginated model list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilteredModelListResponse'
+components:
+  schemas:
+    ModelListResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIModel'
+    ModelDetailResponse:
+      type: object
+      properties:
+        model:
+          $ref: '#/components/schemas/AIModel'
+    FilteredModelListResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIModel'
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: "Page size (always 20)"
+        total:
+          type: integer
+          description: Total number of matching models
+    AIModel:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "Model ID (e.g. openai/gpt-5)"
+        name:
+          type: string
+          description: Display name
+        description:
+          type: string
+        cutoff_date:
+          type: string
+          format: date
+        context_length:
+          type: integer
+          description: Maximum context length in tokens
+        architecture:
+          type: object
+          properties:
+            modality:
+              type: string
+            input_modalities:
+              type: array
+              items:
+                type: string
+            output_modalities:
+              type: array
+              items:
+                type: string
+            tokenizer:
+              type: string
+            instruct_type:
+              type: string
+        pricing:
+          type: object
+          properties:
+            cost:
+              type: string
+            prompt:
+              type: string
+              description: "Input price per token (USD string)"
+            completion:
+              type: string
+              description: "Output price per token (USD string)"
+            request:
+              type: string
+            image:
+              type: string
+            web_search:
+              type: string
+            internal_reasoning:
+              type: string
+            input_cache_read:
+              type: string
+            input_cache_read_image:
+              type: string
+            image_generation:
+              type: string
+            image_type:
+              type: string
+            image_details:
+              type: object
+        top_provider:
+          type: object
+          properties:
+            context_length:
+              type: integer
+            max_completion_tokens:
+              type: integer
+            is_moderated:
+              type: boolean
+        supported_parameters:
+          type: array
+          items:
+            type: string
+        features:
+          type: object
+          properties:
+            structured_outputs:
+              type: boolean
+            function_calling:
+              type: boolean
+            tuning:
+              type: boolean
+            streaming:
+              type: boolean
+        speed:
+          type: number
+        endpoints:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              route:
+                type: string
+        reasoning:
+          type: boolean
+          description: Whether the model supports reasoning
+        tags:
+          type: array
+          items:
+            type: string
+            enum: [featured, reasoning, flagship, cost-optimized, realtime, tool-specific, embeddings, moderation, images]
+        created:
+          type: integer
+          format: unix-timestamp
+        provider:
+          type: string
+          description: Provider name

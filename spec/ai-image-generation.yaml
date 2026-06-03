@@ -1,0 +1,274 @@
+openapi: 3.0.1
+info:
+  title: AI - Image Generation
+  description: |-
+    Generate and edit images using AI models. Supports OpenAI and Google Gemini providers.
+
+    Parameters:
+    - `workspaceID`: The ID of the workspace to use for billing
+    - `teamID`: To access services in a team (query param or `x-teamid` header)
+
+    Authentication: API Key (Bearer token) sent via the `Authorization` header.
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+servers:
+  - url: https://ai.liara.ir
+security:
+  - apiKey: []
+tags:
+  - name: Image Generations
+    description: Generate images from text prompts
+  - name: Image Edits
+    description: Edit existing images with prompts
+paths:
+  /api/{workspaceID}/v1/images/generations:
+    post:
+      tags:
+        - Image Generations
+      summary: Generate images
+      description: |-
+        Generates images from a text prompt. Supports models from OpenAI (gpt-image-1, gpt-image-2)
+        and Google Gemini (Gemini image models).
+
+        OpenAI models accept size values like `1024x1024`, `1536x1024`, `1024x1536`, or `auto`.
+        Gemini models accept aspect ratio values like `1:1`, `2:3`, `16:9`, etc.
+      operationId: generateImage
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageGenerationsRequest'
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        402:
+          description: Payment required - insufficient balance
+          content: {}
+        503:
+          description: "Service unavailable (feature disabled)"
+          content: {}
+      x-codegen-request-body-name: body
+  /api/{workspaceID}/v1/images/edits:
+    post:
+      tags:
+        - Image Edits
+      summary: Edit images
+      description: |-
+        Edits an existing image based on a text prompt. Requires `multipart/form-data` content type.
+
+        Supports up to 16 input images. A mask image can be provided for inpainting operations.
+      operationId: editImage
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImageEditsRequest'
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+        400:
+          description: Bad request
+          content: {}
+        401:
+          description: Missing authentication
+          content: {}
+        402:
+          description: Payment required
+          content: {}
+        503:
+          description: "Service unavailable (feature disabled)"
+          content: {}
+      x-codegen-request-body-name: body
+components:
+  schemas:
+    ImageGenerationsRequest:
+      type: object
+      required:
+        - prompt
+        - model
+      properties:
+        prompt:
+          type: string
+          description: Text description of the desired image
+        model:
+          type: string
+          description: |-
+            Image generation model ID. Supported models:
+            - `google/gemini-2.5-flash-image`
+            - `google/gemini-3-pro-image-preview`
+            - `openai/gpt-image-2`
+            - `openai/gpt-image-1.5`
+            - `openai/gpt-image-1`
+            - `openai/gpt-image-1-mini`
+          default: openai/gpt-image-1
+        n:
+          type: number
+          description: "Number of images to generate (1-10)"
+        size:
+          type: string
+          description: |-
+            Image size. OpenAI: `auto`, `1024x1024`, `1536x1024`, `1024x1536`.
+            Gemini: aspect ratios like `1:1`, `2:3`, `16:9`.
+        quality:
+          type: string
+          description: |-
+            Image quality. OpenAI: `auto`, `low`, `medium`, `high`.
+            Gemini: `1K`, `2K`, `4K`.
+        background:
+          type: string
+          description: Background setting
+        moderation:
+          type: string
+          description: Content moderation level
+        output_format:
+          type: string
+          enum: [png, jpeg, webp]
+          description: Output image format
+        output_compression:
+          type: number
+          description: Compression level for jpeg/webp
+        partial_images:
+          type: number
+          description: Number of partial images for progressive loading
+        response_format:
+          type: string
+          description: "Response format (url or b64_json)"
+        stream:
+          type: boolean
+          description: Enable streaming
+        style:
+          type: string
+          description: Image style
+        user:
+          type: string
+          description: End-user identifier
+    ImageEditsRequest:
+      type: object
+      properties:
+        image:
+          description: "Input image file(s) - up to 16 files"
+          type: array
+          items:
+            type: string
+            format: binary
+        prompt:
+          type: string
+          description: Text description of the desired edit
+        model:
+          type: string
+          description: "Image model ID (same as generations)"
+        mask:
+          type: string
+          format: binary
+          description: Mask image for inpainting
+        input_fidelity:
+          type: string
+          description: Input fidelity setting
+        n:
+          type: number
+          default: 1
+          description: Number of images to generate
+        size:
+          type: string
+          description: "Image size (same as generations)"
+        quality:
+          type: string
+          description: "Image quality (same as generations)"
+        background:
+          type: string
+          description: Background setting
+        output_format:
+          type: string
+          enum: [png, jpeg, webp]
+          description: Output image format
+        output_compression:
+          type: number
+          description: Compression level
+        partial_images:
+          type: number
+          description: Number of partial images
+        response_format:
+          type: string
+          description: Response format
+        stream:
+          type: boolean
+          description: Enable streaming
+        user:
+          type: string
+          description: End-user identifier
+    ImageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Log ID
+        created:
+          type: integer
+          format: unix-timestamp
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                format: uri
+                description: "Image URL (when response_format is url)"
+              b64_json:
+                type: string
+                description: "Base64-encoded image data (when response_format is b64_json)"
+              revised_prompt:
+                type: string
+                description: Revised prompt used by the model
+        usage:
+          type: object
+          properties:
+            total_cost:
+              type: number
+              description: Total cost in USD
+            total_cost_toman:
+              type: number
+              description: Total cost in Tomans
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      description: 'Enter the API key with the `Bearer: ` prefix, e.g. "Bearer <your-api-key>"'
+      name: Authorization
+      in: header

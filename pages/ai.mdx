@@ -1,0 +1,124 @@
+---
+title: AI API
+description: AI platform API for chat completions, image generation, embeddings, and workspace management
+---
+
+# AI API
+
+Liara's AI platform provides OpenAI-compatible endpoints for AI inference, including chat completions, image generation, and embeddings. Manage your AI resources through workspaces, API keys, and a comprehensive model catalog.
+
+## Overview
+
+The AI API enables you to:
+
+- **Chat Completions** - Generate text responses using state-of-the-art language models with streaming support
+- **Image Generation** - Create and edit images from text prompts using models like GPT Image and Gemini
+- **Embeddings** - Generate vector embeddings for text search, clustering, and semantic analysis
+- **Workspaces** - Organize AI resources with plan-based billing and provider preferences
+- **API Keys** - Manage authentication keys scoped to specific workspaces
+- **Model Catalog** - Browse and filter available AI models by provider, modality, and pricing
+- **Logs** - Track inference requests, usage, and costs per workspace
+- **Playground** - Test AI inference interactively with JWT authentication
+
+## Key Features
+
+### OpenAI-Compatible
+
+All inference endpoints follow the OpenAI API format, making it easy to integrate with existing SDKs and tools. Simply point your OpenAI client to the Liara AI base URL with your workspace-specific path.
+
+### Multi-Provider Support
+
+Access models from multiple providers (OpenAI, Anthropic, Google, Meta, and more) through a single API.
+
+### Provider Preferences
+
+Control how requests are routed to providers:
+- **Price** - Route to the lowest-cost provider
+- **Throughput** - Route to the highest-throughput provider
+- **Latency** - Route to the lowest-latency provider
+
+### Streaming
+
+Chat completions support Server-Sent Events (SSE) streaming for real-time token delivery, ideal for chat interfaces and interactive applications.
+
+### Multi-Modal Input
+
+Chat completions support text, image, and file inputs, enabling vision and document understanding capabilities.
+
+### Workspace Isolation
+
+Each workspace provides isolated billing, API keys, and usage tracking. Workspaces can be on different plans (base, standard, pro) with varying features and limits.
+
+## Base URL
+
+For inference endpoints (chat completions, embeddings, image generation):
+
+```
+https://ai.liara.ir/api/{workspaceID}/v1
+```
+
+For management endpoints (workspaces, keys, logs, playground, models catalog):
+
+```
+https://ai.liara.ir
+```
+
+## Authentication
+
+The AI API uses two authentication methods:
+
+### API Key Authentication (Inference)
+
+For chat completions, embeddings, and image generation endpoints, use an AI API key:
+
+```
+Authorization: Bearer <your-ai-api-key>
+```
+
+API keys are created through the management API and are scoped to specific workspaces.
+
+### JWT Authentication (Management)
+
+For workspace, key, log, and playground endpoints, use your Liara account JWT:
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+## Workspace Plans
+
+| Plan | Features | Log Retention |
+|------|----------|---------------|
+| Base | Free tier, limited models, basic activity filters | 7 days |
+| Standard | More models, monthly activity filter | 30 days |
+| Pro | All models, all activity filters, full access | 90 days |
+
+## Common Operations
+
+### Making a Chat Completion
+
+When calling the chat completion endpoint, specify:
+- **workspaceID**: Your workspace ID in the URL path
+- **model**: The model ID (e.g. `openai/gpt-5`, `anthropic/claude-sonnet-4`)
+- **messages**: Array of conversation messages with `role` and `content`
+- **stream**: Set to `true` for SSE streaming
+
+### Creating an API Key
+
+1. Create a workspace first
+2. Create an API key associated with the workspace
+3. Use the returned key token for inference requests
+4. The key token is only shown once upon creation
+
+### Browsing Models
+
+The model catalog is publicly accessible without authentication. Use the v2 endpoint for advanced filtering, sorting, and pagination.
+
+## Getting Started
+
+1. Create a workspace using the management API
+2. Create an API key scoped to your workspace
+3. Use the API key to call inference endpoints
+4. Monitor usage through logs and activity endpoints
+
+Explore the API sections below to learn more about each capability.

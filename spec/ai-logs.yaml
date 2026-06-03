@@ -1,0 +1,239 @@
+openapi: 3.0.1
+info:
+  title: AI - Logs
+  description: |-
+    Request logs for AI workspace inference operations. Logs track chat completions,
+    embeddings, and image operations with usage and cost details.
+
+    Parameters:
+    - `teamID`: To access services in a team (query param or `x-teamid` header)
+
+    Authentication: JWT Bearer token (for management) or API Key (for API key auth).
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+servers:
+  - url: https://ai.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: Logs
+    description: Request logs for inference operations
+paths:
+  /v1/workspaces/{workspaceID}/logs:
+    get:
+      tags:
+        - Logs
+      summary: List logs
+      description: |-
+        Lists paginated request logs for a workspace. Date range is constrained by the
+        workspace plan's log retention period.
+
+        For image operations, both generations and edits are included when filtering by image routes.
+      operationId: listLogs
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+        - name: from
+          in: query
+          description: "Start date (default: 1 day ago, constrained by plan log retention)"
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: "End date (default: now)"
+          schema:
+            type: string
+            format: date
+        - name: model
+          in: query
+          description: Filter by model ID
+          schema:
+            type: string
+        - name: url
+          in: query
+          description: Filter by route
+          schema:
+            type: string
+            enum:
+              - /chat/completions
+              - /embeddings
+              - /image/generations
+              - /image/edits
+            default: /chat/completions
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: count
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            minimum: 1
+            default: 15
+        - name: key
+          in: query
+          description: Filter by API key name
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 15
+      responses:
+        200:
+          description: Paginated list of logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogListResponse'
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Workspace not found
+          content: {}
+        416:
+          description: Date range exceeds plan retention
+          content: {}
+  /v1/workspaces/{workspaceID}/logs/{logID}:
+    get:
+      tags:
+        - Logs
+      summary: Get log details (API key auth)
+      description: Gets detailed information about a specific log entry. Authenticated via API key.
+      operationId: getLogDetailsApiKey
+      security:
+        - apiKey: []
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+        - name: logID
+          in: path
+          required: true
+          description: The log ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Log details
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Log or workspace not found
+          content: {}
+  /v1/workspaces/{workspaceID}/playground/logs/{logID}:
+    get:
+      tags:
+        - Logs
+      summary: Get log details (playground auth)
+      description: Gets detailed information about a specific playground log entry. Authenticated via JWT.
+      operationId: getLogDetailsPlayground
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+        - name: logID
+          in: path
+          required: true
+          description: The log ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+      responses:
+        200:
+          description: Log details
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          description: Missing authentication
+          content: {}
+        404:
+          description: Log or workspace not found
+          content: {}
+components:
+  schemas:
+    LogListResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEntry'
+        count:
+          type: integer
+          description: Total number of matching logs
+    LogEntry:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+          enum: [ERROR_VALIDATION, PROVIDER_RESPONSE, ERROR_PROVIDER]
+        content:
+          type: object
+          properties:
+            model:
+              type: string
+            key:
+              type: string
+              description: API key name
+            details:
+              type: object
+              properties:
+                tokens_prompt:
+                  type: integer
+                tokens_completion:
+                  type: integer
+                total_cost_toman:
+                  type: number
+        workspace:
+          type: string
+        method:
+          type: string
+        url:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    jwt:
+      type: apiKey
+      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345"'
+      name: Authorization
+      in: header
+    apiKey:
+      type: apiKey
+      description: 'Enter the API key with the `Bearer: ` prefix, e.g. "Bearer <your-api-key>"'
+      name: Authorization
+      in: header

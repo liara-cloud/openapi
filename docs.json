@@ -159,6 +159,81 @@
             }
           }
         ]
+      },
+      {
+        "product": "AI",
+        "icon": "brain",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/ai"]
+          },
+          {
+            "group": "Chat Completions",
+            "icon": "comments",
+            "openapi": {
+              "source": "spec/ai-chat-completions.yaml",
+              "directory": "ai-chat-completions"
+            }
+          },
+          {
+            "group": "Image Generation",
+            "icon": "image",
+            "openapi": {
+              "source": "spec/ai-image-generation.yaml",
+              "directory": "ai-image-generation"
+            }
+          },
+          {
+            "group": "Embeddings",
+            "icon": "vector-square",
+            "openapi": {
+              "source": "spec/ai-embeddings.yaml",
+              "directory": "ai-embeddings"
+            }
+          },
+          {
+            "group": "Workspaces",
+            "icon": "building",
+            "openapi": {
+              "source": "spec/ai-workspaces.yaml",
+              "directory": "ai-workspaces"
+            }
+          },
+          {
+            "group": "API Keys",
+            "icon": "key",
+            "openapi": {
+              "source": "spec/ai-keys.yaml",
+              "directory": "ai-keys"
+            }
+          },
+          {
+            "group": "Models",
+            "icon": "cubes",
+            "openapi": {
+              "source": "spec/ai-models.yaml",
+              "directory": "ai-models"
+            }
+          },
+          {
+            "group": "Logs",
+            "icon": "scroll",
+            "openapi": {
+              "source": "spec/ai-logs.yaml",
+              "directory": "ai-logs"
+            }
+          },
+          {
+            "group": "Playground",
+            "icon": "gamepad",
+            "openapi": {
+              "source": "spec/ai-playground.yaml",
+              "directory": "ai-playground"
+            }
+          }
+        ]
       }
     ]
   },
