@@ -194,6 +194,14 @@
             }
           },
           {
+            "group": "Text to Speech",
+            "icon": "volume-high",
+            "openapi": {
+              "source": "spec/ai-tts.yaml",
+              "directory": "ai-tts"
+            }
+          },
+          {
             "group": "Workspaces",
             "icon": "building",
             "openapi": {

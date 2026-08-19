@@ -17,6 +17,7 @@ services:
         { url: '/spec/database-inspector.yaml', name: 'Database Inspector' },
         { url: '/spec/Iaas.yaml', name: 'Iaas' },
         { url: '/spec/ai-chat-completions.yaml', name: 'AI - Chat Completions' },
+        { url: '/spec/ai-tts.yaml', name: 'AI - TTS' },
         { url: '/spec/ai-image-generation.yaml', name: 'AI - Image Generation' },
         { url: '/spec/ai-embeddings.yaml', name: 'AI - Embeddings' },
         { url: '/spec/ai-workspaces.yaml', name: 'AI - Workspaces' },

@@ -1,11 +1,12 @@
 ---
+---
 title: AI API
-description: AI platform API for chat completions, image generation, embeddings, and workspace management
+description: AI platform API for chat completions, image generation, embeddings, text-to-speech, and workspace management
 ---
 
 # AI API
 
-Liara's AI platform provides OpenAI-compatible endpoints for AI inference, including chat completions, image generation, and embeddings. Manage your AI resources through workspaces, API keys, and a comprehensive model catalog.
+Liara's AI platform provides OpenAI-compatible endpoints for AI inference, including chat completions, image generation, embeddings, and text-to-speech. Manage your AI resources through workspaces, API keys, and a comprehensive model catalog.
 
 ## Overview
 
@@ -14,6 +15,7 @@ The AI API enables you to:
 - **Chat Completions** - Generate text responses using state-of-the-art language models with streaming support
 - **Image Generation** - Create and edit images from text prompts using models like GPT Image and Gemini
 - **Embeddings** - Generate vector embeddings for text search, clustering, and semantic analysis
+- **Text to Speech** - Convert text into speech audio using supported AI models
 - **Workspaces** - Organize AI resources with plan-based billing and provider preferences
 - **API Keys** - Manage authentication keys scoped to specific workspaces
 - **Model Catalog** - Browse and filter available AI models by provider, modality, and pricing
@@ -51,7 +53,7 @@ Each workspace provides isolated billing, API keys, and usage tracking. Workspac
 
 ## Base URL
 
-For inference endpoints (chat completions, embeddings, image generation):
+For inference endpoints (chat completions, embeddings, image generation, and text-to-speech):
 
 ```
 https://ai.liara.ir/api/{workspaceID}/v1

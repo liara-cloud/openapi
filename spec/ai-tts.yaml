@@ -1,0 +1,280 @@
+openapi: 3.0.1
+
+info:
+  title: AI - Text to Speech
+  description: |-
+    Text-to-speech API for generating audio from text using supported AI models.
+
+    Parameters:
+    - `workspaceID`: The ID of the workspace to use for billing and routing.
+
+    Authentication: API Key (Bearer token) sent via the `Authorization` header.
+
+    The generated audio is returned directly as binary data.
+  termsOfService: '#'
+  contact:
+    email: info@liara.ir
+  version: 1.0.0
+
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+
+servers:
+  - url: https://ai.liara.ir
+
+security:
+  - apiKey: []
+
+tags:
+  - name: Text to Speech
+    description: Generate speech audio from text using AI models
+
+paths:
+
+  /api/{workspaceID}/v1/audio/speech:
+    post:
+      tags:
+        - Text to Speech
+
+      summary: Generate speech from text
+
+      description: |-
+        Generates speech audio from the provided text using the specified
+        text-to-speech model.
+
+        The request is billed according to the selected model and the amount
+        of input text.
+
+        The generated audio is returned directly in the response body.
+
+      operationId: createSpeech
+
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID used for billing and routing.
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TTSRequest'
+
+            example:
+              model: fish-audio/s1
+              input: Hello, this is a text to speech test.
+              voice: default
+              response_format: pcm
+              speed: 1.0
+
+      responses:
+
+        200:
+          description: Successfully generated speech audio.
+          headers:
+
+            X-Request-Id:
+              description: ID of the request log.
+              schema:
+                type: string
+
+            X-Generation-Id:
+              description: Generation ID returned by the TTS provider, when available.
+              schema:
+                type: string
+
+            X-Provider-Request-Id:
+              description: Request ID returned by the TTS provider, when available.
+              schema:
+                type: string
+
+            X-Usage-Estimated-Cost:
+              description: Estimated cost of the TTS request.
+              schema:
+                type: string
+
+          content:
+
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+
+            audio/pcm:
+              schema:
+                type: string
+                format: binary
+
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        401:
+          description: Missing or invalid authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        402:
+          description: Payment required - insufficient balance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        403:
+          description: Forbidden - workspace is unavailable or access is denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        502:
+          description: TTS provider request failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        503:
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+components:
+
+  schemas:
+
+    TTSRequest:
+      type: object
+
+      required:
+        - input
+        - model
+
+      properties:
+
+        input:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: |-
+            The text that should be converted into speech.
+
+            The input must contain between 1 and 4096 characters.
+          example: Hello, this is a text to speech test.
+
+        model:
+          type: string
+          description: |-
+            The text-to-speech model to use.
+
+            The model must be one of the TTS models supported by the API.
+          example: fish-audio/s1
+
+        voice:
+          type: string
+          description: |-
+            Optional voice identifier supported by the selected TTS model.
+          example: default
+
+        response_format:
+          type: string
+          enum:
+            - mp3
+            - pcm
+          default: pcm
+          description: |-
+            The format of the generated audio.
+
+            `pcm` is used by default.
+          example: pcm
+
+        speed:
+          type: number
+          format: float
+          minimum: 0.25
+          maximum: 4.0
+          description: |-
+            The speed of the generated speech.
+
+            Values must be between 0.25 and 4.0.
+          example: 1.0
+
+        input_references:
+          type: array
+          description: |-
+            Optional references that can be provided to the TTS model.
+
+            References may contain either audio or text input.
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/InputReferenceAudio'
+              - $ref: '#/components/schemas/InputReferenceText'
+
+        provider:
+          type: object
+          description: |-
+            Optional provider-specific configuration.
+          properties:
+            options:
+              type: object
+              description: |-
+                Provider-specific options passed to the selected TTS provider.
+              additionalProperties: true
+
+
+    InputReferenceAudio:
+      type: object
+      description: |-
+        Audio input reference used by supported TTS models.
+
+        The exact fields depend on the inputReferenceAudio Joi schema.
+      additionalProperties: true
+
+
+    InputReferenceText:
+      type: object
+      description: |-
+        Text input reference used by supported TTS models.
+
+        The exact fields depend on the inputReferenceText Joi schema.
+      additionalProperties: true
+
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code.
+
+        error:
+          type: string
+          description: Error type.
+
+        message:
+          type: string
+          description: Error message.
+
+
+  securitySchemes:
+
+    apiKey:
+      type: apiKey
+      description: 'Enter the API key with the `Bearer: ` prefix, e.g. "Bearer <your-api-key>"'
+      name: Authorization
+      in: header
