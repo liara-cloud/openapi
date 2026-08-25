@@ -1,0 +1,512 @@
+openapi: 3.0.1
+
+info:
+  title: AI - Audio Transcriptions
+  description: |-
+    Audio transcription API for converting audio into text using supported
+    speech-to-text AI models.
+
+    The API supports both JSON and multipart/form-data requests.
+
+    For JSON requests, the audio must be provided as a Base64-encoded value
+    in the `input_audio` field.
+
+    For multipart/form-data requests, the audio file must be provided in
+    the `file` field.
+
+    Parameters:
+    - `workspaceID`: The ID of the workspace to use for billing and routing.
+
+    Authentication: API Key (Bearer token) sent via the `Authorization` header.
+
+    The transcription result is returned as a JSON object.
+
+  termsOfService: '#'
+
+  contact:
+    email: info@liara.ir
+
+  version: 1.0.0
+
+externalDocs:
+  description: Find out more about Liara AI
+  url: https://liara.ir
+
+servers:
+  - url: https://ai.liara.ir
+
+security:
+  - apiKey: []
+
+tags:
+  - name: Audio Transcriptions
+    description: Transcribe audio into text using AI models
+
+paths:
+
+  /api/{workspaceID}/v1/audio/transcriptions:
+    post:
+      tags:
+        - Audio Transcriptions
+
+      summary: Transcribe audio
+
+      description: |-
+        Transcribes the provided audio using the specified speech-to-text
+        model.
+
+        The API accepts audio in either JSON or multipart/form-data format.
+
+        For JSON requests, provide the audio as a Base64-encoded string
+        through the `input_audio.data` field and specify the audio format
+        through `input_audio.format`.
+
+        For multipart/form-data requests, upload the audio file using the
+        `file` field.
+
+        The request is billed according to the selected speech-to-text model
+        and the usage associated with the transcription request.
+
+      operationId: createTranscription
+
+      parameters:
+        - name: workspaceID
+          in: path
+          required: true
+          description: The workspace ID used for billing and routing.
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{24}$'
+
+      requestBody:
+        required: true
+
+        content:
+
+          application/json:
+            schema:
+              $ref: '#/components/schemas/STTRequestJSON'
+
+            example:
+              model: openai/whisper-1
+              input_audio:
+                data: UklGRiQAAABXQVZFZm10IBAAAAABAAEA...
+                format: wav
+              language: en
+              response_format: json
+              temperature: 0
+              timestamp_granularities:
+                - segment
+
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/STTRequestMultipart'
+
+            encoding:
+              file:
+                contentType: audio/wav, audio/mpeg, audio/flac, audio/mp4, audio/ogg, audio/webm, audio/aac
+
+            example:
+              model: openai/whisper-1
+              language: en
+              response_format: json
+              temperature: 0
+              timestamp_granularities: word,segment
+
+      responses:
+
+        200:
+          description: Successfully transcribed the audio.
+
+          headers:
+
+            X-Request-Id:
+              description: ID of the request log.
+              schema:
+                type: string
+
+            X-Generation-Id:
+              description: Generation ID returned by the transcription provider, when available.
+              schema:
+                type: string
+
+            X-Provider-Request-Id:
+              description: Request ID returned by the transcription provider, when available.
+              schema:
+                type: string
+
+            X-Usage-Estimated-Cost:
+              description: Estimated cost of the transcription request.
+              schema:
+                type: string
+
+          content:
+
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionResponse'
+
+              examples:
+
+                json:
+                  summary: Standard transcription response
+                  value:
+                    text: Hello, this is a transcription test.
+
+                verbose_json:
+                  summary: Verbose transcription response
+                  value:
+                    task: transcribe
+                    language: english
+                    duration: 3.52
+                    text: Hello, this is a transcription test.
+                    segments:
+                      - id: 0
+                        start: 0
+                        end: 3.52
+                        text: Hello, this is a transcription test.
+
+        400:
+          description: Bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        401:
+          description: Missing or invalid authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        402:
+          description: Payment required - insufficient balance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        403:
+          description: Forbidden - workspace is unavailable or access is denied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        502:
+          description: Speech-to-text provider request failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        503:
+          description: Service unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+components:
+
+  schemas:
+
+    STTRequestJSON:
+      type: object
+
+      required:
+        - model
+        - input_audio
+
+      properties:
+
+        model:
+          type: string
+          description: |-
+            The speech-to-text model to use.
+
+            The model must be one of the speech-to-text models supported
+            by the API.
+          example: openai/whisper-1
+
+        input_audio:
+          $ref: '#/components/schemas/InputAudio'
+
+        language:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: |-
+            The language of the input audio.
+
+            Must be a two-letter ISO-639-1 language code.
+
+            If omitted, the model may automatically detect the language.
+          example: en
+
+        response_format:
+          type: string
+          enum:
+            - json
+            - verbose_json
+          default: json
+          description: |-
+            The format of the transcription response.
+
+            `json` returns the standard transcription response.
+
+            `verbose_json` returns additional transcription information,
+            such as language, duration, and timestamp information when
+            supported by the selected model.
+          example: json
+
+        temperature:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: |-
+            Sampling temperature used during transcription.
+
+            Values must be between 0 and 1.
+          example: 0
+
+        timestamp_granularities:
+          type: array
+          description: |-
+            Specifies the timestamp granularities to include in the
+            transcription response.
+
+            Supported values are `word` and `segment`.
+
+          items:
+            type: string
+            enum:
+              - word
+              - segment
+
+          example:
+            - segment
+
+
+    STTRequestMultipart:
+      type: object
+
+      required:
+        - model
+        - file
+
+      properties:
+
+        model:
+          type: string
+          description: |-
+            The speech-to-text model to use.
+
+            The model must be one of the speech-to-text models supported
+            by the API.
+          example: openai/whisper-1
+
+        file:
+          type: string
+          format: binary
+          description: |-
+            The audio file to transcribe.
+
+            The file must be provided using the `file` field.
+
+            Supported audio formats are:
+            WAV, MP3, FLAC, M4A, OGG, WebM, and AAC.
+
+        language:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: |-
+            The language of the input audio.
+
+            Must be a two-letter ISO-639-1 language code.
+          example: en
+
+        response_format:
+          type: string
+          enum:
+            - json
+            - verbose_json
+          default: json
+          description: |-
+            The format of the transcription response.
+
+            `json` returns the standard transcription response.
+
+            `verbose_json` returns additional transcription information.
+          example: json
+
+        temperature:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: |-
+            Sampling temperature used during transcription.
+
+            Values must be between 0 and 1.
+          example: 0
+
+        timestamp_granularities:
+          type: string
+          description: |-
+            Specifies the timestamp granularities to include in the
+            transcription response.
+
+            For multipart/form-data requests, multiple values must be
+            provided as a comma-separated string.
+
+            Supported values are `word` and `segment`.
+
+            Example:
+            `word,segment`
+          example: word,segment
+
+
+    InputAudio:
+      type: object
+
+      required:
+        - data
+        - format
+
+      description: |-
+        Audio data provided as a Base64-encoded string.
+
+        This object is used for JSON requests. Multipart requests should
+        provide the audio through the `file` field instead.
+
+      properties:
+
+        data:
+          type: string
+          format: byte
+          description: |-
+            Base64-encoded audio data.
+
+            The encoded audio must use one of the supported formats:
+            WAV, MP3, FLAC, M4A, OGG, WebM, or AAC.
+
+          example: UklGRiQAAABXQVZFZm10IBAAAAABAAEA...
+
+        format:
+          type: string
+          enum:
+            - wav
+            - mp3
+            - flac
+            - m4a
+            - ogg
+            - webm
+            - aac
+
+          description: |-
+            The format of the Base64-encoded audio data.
+
+          example: wav
+
+
+    TranscriptionResponse:
+      type: object
+
+      description: |-
+        Transcription result returned by the speech-to-text model.
+
+        The exact fields may vary depending on the selected
+        `response_format` and the capabilities of the selected model.
+
+      properties:
+
+        text:
+          type: string
+          description: The transcribed text.
+          example: Hello, this is a transcription test.
+
+        task:
+          type: string
+          description: The transcription task.
+          example: transcribe
+
+        language:
+          type: string
+          description: Detected or requested language.
+          example: english
+
+        duration:
+          type: number
+          format: float
+          description: Duration of the input audio in seconds.
+          example: 3.52
+
+        segments:
+          type: array
+          description: |-
+            Transcription segments with timing information.
+
+            Available when supported by the selected model and when
+            requested through `timestamp_granularities`.
+          items:
+            $ref: '#/components/schemas/TranscriptionSegment'
+
+
+    TranscriptionSegment:
+      type: object
+
+      properties:
+
+        id:
+          type: integer
+          description: Segment identifier.
+          example: 0
+
+        start:
+          type: number
+          format: float
+          description: Start time of the segment in seconds.
+          example: 0
+
+        end:
+          type: number
+          format: float
+          description: End time of the segment in seconds.
+          example: 3.52
+
+        text:
+          type: string
+          description: Transcribed text for the segment.
+          example: Hello, this is a transcription test.
+
+
+    ErrorResponse:
+      type: object
+
+      properties:
+
+        statusCode:
+          type: integer
+          description: HTTP status code.
+
+        error:
+          type: string
+          description: Error type.
+
+        message:
+          type: string
+          description: Error message.
+
+
+  securitySchemes:
+
+    apiKey:
+      type: apiKey
+      description: 'Enter the API key with the `Bearer: ` prefix, e.g. "Bearer <your-api-key>"'
+      name: Authorization
+      in: header

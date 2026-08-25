@@ -202,6 +202,14 @@
             }
           },
           {
+            "group": "Audio Transcriptions",
+            "icon": "microphone",
+            "openapi": {
+              "source": "spec/ai-stt.yaml",
+              "directory": "ai-stt"
+            }
+          },
+          {
             "group": "Workspaces",
             "icon": "building",
             "openapi": {
