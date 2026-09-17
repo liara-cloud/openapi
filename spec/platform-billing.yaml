@@ -1,0 +1,1726 @@
+openapi: 3.0.3
+info:
+  title: Liara Platform API — Billing & Subscription
+  version: '1.0.0'
+  description: >
+    User-facing Billing & Subscription endpoints of the Liara Platform API
+    (liara.ir cloud). Covers account billing overview, usage reports, payments,
+    invoices and receipts, discount codes, subscriptions, and the public USDT
+    price feed.
+
+    All authenticated endpoints require a JWT bearer token. Most billing
+    endpoints additionally require the `billing.manage` permission on the
+    active account/team.
+servers:
+  - url: https://api.iran.liara.ir
+    description: Liara Iran region platform API
+security:
+  - jwt: []
+tags:
+  - name: Billing Overview
+    description: Account billing state, usage calculation, usage reports and service counts
+  - name: Payments
+    description: Payment initiation, gateway verification callbacks, minimum credit
+  - name: Invoices & Receipts
+    description: Legacy payment invoices and billing invoices/receipts
+  - name: Discount Codes
+    description: Discount code lookup and application
+  - name: Subscription
+    description: Subscription plan management
+  - name: Gifts
+    description: One-time credit gifts from partner providers
+paths:
+  /v1/billing:
+    get:
+      tags: [Billing Overview]
+      operationId: getBilling
+      summary: Get billing overview
+      description: >
+        Returns the billing information of the current user, including balance,
+        minimum credit settings and contact info. When the request is performed
+        in team context (on behalf of a team, as an actor), a `team` key is
+        always included; it is populated with the same billing fields only if
+        the actor has the `billing` permission, and is an empty object `{}`
+        otherwise.
+      responses:
+        '200':
+          description: Billing information.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/BillingInfo'
+                  team:
+                    $ref: '#/components/schemas/BillingInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/usage:
+    get:
+      tags: [Billing Overview]
+      operationId: calculateUsage
+      summary: Calculate current usage
+      description: >
+        Returns the current hourly usage cost of all active services, together
+        with its daily, monthly and yearly projections. Requires
+        `billing.manage` permission.
+      responses:
+        '200':
+          description: Usage cost breakdown.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hourly:
+                    type: number
+                    description: Current hourly usage cost.
+                    example: 1250
+                  daily:
+                    type: number
+                    description: Hourly cost multiplied by 24.
+                    example: 30000
+                  monthly:
+                    type: number
+                    description: Hourly cost multiplied by the month hours.
+                    example: 907500
+                  yearly:
+                    type: number
+                    description: Monthly cost multiplied by 12.
+                    example: 10890000
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/usage-report:
+    get:
+      tags: [Billing Overview]
+      operationId: usageReport
+      summary: Get detailed usage report
+      description: >
+        Returns a per-service usage report (apps, databases, buckets, mail
+        servers, VMs, AI workspaces, managed WordPress sites and object
+        storage) with per-item and total hourly/monthly prices. Requires
+        `billing.manage` permission.
+      responses:
+        '200':
+          description: Usage report.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageReport'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/service-count:
+    get:
+      tags: [Billing Overview]
+      operationId: countServices
+      summary: Count services
+      description: >
+        Returns the number of active services of each type belonging to the
+        account. In team context, the counts are filtered by the actor's
+        service permissions.
+      responses:
+        '200':
+          description: Service counts per type.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apps:
+                    type: integer
+                    example: 3
+                  databases:
+                    type: integer
+                    example: 1
+                  zones:
+                    type: integer
+                    example: 2
+                  buckets:
+                    type: integer
+                    example: 0
+                  mailServers:
+                    type: integer
+                    example: 1
+                  VMs:
+                    type: integer
+                    example: 0
+                  AIWorkspaces:
+                    type: integer
+                    example: 0
+                  managedWordpress:
+                    type: integer
+                    example: 0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v2/usdt-price:
+    get:
+      tags: [Billing Overview]
+      operationId: getUsdtPrice
+      summary: Get current USDT price
+      description: >
+        Public endpoint returning the current USDT/IRR price used by the
+        platform. No authentication required.
+      security: []
+      responses:
+        '200':
+          description: Current USDT price value.
+          content:
+            application/json:
+              schema:
+                type: number
+              example: 925000
+
+  /v1/payments:
+    get:
+      tags: [Payments]
+      operationId: listPayments
+      summary: List payments
+      description: >
+        Returns the successful and failed payments of the current account,
+        newest first. Requires `billing.manage` permission.
+      responses:
+        '200':
+          description: Payment list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/payments/pay:
+    post:
+      tags: [Payments]
+      operationId: pay
+      summary: Create a payment
+      description: >
+        Initiates a credit-top-up payment on one of the active payment
+        gateways and returns the gateway redirect details. Requires
+        `billing.manage` permission. Rate limited to 5 payments per hour and
+        10 payments per day.
+      responses:
+        '200':
+          description: Gateway redirect information for the created payment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: Gateway URL to redirect the user to.
+                    example: https://sep.shaparak.ir/MobilePayment/MobilePayment/00000000
+                  method:
+                    type: string
+                    description: HTTP method for submitting the params.
+                    example: POST
+                  params:
+                    type: object
+                    nullable: true
+                    description: Parameters to submit to the gateway URL.
+                    additionalProperties: true
+        '400':
+          description: Bad request — invalid amount, below minimum, or gateway failure.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validationError:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: '"amount" must be less than or equal to 180000000'
+                minimumAmount:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Minimum amount is 1000000.
+                amountGreaterThanZero:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Amount should be greater than 0.
+                frozenMailservers:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: You need to pay at least 5000000 to unfreeze your mailservers.
+                    data:
+                      code: minimum_credit_required
+                      minimumCredit: 5000000
+                gatewayFailure:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Payment failed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          description: Too many payments created recently.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                perHour:
+                  value:
+                    statusCode: 429
+                    error: Too Many Requests
+                    message: You can't create more than 5 payments per hour.
+                    data:
+                      code: too_many_payments_per_hour
+                perDay:
+                  value:
+                    statusCode: 429
+                    error: Too Many Requests
+                    message: You can't create more than 10 payments per day.
+                    data:
+                      code: too_many_payments_per_day
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: integer
+                  description: >
+                    Payment amount in IRR. Must be at least 1000000 (unless
+                    exempt) and at most 180000000.
+                  minimum: 1
+                  maximum: 180000000
+                  example: 5000000
+                gateway:
+                  type: string
+                  description: >
+                    Active payment gateway (default "Sepehr"). `ZarinPal`,
+                    `IDPay` and `Vandar` are permanently disabled; `ZarinPal2`
+                    is only active outside production and is not usable on
+                    this server.
+                  enum: [Sepehr, IranKish, Behpardakht, Pasargad]
+                  default: Sepehr
+
+  /v1/payments/minimum-credit:
+    get:
+      tags: [Payments]
+      operationId: getMinimumCredit
+      summary: Get minimum credit for frozen mail servers
+      description: >
+        Returns the minimum payment amount required to unfreeze the account's
+        frozen mail servers (0 when there are none). Requires
+        `billing.manage` permission.
+      responses:
+        '200':
+          description: Minimum credit amount.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  minimumCredit:
+                    type: number
+                    example: 5000000
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/payments/verify/{gateway}:
+    get:
+      tags: [Payments]
+      operationId: verifyPaymentGet
+      summary: Payment gateway verification callback (GET)
+      description: >
+        Public callback endpoint invoked by the payment gateway after payment.
+        Verifies the payment authority, marks the payment as succeeded or
+        failed, creates a billing receipt and adds credit. Responds with an
+        HTTP redirect to the configured success/failed payment page — not
+        JSON. No authentication required.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Gateway'
+      responses:
+        '302':
+          description: Redirect to the success or failed payment page.
+          headers:
+            Location:
+              description: >
+                Success page with query params (amount, status=success,
+                paymentId) or failed page with (amount, status=failed,
+                paymentId).
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [Payments]
+      operationId: verifyPaymentPost
+      summary: Payment gateway verification callback (POST)
+      description: >
+        Public POST variant of the gateway callback, used by gateways that
+        submit their result as a form body (e.g. Behpardakht). Responds with
+        an HTTP redirect — not JSON. No authentication required.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Gateway'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '302':
+          description: Redirect to the success or failed payment page.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /v1/billing-invoices:
+    get:
+      tags: [Invoices & Receipts]
+      operationId: listBillingInvoices
+      summary: List billing invoices
+      description: >
+        Returns a paginated list of the account's billing invoices (official
+        invoices for consumed credit), newest first. Requires `billing.manage`
+        permission.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based).
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: Number of invoices per page.
+      responses:
+        '200':
+          description: Paginated billing invoices.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalBillingInvoices:
+                    type: integer
+                    example: 24
+                  billingInvoices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BillingInvoiceSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/billing-invoices/{billingInvoiceID}:
+    get:
+      tags: [Invoices & Receipts]
+      operationId: getBillingInvoice
+      summary: Get a billing invoice
+      description: >
+        Returns a single billing invoice of the account. Requires
+        `billing.manage` permission.
+      parameters:
+        - name: billingInvoiceID
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: Billing invoice ID (24-character hexadecimal ID).
+      responses:
+        '200':
+          description: The billing invoice.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  billingInvoice:
+                    $ref: '#/components/schemas/BillingInvoice'
+        '400':
+          description: Invalid invoice id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Invalid id
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Invoice not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 404
+                error: Not Found
+                message: no_invoice
+
+  /v1/payments/{paymentID}/invoice:
+    get:
+      tags: [Invoices & Receipts]
+      operationId: getPaymentInvoice
+      summary: Get legacy payment invoice
+      description: >
+        Returns the legacy invoice (payment version 1) of a payment. Requires
+        `billing.manage` permission.
+      parameters:
+        - name: paymentID
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: Payment ID (24-character hexadecimal ID).
+      responses:
+        '200':
+          description: The legacy invoice.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    $ref: '#/components/schemas/LegacyInvoice'
+        '400':
+          description: >
+            Payment is not a legacy payment (paymentVersion !== 1), or the id
+            is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidVersion:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: invalid_payment_version
+                invalidId:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Invalid id
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Payment or invoice not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                paymentNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Not Found
+                invoiceNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: no_invoice
+
+  /v1/payments/{paymentID}/billing-receipt:
+    get:
+      tags: [Invoices & Receipts]
+      operationId: getBillingReceipt
+      summary: Get payment billing receipt
+      description: >
+        Returns the billing receipt (payment version 2) of a payment,
+        including the embedded payment summary. Requires `billing.manage`
+        permission.
+      parameters:
+        - name: paymentID
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+          description: Payment ID (24-character hexadecimal ID).
+      responses:
+        '200':
+          description: The billing receipt.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  billingReceipt:
+                    $ref: '#/components/schemas/BillingReceipt'
+        '400':
+          description: >
+            Payment is not a version-2 payment (paymentVersion !== 2), or the
+            id is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidVersion:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: invalid_payment_version
+                invalidId:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Invalid id
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Payment or receipt not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                paymentNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Not Found
+                receiptNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: no_billing_receipt
+
+  /v1/discount-codes:
+    get:
+      tags: [Discount Codes]
+      operationId: listDiscountCodes
+      summary: List discount codes
+      description: >
+        Returns a paginated list of the account's discount codes with their
+        attached services. Requires `billing.manage` permission.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based).
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+          description: Number of discount codes per page.
+        - name: serviceType
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/DiscountCodeServiceType'
+          description: Only return discount codes that have services of this type attached.
+      responses:
+        '200':
+          description: Paginated discount codes.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalDiscountCodes:
+                    type: integer
+                    example: 2
+                  discountCodes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DiscountCode'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v1/discount-codes/show:
+    get:
+      tags: [Discount Codes]
+      operationId: showDiscountCode
+      summary: Show a discount code
+      description: >
+        Looks up an active (non-expired) discount code for a given service
+        type and validates that it is not already applied to the account's
+        service of that type. Requires `billing.manage` permission.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Discount code string.
+        - name: serviceType
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DiscountCodeServiceType'
+      responses:
+        '200':
+          description: The discount code details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscountCodeSummary'
+        '400':
+          description: >
+            The code is already applied to an active service of this type, or
+            the query is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                alreadyApplied:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: This discount code has already been applied to this project.
+                    data:
+                      code: another_active_discount_code
+                invalidQuery:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: '"code" is required'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Code not found or not valid for the requested service type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Discount code not found
+                    data:
+                      code: discount_code_not_found
+                serviceMismatch:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: This discount code is only valid for "database" service
+                    data:
+                      code: discount_code_service_mismatch
+
+  /v1/discount-codes/apply:
+    post:
+      tags: [Discount Codes]
+      operationId: applyDiscountCode
+      summary: Apply a discount code to a service
+      description: >
+        Applies a discount code to one of the account's services. Each code
+        can be applied to a single service and only to services of the type
+        it was issued for. Requires `billing.manage` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, serviceType, serviceID]
+              properties:
+                code:
+                  type: string
+                  description: Discount code string.
+                  example: LIARA25
+                serviceType:
+                  $ref: '#/components/schemas/DiscountCodeServiceType'
+                serviceID:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                  description: ID of the service the code should be applied to.
+      responses:
+        '200':
+          description: Discount code applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: >-
+                      Discount code applied successfully on project with ID
+                      65f1a0b9c1234d567890abcd
+        '400':
+          description: >
+            Code expired, usage limit reached, already applied, or not
+            applicable to the service.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                expired:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Discount code has expired
+                    data:
+                      code: discount_code_expired
+                amountLimit:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Discount code amount limit reached
+                    data:
+                      code: discount_code_amount_limit_reached
+                alreadyApplied:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Discount code is already applied to this project with ID 65f1a0b9c1234d567890abcd
+                    data:
+                      code: discount_code_already_applied
+                anotherService:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Discount code is already applied to another service
+                    data:
+                      code: discount_code_already_applied_to_another_service
+                anotherActive:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Another active discount code is already applied to this project with ID 65f1a0b9c1234d567890abcd
+                    data:
+                      code: another_active_discount_code
+                notApplicable:
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: This discount code is only applicable to new services.
+                    data:
+                      code: discount_code_not_applicable
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Code or target service not found, or the code doesn't apply to this service type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                codeNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Discount code not found
+                    data:
+                      code: discount_code_not_found
+                serviceMismatch:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: This discount code is only valid for "database" service
+                    data:
+                      code: discount_code_service_mismatch
+                projectNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Project not found
+                    data:
+                      code: project_not_found
+                databaseNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Database not found
+                    data:
+                      code: database_not_found
+                bucketNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Bucket not found
+                    data:
+                      code: bucket_not_found
+                mailServerNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: Mail server not found
+                    data:
+                      code: mail_server_not_found
+                vmNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: VM not found
+                    data:
+                      code: vm_not_found
+                aiNotFound:
+                  value:
+                    statusCode: 404
+                    error: Not Found
+                    message: ai not found
+                    data:
+                      code: ai_not_found
+
+  /v1/subscription:
+    get:
+      tags: [Subscription]
+      operationId: listSubscriptions
+      summary: List subscription plan history
+      description: >
+        Returns the subscription plan history of the account, newest first.
+        The active plan's entry contains the technical tickets used in the
+        current timespan.
+      responses:
+        '200':
+          description: Subscription plan history.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionPlanHistory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Subscription]
+      operationId: createSubscription
+      summary: Subscribe to a plan (or change the current plan)
+      description: >
+        Subscribes the account to a plan, or changes the current plan.
+        Upgrades are charged immediately (requires enough balance) and return
+        an empty 201 response. Downgrades create a reservation that takes
+        effect at the end of the current plan period and return
+        `{ "reservation": true }`. Requires `team.operate` or `team.manage`
+        permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subscriptionPlanID]
+              properties:
+                subscriptionPlanID:
+                  type: string
+                  enum: [free, standard, enterprise]
+                  description: Target subscription plan.
+                  example: standard
+                durationType:
+                  type: string
+                  enum: [monthly, yearly]
+                  default: monthly
+                  description: Billing duration for the target plan.
+      responses:
+        '201':
+          description: >
+            Plan subscribed/changed. Empty body on an immediate upgrade;
+            `{"reservation": true}` on a downgrade.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: string
+                    description: Empty body on immediate upgrade.
+                    nullable: true
+                  - type: object
+                    properties:
+                      reservation:
+                        type: boolean
+                        example: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          description: Not enough balance to pay for the plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 402
+                error: Payment Required
+                message: Not enough balance.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '428':
+          description: Precondition required — same plan requested or a reservation already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                samePlan:
+                  value:
+                    statusCode: 428
+                    error: Precondition Required
+                    message: You already have this subscription plan.
+                    data:
+                      code: already_have_subscription_plan
+                existingReservation:
+                  value:
+                    statusCode: 428
+                    error: Precondition Required
+                    message: You already have a subscription plan reservation.
+                    data:
+                      code: already_have_subscription_plan_reservation
+
+  /v1/subscription/reservation:
+    delete:
+      tags: [Subscription]
+      operationId: deleteSubscriptionReservation
+      summary: Delete the subscription plan reservation
+      description: >
+        Cancels a pending downgrade reservation. Only allowed within 5
+        minutes of the reservation being created. Requires `team.operate` or
+        `team.manage` permission.
+      responses:
+        '204':
+          description: Reservation deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '428':
+          description: No reservation exists, or the reservation is older than 5 minutes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                noReservation:
+                  value:
+                    statusCode: 428
+                    error: Precondition Required
+                    message: You don't have a subscription plan reservation.
+                    data:
+                      code: no_subscription_plan_reservation
+                expired:
+                  value:
+                    statusCode: 428
+                    error: Precondition Required
+                    message: Does not allow to delete the reservation after 5 minutes.
+                    data:
+                      code: reservation_expired
+  /v1/gifts:
+    get:
+      tags: [Gifts]
+      operationId: listGifts
+      summary: List enabled gifts
+      description: Returns the one-time credit gifts already enabled by the current user.
+      responses:
+        '200':
+          description: Enabled gifts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gifts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Gift'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/gifts/{provider}/enable:
+    post:
+      tags: [Gifts]
+      operationId: enableGift
+      summary: Enable a credit gift
+      description: >
+        Verifies the account's eligibility with a partner gift provider and, if
+        eligible, adds the gift's credit amount to the account balance. Not
+        available in the Iran region.
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [ReactAppOnlineCourses, SevenLearnExperts]
+          description: Gift provider identifier.
+      responses:
+        '200':
+          description: Gift enabled (empty response body).
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            Forbidden — gifts are not available in the Iran region, or the
+            account does not qualify for this gift with the provider.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Forbidden
+        '409':
+          description: The gift has already been enabled for this account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 409
+                error: Conflict
+                message: The gift is already enabled.
+
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from the authentication endpoints.
+  schemas:
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code echoed by the server.
+          example: 400
+        error:
+          type: string
+          description: Short error reason (e.g. "Bad Request").
+          example: Bad Request
+        message:
+          type: string
+          description: Human readable error message.
+        data:
+          type: object
+          nullable: true
+          description: Optional structured error details (e.g. data.code).
+          additionalProperties: true
+    BillingInfo:
+      type: object
+      description: Billing fields of an account (user or team owner).
+      properties:
+        balance:
+          type: number
+          description: Current account credit balance in IRR.
+          example: 25000000
+        accountType:
+          type: string
+          nullable: true
+          description: Account type ("REAL_PERSON", "LEGAL_PERSON" or null).
+          example: REAL_PERSON
+        contactInfo:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Saved contact/invoicing information.
+        contactInfoSavedAt:
+          type: string
+          format: date-time
+          nullable: true
+        minCreditAmount:
+          type: number
+          description: Minimum credit threshold for notifications.
+          example: 1000000
+        isManualMinCredit:
+          type: boolean
+          description: Whether the minimum credit threshold was set manually.
+        minCreditLastNotifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+    UsageReportItem:
+      type: object
+      description: Per-service usage/pricing entry.
+      properties:
+        type:
+          type: string
+          nullable: true
+        planID:
+          type: string
+          nullable: true
+        bundlePlanID:
+          type: string
+          nullable: true
+        planHourlyPrice:
+          type: number
+        bundlePlanHourlyPrice:
+          type: number
+        planMonthlyPrice:
+          type: number
+        bundlePlanMonthlyPrice:
+          type: number
+        totalHourlyPrice:
+          type: number
+        totalMonthlyPrice:
+          type: number
+    UsageReport:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/UsageReportItem'
+              - type: object
+                properties:
+                  project_id:
+                    type: string
+                  isOneClickApp:
+                    type: boolean
+                  isWPPlus:
+                    type: boolean
+        databases:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/UsageReportItem'
+              - type: object
+                properties:
+                  hostname:
+                    type: string
+        buckets:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/UsageReportItem'
+              - type: object
+                properties:
+                  name:
+                    type: string
+        mailservers:
+          type: array
+          items:
+            type: object
+            properties:
+              domain:
+                type: string
+              planID:
+                type: string
+              monthlyPrice:
+                type: number
+        VMs:
+          type: array
+          items:
+            type: object
+            description: Per-VM usage/pricing entry (IaaS).
+            properties:
+              name:
+                type: string
+              planID:
+                type: string
+              OS:
+                type: string
+                nullable: true
+              planHourlyPrice:
+                type: number
+                description: Discounted 1/3 of the plan price while the VM is powered off.
+              IPv4sHourlyPrice:
+                type: number
+                description: Combined hourly price of the VM's assigned IPv4 addresses.
+              planMonthlyPrice:
+                type: number
+              IPv4sMonthlyPrice:
+                type: number
+              snapshotsHourlyPrice:
+                type: number
+                description: Hourly price of the VM's snapshot storage.
+              snapshotMonthlyPrice:
+                type: number
+              totalHourlyPrice:
+                type: number
+              totalMonthlyPrice:
+                type: number
+        workspaces:
+          type: array
+          description: AI workspaces.
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              planID:
+                type: string
+              planHourlyPrice:
+                type: number
+              planMonthlyPrice:
+                type: number
+              totalHourlyPrice:
+                type: number
+              totalMonthlyPrice:
+                type: number
+        managedWordpress:
+          type: array
+          description: >
+            Managed WordPress usage grouped by network — each entry combines
+            the app and database sharing the same private network.
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Project ID of the first app in the network group.
+                nullable: true
+              totalHourlyPrice:
+                type: number
+              totalMonthlyPrice:
+                type: number
+        storage:
+          type: object
+          nullable: true
+          properties:
+            size:
+              type: number
+              description: Object storage size in GB.
+            totalHourlyPrice:
+              type: number
+            totalMonthlyPrice:
+              type: number
+        totalHourlyPrice:
+          type: number
+        totalMonthlyPrice:
+          type: number
+    Payment:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        amount:
+          type: number
+          example: 5000000
+        status:
+          type: string
+          enum: [CREATED, SUCCEED, FAILED]
+        gateway:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Localized gateway display name.
+              example: سپهر
+        invoiceNumber:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        actor:
+          type: object
+          nullable: true
+          description: Team member who created the payment (team context only).
+          properties:
+            fullname:
+              type: string
+            email:
+              type: string
+              format: email
+        paymentVersion:
+          type: integer
+          enum: [1, 2]
+        hasInvoice:
+          type: boolean
+        invoiceType:
+          type: string
+          nullable: true
+          description: Invoice type (legacy vs billing receipt based).
+        traceNumber:
+          type: string
+          nullable: true
+          description: Gateway sale reference number.
+    BillingInvoiceSummary:
+      type: object
+      description: Billing invoice list entry.
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        user:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        accountType:
+          type: string
+        totalAmount:
+          type: number
+        totalTaxAmount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        jalaliDateAt:
+          type: string
+          description: Invoice date formatted in the Jalali calendar.
+          example: '1403/05/12'
+        invoiceNumber:
+          type: number
+    BillingInvoice:
+      allOf:
+        - $ref: '#/components/schemas/BillingInvoiceSummary'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            vendorInfo:
+              type: object
+              additionalProperties: true
+            customerInfo:
+              type: object
+              additionalProperties: true
+            isManual:
+              type: boolean
+            isDisabled:
+              type: boolean
+    LegacyInvoice:
+      type: object
+      description: Legacy (payment version 1) invoice.
+      properties:
+        version:
+          type: number
+        invoiceNumber:
+          type: number
+        customerInfo:
+          type: object
+          additionalProperties: true
+        vendorInfo:
+          type: object
+          additionalProperties: true
+        paidAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        accountType:
+          type: string
+    BillingReceipt:
+      type: object
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        vendorInfo:
+          type: object
+          additionalProperties: true
+        customerInfo:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        payment:
+          $ref: '#/components/schemas/Payment'
+    DiscountCodeServiceType:
+      type: string
+      description: Service type a discount code can be applied to (query/body enum).
+      enum: [project, database, mailServer, bucket, vm, ai]
+    DiscountCode:
+      type: object
+      description: Discount code with attached services.
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        code:
+          type: string
+        discountPercentage:
+          type: number
+          description: Discount percentage (0-100).
+        maxUsageAmount:
+          type: number
+        currentUsageAmount:
+          type: number
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        timespan:
+          type: number
+          description: Duration in days granted by the code.
+        serviceType:
+          type: string
+          description: Internal service type (platform, database, bucket, mail, vm, ai).
+        applicability:
+          type: string
+          enum: [new, current, all]
+        projects:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              project_id:
+                type: string
+        databases:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              hostname:
+                type: string
+        mailServers:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              domain:
+                type: string
+        buckets:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        vms:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        ais:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DiscountCodeSummary:
+      type: object
+      description: Public discount code details returned by the show endpoint.
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        code:
+          type: string
+        discountPercentage:
+          type: number
+        maxUsageAmount:
+          type: number
+        validUntil:
+          type: string
+          format: date-time
+          nullable: true
+        timespan:
+          type: number
+        serviceType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SubscriptionPlanHistory:
+      type: object
+      description: Subscription plan history entry.
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        type:
+          type: string
+          enum: [subscription]
+        userID:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        subscriptionPlanID:
+          type: string
+          enum: [free, standard, enterprise]
+        subscriptionPlanExpiration:
+          type: string
+          format: date-time
+        subscriptionPlanReservation:
+          type: string
+          format: date-time
+          nullable: true
+        subscriptionDurationType:
+          type: string
+          enum: [monthly, yearly]
+        maxTechnicalTicketsPerMonth:
+          oneOf:
+            - type: number
+            - type: string
+        technicalTicketsCount:
+          type: number
+          description: Only present on the currently active plan entry.
+        pastReservationDate:
+          type: string
+          format: date-time
+          nullable: true
+        isDowngrade:
+          type: boolean
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Gift:
+      type: object
+      description: A one-time credit gift enabled for the account.
+      properties:
+        _id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        provider:
+          type: string
+          enum: [ReactAppOnlineCourses, SevenLearnExperts]
+        createdAt:
+          type: string
+          format: date-time
+  parameters:
+    Gateway:
+      name: gateway
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [Sepehr, IranKish, Behpardakht, Pasargad]
+      description: Payment gateway name (only currently-active gateways are accepted).
+  responses:
+    BadRequest:
+      description: Bad request — validation failed or invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: '"amount" must be a number'
+    Unauthorized:
+      description: Missing, invalid or expired authentication token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 401
+            error: Unauthorized
+            message: You are not authenticated!
+    Forbidden:
+      description: Forbidden — account verification required or insufficient permissions.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: Account verification is required.
+            data:
+              code: account_verification_required
+    NotFound:
+      description: Not found — referenced resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Payment not found
+    Conflict:
+      description: Conflict — resource state prevents the operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 409
+            error: Conflict
+            message: There is already a pending payment for this account.

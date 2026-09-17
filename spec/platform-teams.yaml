@@ -1,0 +1,1401 @@
+openapi: 3.0.1
+info:
+  title: Platform — Teams & Access
+  version: 1.0.0
+  description: >
+    Teams & Access domain of the Liara platform API: team management,
+    invitations, members and roles, resource permissions (RBAC/DAC), and
+    team channel (phone/email) verification.
+servers:
+  - url: https://api.iran.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: Teams
+    description: Create, list and delete teams; change team name; leave a team.
+  - name: Invitations
+    description: Team member invitations — list, create, revoke, join, and get team info from an invitation token.
+  - name: Members & Roles
+    description: Team members listing/removal, custom roles, role assignment, and team creator transfer.
+  - name: Permissions
+    description: Fine-grained resource permissions (DAC) assigned to team members.
+  - name: Channel Verification
+    description: Send verification (OTP) tokens for team SMS and email channels.
+paths:
+  /v2/teams/permissions:
+    get:
+      tags:
+        - Teams
+      operationId: listPermissions
+      summary: List all available permissions
+      description: >
+        Returns every permission defined in the platform IAM constants
+        (project, database, zone, billing, team, bucket, mailServer, vm, ai),
+        paginated. Requires authentication only.
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/count'
+      responses:
+        '200':
+          description: Paginated permission list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalPermissions
+                  - permissions
+                properties:
+                  totalPermissions:
+                    type: integer
+                  permissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Permission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v2/teams:
+    get:
+      tags:
+        - Teams
+      operationId: listTeams
+      summary: List the teams of the authenticated user
+      description: >
+        Returns the teams the authenticated user belongs to (soft-deleted
+        memberships excluded), paginated.
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/count'
+      responses:
+        '200':
+          description: Paginated team list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalTeams
+                  - teams
+                properties:
+                  totalTeams:
+                    type: integer
+                  teams:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Team'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Teams
+      operationId: createTeam
+      summary: Create a team
+      description: >
+        Creates a new team owned by the authenticated user (as team creator),
+        seeds the default roles (مهمان، حسابدار، بازرس، گرداننده، مدیر), adds
+        the creator as first member, and schedules check-credit and billing
+        jobs. Fails with 409 when a team with the same name already exists and
+        with 400 when the maximum number of teams (user.maxTeams or 10) is
+        reached.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamBody'
+      responses:
+        '200':
+          description: Team created. Returns the created team.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '400':
+          description: Validation error or max teams reached (data.code "max_teams_reached").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Account not allowed to use services (data.code "account_verification_required").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Team already exists (data.code "team_already_exists").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}:
+    delete:
+      tags:
+        - Teams
+      operationId: deleteTeam
+      summary: Delete a team
+      description: >
+        Deletes the team. Only the team creator may delete the team. The team
+        must have a non-positive balance, no remaining resources (projects,
+        databases, buckets, zones, mail servers, VMs, AI workspaces) and no
+        usage in the current (Jalali) month. Removes roles, invitations,
+        memberships and deactivates team channels.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+      responses:
+        '200':
+          description: Team deleted (empty response body).
+        '400':
+          description: >
+            Invalid team ID ("Invalid team ID."), positive balance (data.code
+            "positive_balance"), remaining resources (data.code
+            "cannot_delete_team_with_resources_or_members") or usage in
+            current month (data.code
+            "cannot_delete_team_with_usage_in_current_month").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            Not a team member (data.code "team_not_found") or caller is not
+            the team creator (data.code "not_allowed_to_delete_team").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Team not found (data.code "team_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/leave:
+    delete:
+      tags:
+        - Teams
+      operationId: leaveTeam
+      summary: Leave a team
+      description: >
+        Removes the authenticated user's membership of the given team. The team
+        creator cannot leave their own team. Any permissions assigned to the
+        leaving member and extra connected repositories are revoked.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+      responses:
+        '200':
+          description: Left the team (empty response body).
+        '400':
+          description: >
+            Invalid team ID or creator trying to leave (data.code
+            "cannot_leave_team_as_creator").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Membership not found (message "Team not found", data.code "team_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/change-team-name/{newTeamName}:
+    post:
+      tags:
+        - Teams
+      operationId: changeTeamName
+      summary: Change the team name
+      description: >
+        Changes the team name. Only the team creator is allowed to change the
+        name (otherwise 403 with data.code "not_allowed_to_change_team_creator").
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - name: newTeamName
+          in: path
+          required: true
+          description: New team name (trimmed, min length 1).
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Team name changed (empty response body).
+        '400':
+          description: Invalid team ID or invalid new team name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            Not a team member (data.code "team_not_found"), no team.manage
+            permission (data.code "no_permission") or not the team creator
+            (data.code "not_allowed_to_change_team_creator").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Team not found (data.code "team_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/invitations:
+    get:
+      tags:
+        - Invitations
+      operationId: listInvitations
+      summary: List pending invitations of a team
+      description: >
+        Returns pending (non-deleted) invitations of the team, paginated, with
+        the invited role name populated. Requires team.operate or team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/count'
+      responses:
+        '200':
+          description: Paginated invitation list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalInvitations
+                  - invitations
+                properties:
+                  totalInvitations:
+                    type: integer
+                  invitations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invitation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Invitations
+      operationId: inviteMember
+      summary: Invite a member to the team
+      description: >
+        Creates a pending invitation for an email address with a role, and
+        emails an invitation link (token valid for 3 days). Fails when the
+        member limit is reached, the role does not exist in the team, or a
+        pending invitation for the same email already exists. Requires
+        team.operate or team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteBody'
+      responses:
+        '200':
+          description: Invitation created. Returns the invitation accept link.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - link
+                properties:
+                  link:
+                    type: string
+                    description: URL of the form {DEFAULT_INVITE_BASE_URL}/join?token=...
+                    example: https://console.liara.ir/invite/join?token=eyJhbGciOi...
+        '400':
+          description: >
+            Validation error, max team members reached (data.code
+            "max_team_members_reached") or role not found in team (data.code
+            "role_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Pending invitation already exists (data.code "invitation_already_exists").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/invitations/{invitationID}:
+    delete:
+      tags:
+        - Invitations
+      operationId: deleteInvitation
+      summary: Revoke a pending invitation
+      description: >
+        Soft-deletes a pending invitation of the team. Requires team.operate
+        or team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/invitationID'
+      responses:
+        '200':
+          description: Invitation deleted (empty response body).
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: >
+            Team not found (data.code "team_not_found") or invitation not
+            found (data.code "invitation_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/invitations/join:
+    post:
+      tags:
+        - Invitations
+      operationId: joinTeam
+      summary: Accept an invitation and join the team
+      description: >
+        Validates the invitation token (JWT signed with API_TEAM_SECRET,
+        type "teamInvitation", must match the authenticated user's email),
+        marks the invitation accepted and creates the team membership. No
+        request body. Fails when the token is invalid (400/403), the user is
+        already a member (409), or the max teams limit is reached (400).
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Invitation token received by email.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Joined the team (empty response body).
+        '400':
+          description: >
+            Invalid invitation token (data.code "invalid_invitation_token") or
+            max teams reached (data.code "max_teams_reached").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            Invalid invitation token for this user/team (data.code
+            "invalid_invitation_token") or account not allowed to use services
+            (data.code "account_verification_required").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Already joined (data.code "already_joined").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/invitations/get-team-info:
+    get:
+      tags:
+        - Invitations
+      operationId: getTeamInfo
+      summary: Get team info from an invitation token
+      description: >
+        Validates the invitation token (same rules as join) and returns the
+        invited team's name/color and role name/id before joining.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Invitation token received by email.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Team information decoded from the token.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - teamID
+                  - teamName
+                  - teamColor
+                  - roleID
+                  - roleName
+                properties:
+                  teamID:
+                    type: string
+                  teamName:
+                    type: string
+                  teamColor:
+                    type: string
+                  roleID:
+                    type: string
+                  roleName:
+                    type: string
+        '400':
+          description: Invalid invitation token (data.code "invalid_invitation_token").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            Invalid invitation token for this user/team (data.code
+            "invalid_invitation_token") or account not allowed to use services
+            (data.code "account_verification_required").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/members:
+    get:
+      tags:
+        - Members & Roles
+      operationId: listMembers
+      summary: List team members
+      description: >
+        Returns team members, paginated, with user (fullname, email, avatar)
+        and role (name, id) populated. Requires team membership
+        (authorize({}) — any member can list).
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/count'
+      responses:
+        '200':
+          description: Paginated member list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalMembers
+                  - members
+                properties:
+                  totalMembers:
+                    type: integer
+                  members:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Member'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/teams/{teamID}/{memberID}:
+    delete:
+      tags:
+        - Members & Roles
+      operationId: removeMember
+      summary: Remove a member from the team
+      description: >
+        Removes a member (soft-delete), revoking their assigned permissions
+        and disconnecting extra connected repositories. The team creator
+        cannot be removed. Requires team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/memberID'
+      responses:
+        '200':
+          description: Member removed (empty response body).
+        '400':
+          description: >
+            Invalid IDs or target is the team creator (data.code
+            "cannot_remove_team_creator").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: >
+            Team not found (data.code "team_not_found") or member not found
+            (data.code "member_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/custom-role:
+    post:
+      tags:
+        - Members & Roles
+      operationId: createCustomRole
+      summary: Create a custom role
+      description: >
+        Creates a custom role with a Persian (Farsi) name and a non-empty
+        list of permissions. Permission types must be unique within the list
+        and each permission must exist, be available and available for RBAC.
+        Fails when the custom-role limit (15) is reached or a role with the
+        same name exists. Requires team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomRoleBody'
+      responses:
+        '201':
+          description: Custom role created (empty response body).
+        '400':
+          description: >
+            Validation error or max custom roles reached (data.code
+            "max_custom_roles_reached").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Custom role already exists (data.code "custom_role_already_exists").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/custom-role/{roleID}:
+    delete:
+      tags:
+        - Members & Roles
+      operationId: deleteCustomRole
+      summary: Delete a custom role
+      description: >
+        Soft-deletes a custom role. Fails when the role is currently assigned
+        to members or pending invitations. Requires team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/roleID'
+      responses:
+        '200':
+          description: Custom role deleted (empty response body).
+        '400':
+          description: >
+            Invalid IDs or role is in use (data.code "role_in_use").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: >
+            Team not found (data.code "team_not_found") or custom role not
+            found (data.code "custom_role_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/roles:
+    get:
+      tags:
+        - Members & Roles
+      operationId: listRoles
+      summary: List team roles
+      description: >
+        Returns the team's roles (default and custom), paginated. Requires
+        team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/count'
+      responses:
+        '200':
+          description: Paginated role list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalRoles
+                  - roles
+                properties:
+                  totalRoles:
+                    type: integer
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Role'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/teams/{teamID}/change-member-role/{memberID}/{roleID}:
+    post:
+      tags:
+        - Members & Roles
+      operationId: changeMemberRole
+      summary: Change a member's role
+      description: >
+        Assigns a different role to a member. The team creator's role cannot
+        be changed, and the role must belong to the team. No request body.
+        Requires team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/memberID'
+        - $ref: '#/components/parameters/roleID'
+      responses:
+        '200':
+          description: Role changed (empty response body).
+        '400':
+          description: >
+            Invalid IDs or target is the team creator (data.code
+            "cannot_change_team_creator_role").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: >
+            Team not found (data.code "team_not_found"), member not found
+            (data.code "member_not_found") or role not found (data.code
+            "role_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/{memberID}/change-team-creator:
+    post:
+      tags:
+        - Members & Roles
+      operationId: changeTeamCreator
+      summary: Transfer team creator role
+      description: >
+        Transfers the team creator role to another member. Only the current
+        team creator can perform this. The target member must not already be
+        the creator and must hold the same role as the current creator. The
+        creator can be changed only once per team. No request body. Requires
+        team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/memberID'
+      responses:
+        '200':
+          description: Team creator changed (empty response body).
+        '400':
+          description: >
+            Invalid IDs, target is the current creator (data.code
+            "cannot_change_team_creator_to_yourself"), target role differs
+            (data.code "target_member_role_should_be_the_same_as_yours") or
+            creator already changed (data.code "team_creator_already_changed").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            Not a team member (data.code "team_not_found"), no team.manage
+            permission (data.code "no_permission") or not the team creator
+            (data.code "not_allowed_to_change_team_creator").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: >
+            Team not found (data.code "team_not_found") or member not found
+            (data.code "member_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/assigned-permissions:
+    get:
+      tags:
+        - Permissions
+      operationId: listAssignedPermissions
+      summary: List assigned resource permissions
+      description: >
+        Returns team member resource permissions (DAC), paginated, with the
+        member (and its user) and the related resource (project, database,
+        zone, mailServer, bucket, vm, ai) populated. Requires team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/count'
+      responses:
+        '200':
+          description: Paginated assigned-permission list.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - totalAssignedPermissions
+                  - assignedPermissions
+                properties:
+                  totalAssignedPermissions:
+                    type: integer
+                  assignedPermissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MemberPermission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/teams/{teamID}/{memberID}/assign-permission:
+    post:
+      tags:
+        - Permissions
+      operationId: assignPermission
+      summary: Assign a resource permission to a member
+      description: >
+        Assigns a fine-grained permission (type + name) on a specific resource
+        (resourceID) to a member. The permission must be available and
+        available for DAC, the resource must belong to the team, the member
+        must not be the team creator, and the permission limit (30) must not
+        be reached. Duplicate permission/resource assignment yields 409.
+        Requires team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/memberID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignPermissionBody'
+      responses:
+        '201':
+          description: Permission assigned (empty response body).
+        '400':
+          description: >
+            Validation error, max permissions reached (data.code
+            "max_permissions_reached") or target is the team creator
+            (data.code "cannot_assign_permission_to_team_creator").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: >
+            Team not found (data.code "team_not_found"), member not found
+            (data.code "member_not_found") or resource not found (data.code
+            one of "project_not_found", "database_not_found",
+            "zone_not_found", "bucket_not_found", "mail_server_not_found",
+            "vm_not_found", "ai_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Permission already exists (data.code "permission_already_exists").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v2/teams/{teamID}/{permissionID}/revoke-permission:
+    delete:
+      tags:
+        - Permissions
+      operationId: revokePermission
+      summary: Revoke an assigned permission
+      description: >
+        Soft-deletes an assigned permission. The permission of the team
+        creator cannot be revoked. Requires team.manage.
+      parameters:
+        - $ref: '#/components/parameters/teamID'
+        - $ref: '#/components/parameters/permissionID'
+      responses:
+        '200':
+          description: Permission revoked (empty response body).
+        '400':
+          description: >
+            Invalid IDs or target is the team creator (data.code
+            "cannot_revoke_permission_from_team_creator").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: >
+            Team not found (data.code "team_not_found") or permission not
+            found (data.code "permission_not_found").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/channels/send-phone-token:
+    post:
+      tags:
+        - Channel Verification
+      operationId: sendChannelPhoneToken
+      summary: Send an SMS verification token for a team channel
+      description: >
+        Sends a 6-digit OTP via SMS to verify a phone number as a team SMS
+        channel. Fails with 409 when an active SMS channel for this phone
+        already exists, and is rate limited per user. Requires team.manage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendPhoneTokenBody'
+      responses:
+        '200':
+          description: Token sent (empty response body).
+        '400':
+          description: Validation error (invalid or missing phone).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            No team.manage permission (data.code "no_permission") or account
+            not allowed to use services (data.code
+            "account_verification_required").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: >
+            Channel already exists (no `data.code` is included).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/channels/send-email-token:
+    post:
+      tags:
+        - Channel Verification
+      operationId: sendChannelEmailToken
+      summary: Send an email verification token for a team channel
+      description: >
+        Emails a 6-digit OTP to verify an email address as a team email
+        channel. Fails with 409 when an active email channel for this address
+        already exists, and is rate limited per user. Requires team.manage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendEmailTokenBody'
+      responses:
+        '200':
+          description: Token sent (empty response body).
+        '400':
+          description: Validation error (invalid or missing email).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: >
+            No team.manage permission (data.code "no_permission") or account
+            not allowed to use services (data.code
+            "account_verification_required").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: >
+            Channel already exists (no `data.code` is included).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    teamID:
+      name: teamID
+      in: path
+      required: true
+      description: Team ID (24-character hexadecimal identifier).
+      schema:
+        $ref: '#/components/schemas/ObjectId'
+    memberID:
+      name: memberID
+      in: path
+      required: true
+      description: Team member ID (24-character hexadecimal identifier).
+      schema:
+        $ref: '#/components/schemas/ObjectId'
+    roleID:
+      name: roleID
+      in: path
+      required: true
+      description: Team member role ID (24-character hexadecimal identifier).
+      schema:
+        $ref: '#/components/schemas/ObjectId'
+    permissionID:
+      name: permissionID
+      in: path
+      required: true
+      description: Assigned team member permission ID (24-character hexadecimal identifier).
+      schema:
+        $ref: '#/components/schemas/ObjectId'
+    invitationID:
+      name: invitationID
+      in: path
+      required: true
+      description: Team invitation ID (24-character hexadecimal identifier).
+      schema:
+        $ref: '#/components/schemas/ObjectId'
+    page:
+      name: page
+      in: query
+      required: false
+      description: Page number (defaults to 1).
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    count:
+      name: count
+      in: query
+      required: false
+      description: Items per page (defaults to 10).
+      schema:
+        type: integer
+        minimum: 1
+        default: 10
+  schemas:
+    ObjectId:
+      type: string
+      pattern: '^[0-9a-fA-F]{24}$'
+    Error:
+      type: object
+      required:
+        - statusCode
+        - error
+        - message
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code.
+        error:
+          type: string
+          description: HTTP status reason phrase (e.g. "Bad Request").
+        message:
+          type: string
+          description: Human-readable error message.
+        data:
+          description: Optional error data; usually contains a machine-readable `code`.
+          type: object
+          properties:
+            code:
+              type: string
+              description: >
+                Machine-readable code, e.g. team_not_found, no_permission,
+                member_not_found, role_not_found, invitation_not_found,
+                permission_not_found, custom_role_not_found,
+                team_already_exists, invitation_already_exists,
+                permission_already_exists, custom_role_already_exists,
+                max_teams_reached, max_team_members_reached,
+                max_custom_roles_reached, max_permissions_reached,
+                positive_balance, cannot_delete_team_with_resources_or_members,
+                cannot_delete_team_with_usage_in_current_month,
+                cannot_leave_team_as_creator, cannot_remove_team_creator,
+                cannot_change_team_creator_role,
+                cannot_change_team_creator_to_yourself,
+                target_member_role_should_be_the_same_as_yours,
+                team_creator_already_changed,
+                not_allowed_to_delete_team,
+                not_allowed_to_change_team_creator,
+                cannot_revoke_permission_from_team_creator,
+                cannot_assign_permission_to_team_creator,
+                role_in_use, already_joined, invalid_invitation_token,
+                account_verification_required, project_not_found,
+                database_not_found, zone_not_found, bucket_not_found,
+                mail_server_not_found, vm_not_found, ai_not_found.
+    Permission:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          description: Permission name, e.g. view, deploy, operate, manage.
+        type:
+          type: string
+          description: "Permission (resource) type: project, database, zone, billing, team, bucket, mailServer, vm, ai."
+    Team:
+      type: object
+      required:
+        - _id
+        - name
+        - color
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        name:
+          type: string
+        color:
+          type: string
+          enum:
+            - PURPLE_FIRE
+            - GOLDEN_NATURE
+            - WOLF_AND_MIST
+            - CARBON_SEA
+            - WINTER_FOG
+            - RED_SEA
+    CreateTeamBody:
+      type: object
+      required:
+        - name
+        - color
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: >
+            Team name; trimmed; must not be "حساب شخصی".
+        color:
+          type: string
+          enum:
+            - PURPLE_FIRE
+            - GOLDEN_NATURE
+            - WOLF_AND_MIST
+            - CARBON_SEA
+            - WINTER_FOG
+            - RED_SEA
+    InviteBody:
+      type: object
+      required:
+        - email
+        - roleID
+      properties:
+        email:
+          type: string
+          format: email
+          description: Lower-cased, trimmed email address of the invitee.
+        roleID:
+          $ref: '#/components/schemas/ObjectId'
+    Invitation:
+      type: object
+      required:
+        - _id
+        - team
+        - email
+        - role
+        - status
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        team:
+          $ref: '#/components/schemas/ObjectId'
+        email:
+          type: string
+          format: email
+        role:
+          description: Populated invited role (name only) or null.
+          type: object
+          properties:
+            name:
+              type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - accepted
+        acceptedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Member:
+      type: object
+      required:
+        - _id
+        - team
+        - user
+        - role
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        team:
+          $ref: '#/components/schemas/ObjectId'
+        user:
+          description: Populated user (fullname, email, avatar).
+          type: object
+          properties:
+            fullname:
+              type: string
+            email:
+              type: string
+              format: email
+            avatar:
+              type: string
+              nullable: true
+        role:
+          description: Populated role (name, id).
+          type: object
+          properties:
+            _id:
+              $ref: '#/components/schemas/ObjectId'
+            name:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PermissionRef:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+    Role:
+      type: object
+      required:
+        - _id
+        - name
+        - team
+        - isCustom
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        name:
+          type: string
+          description: >
+            Role name. Default roles are Persian: مهمان (guest), حسابدار
+            (accountant), بازرس (inspector), گرداننده (operator), مدیر
+            (manager).
+        team:
+          $ref: '#/components/schemas/ObjectId'
+        isCustom:
+          type: boolean
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermissionRef'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CustomRoleBody:
+      type: object
+      required:
+        - name
+        - permissions
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '^[\u0600-\u06FF\s]+$'
+          description: Custom role name — Persian/Arabic script and spaces only, lower-cased, trimmed.
+        permissions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PermissionRef'
+          description: >
+            Each permission must exist in IAM PERMISSIONS, be available and
+            availableForRBAC. Types must not repeat within the list.
+    AssignPermissionBody:
+      type: object
+      required:
+        - permission
+        - resourceID
+      properties:
+        permission:
+          $ref: '#/components/schemas/PermissionRef'
+          description: >
+            Must exist in IAM PERMISSIONS, be available and availableForDAC
+            (e.g. project view/deploy/operate/manage, database
+            view/operate/manage, bucket/mailServer/vm/zone/ai
+            view/operate/manage).
+        resourceID:
+          $ref: '#/components/schemas/ObjectId'
+          description: ID of the resource the permission is granted on; must belong to the team.
+    MemberPermission:
+      type: object
+      required:
+        - _id
+        - name
+        - type
+        - team
+        - member
+      properties:
+        _id:
+          $ref: '#/components/schemas/ObjectId'
+        name:
+          type: string
+        type:
+          type: string
+        team:
+          $ref: '#/components/schemas/ObjectId'
+        member:
+          description: Populated member with its user (fullname, email, avatar).
+          type: object
+        project:
+          description: Populated project (project_id, _id) when type is project.
+          type: object
+          nullable: true
+        database:
+          description: Populated database (hostname, _id) when type is database.
+          type: object
+          nullable: true
+        zone:
+          description: Populated zone (name, _id) when type is zone.
+          type: object
+          nullable: true
+        mailServer:
+          description: Populated mail server (domain, _id) when type is mailServer.
+          type: object
+          nullable: true
+        bucket:
+          description: Populated bucket (name, _id) when type is bucket.
+          type: object
+          nullable: true
+        vm:
+          description: Populated VM (name, _id) when type is vm.
+          type: object
+          nullable: true
+        ai:
+          description: Populated AI workspace (name, _id) when type is ai.
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SendPhoneTokenBody:
+      type: object
+      required:
+        - phone
+      properties:
+        phone:
+          type: string
+          pattern: '^09\d{9}$'
+          description: Iranian mobile number.
+    SendEmailTokenBody:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Lower-cased email address.
+  responses:
+    BadRequest:
+      description: >
+        Bad request — missing team ID ("Team ID is required."), invalid team
+        ID ("Invalid team ID.") or a request validation error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: >-
+        Missing or invalid bearer token. Body is {"error": "Unauthorized."}
+        without statusCode/message fields.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+    Forbidden:
+      description: >
+        Forbidden — caller is not a member of the team (data.code
+        "team_not_found") or lacks the required team permission (data.code
+        "no_permission").
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Team not found (data.code "team_not_found").
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

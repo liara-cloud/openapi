@@ -1,0 +1,1294 @@
+openapi: 3.0.1
+info:
+  title: PaaS — Git Integration & One-Click Apps
+  version: 1.0.0
+  description: >
+    User-facing Liara PaaS endpoints for Git provider integrations (GitHub),
+    repository browsing and deployment wiring on projects, plus the public
+    One-Click Apps catalog.
+
+    Admin-only One-Click App management endpoints (POST/PATCH /v1/one-click-apps)
+    and agent-auth routes are intentionally excluded.
+servers:
+  - url: https://api.iran.liara.ir
+    description: Liara PaaS API
+security:
+  - jwt: []
+tags:
+  - name: Git Providers
+    description: >
+      GitHub provider connection lifecycle: OAuth connect/validate, sync and
+      disconnect, plus the public webhook receiver.
+  - name: Git Repositories
+    description: >
+      Browse repositories and branches available through an installed GitHub
+      App, and get the repository-integration OAuth connect URL.
+  - name: Project Git Integration
+    description: >
+      Connect, inspect, update and remove a repository deployment on a
+      project, trigger manual deploys and inspect deployment failures.
+  - name: One-Click Apps
+    description: Public read-only catalog of one-click apps.
+
+paths:
+  # ---------------------------------------------------------------- Git Repositories
+
+  /v1/git-repository-integration/{provider}/repositories:
+    get:
+      tags: [Git Repositories]
+      operationId: listGitRepositories
+      summary: List accessible repositories
+      description: >
+        Lists the repositories accessible to the authenticated user through
+        the installed Liara GitHub App (GitHub
+        `GET /installation/repositories`), scoped to an optional organization.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - $ref: "#/components/parameters/Page"
+        - name: count
+          in: query
+          description: Number of repositories per page.
+          schema:
+            type: integer
+            minimum: 1
+            default: 15
+        - $ref: "#/components/parameters/OrganizationID"
+      responses:
+        "200":
+          description: Paginated list of repositories.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepositoryList"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            The authenticated user is not a member of the GitHub
+            organization the request is scoped to
+            (`organization_member_check_error`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Provider is not supported, the user has no provider
+            integration (`git_provider_integration_not_found`), or no
+            repository integration exists for the requested scope
+            (`repository_integration_not_found`). Note: if fetching
+            repositories from GitHub itself fails, this endpoint responds
+            with `200` and an empty list instead of an error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+  /v1/git-repository-integration/{provider}/show-repository-branches:
+    get:
+      tags: [Git Repositories]
+      operationId: listGitRepositoryBranches
+      summary: List branches of a repository
+      description: >
+        Lists the branch names of the requested repository through the GitHub
+        API (`GET /repos/{full_name}/branches`). Fails with `404` when the
+        repository cannot be read.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - name: repositoryFullname
+          in: query
+          required: true
+          description: Full repository name (`{owner}/{repo}`).
+          schema:
+            type: string
+          example: liara-cloud/my-app
+        - $ref: "#/components/parameters/Page"
+        - name: count
+          in: query
+          description: Number of branches per page.
+          schema:
+            type: integer
+            minimum: 1
+            default: 15
+        - $ref: "#/components/parameters/OrganizationID"
+      responses:
+        "200":
+          description: Array of branch names.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: [main, develop, staging]
+        "400":
+          $ref: "#/components/responses/Error400Response"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            The authenticated user is not a member of the GitHub
+            organization the request is scoped to
+            (`organization_member_check_error`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Provider is not supported, the user has no provider integration
+            (`git_provider_integration_not_found`), no repository
+            integration exists for the requested scope
+            (`repository_integration_not_found`), or the branches cannot
+            be fetched (`branches_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+  /v1/git-repository-integration/{provider}/connect:
+    get:
+      tags: [Git Repositories]
+      operationId: connectGitRepositoryIntegration
+      summary: Get the repository-integration connect URL
+      description: >
+        Returns the URL for (re)connecting the repository integration of the
+        authenticated user for this provider, with the given `callback_url`
+        appended as a query string. The response body is the raw URL string.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - name: callback_url
+          in: query
+          required: false
+          description: URL to return to after completing the connection.
+          schema:
+            type: string
+          example: https://app.liara.ir/git/callback
+      responses:
+        "200":
+          description: Connect URL (plain string body, `url?callback_url=...`).
+          content:
+            text/html:
+              schema:
+                type: string
+                example: https://github.com/apps/liara/installations/select_target?callback_url=https%3A%2F%2Fapp.liara.ir%2Fgit%2Fcallback
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "404":
+          description: >
+            Provider is not supported, or the user has no provider
+            integration (`git_provider_integration_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+  # ---------------------------------------------------------------- Git Providers
+
+  /v1/git-integration/{provider}/webhook:
+    post:
+      tags: [Git Providers]
+      operationId: gitIntegrationWebhook
+      summary: Receive provider webhook events
+      description: >
+        Public endpoint used by GitHub to deliver webhook events for the
+        installed Liara GitHub App. The signature of the request is verified
+        from the provider headers (e.g. `x-hub-signature-256` and
+        `x-github-event`); invalid signatures or unknown event actions are
+        rejected. Events trigger background jobs that keep provider and
+        repository integrations in sync. Returns an empty body with HTTP 200.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        description: >
+          Raw provider event payload. The body is verified and handled as
+          received; any JSON event shape from the provider is accepted.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: Provider-specific event payload (e.g. `action`, `installation`, `sender`).
+              example:
+                action: created
+                installation:
+                  id: 12345678
+                sender:
+                  login: octocat
+      responses:
+        "200":
+          $ref: "#/components/responses/EmptyOK"
+        "404":
+          description: Provider is not supported or signature/event validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+
+  /v1/git-integration/{provider}/sync:
+    post:
+      tags: [Git Providers]
+      operationId: syncGitProviderIntegration
+      summary: Synchronize the provider integration
+      description: >
+        Triggers a synchronization of the authenticated user's GitHub provider
+        integration (installation tokens, repositories and organization data)
+        in the background. Returns an empty body immediately; if the user has
+        no provider integration nothing is synchronized.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          $ref: "#/components/responses/EmptyOK"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "404":
+          description: Provider is not supported.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+
+  /v1/git-provider-integration/{provider}:
+    get:
+      tags: [Git Providers]
+      operationId: connectGitProviderIntegration
+      summary: Start connecting a Git provider (OAuth URL)
+      description: >
+        Returns the GitHub OAuth authorization URL the user must be redirected
+        to, together with a short-lived CSRF token. Fails with `409 Conflict`
+        if the user already has an integration for this provider.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - name: callback_url
+          in: query
+          required: false
+          description: >
+            URL the provider redirects back to after authorization; embedded
+            in the generated OAuth URL.
+          schema:
+            type: string
+          example: https://app.liara.ir/settings/git
+      responses:
+        "200":
+          description: OAuth URL and CSRF token generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectResponse"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "404":
+          description: Provider is not supported.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+        "409":
+          $ref: "#/components/responses/Error409Response"
+    post:
+      tags: [Git Providers]
+      operationId: validateNewGitProviderConnection
+      summary: Complete connecting a Git provider
+      description: >
+        Exchanges the OAuth `code` for a GitHub token, validates that the
+        GitHub account is not already connected to another Liara user, and
+        creates the provider integration (plus a background repository
+        integration sync). Returns the authenticated user's profile and a
+        fresh API token.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateConnectionRequest"
+      responses:
+        "200":
+          description: Integration created; user profile and API token returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateConnectionResponse"
+        "400":
+          $ref: "#/components/responses/Error400Response"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "404":
+          description: Provider is not supported.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+        "409":
+          description: >
+            The GitHub account is already connected (`git_provider_integration_already_exists`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error409"
+    delete:
+      tags: [Git Providers]
+      operationId: disconnectGitProviderIntegration
+      summary: Disconnect the Git provider integration
+      description: >
+        Removes the authenticated user's GitHub provider integration, the
+        derived repository integration and all connected repositories. Returns
+        an empty body.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          $ref: "#/components/responses/EmptyOK"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "404":
+          description: >
+            Provider is not supported, or the user has no provider
+            integration (`git_provider_integration_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+  /v1/git-provider-integration/{provider}/organizations:
+    get:
+      tags: [Git Providers]
+      operationId: listGitProviderOrganizations
+      summary: List GitHub organizations
+      description: >
+        Lists the GitHub organizations the user belongs to through the
+        installed Liara GitHub App (GitHub `GET /user/orgs`). Requires both an
+        existing provider integration and a repository integration.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - $ref: "#/components/parameters/Page"
+        - name: count
+          in: query
+          description: Number of organizations per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 15
+            default: 10
+      responses:
+        "200":
+          description: Paginated list of GitHub organizations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GitHubOrganization"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            No repository integration exists for the user
+            (`git_repository_integration_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Provider is not supported, or the user has no provider
+            integration (`git_provider_integration_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+  # ---------------------------------------------------------------- Project Git Integration
+
+  /v1/projects/{projectID}/git-repository-integration/{provider}:
+    get:
+      tags: [Project Git Integration]
+      operationId: getProjectConnectedRepository
+      summary: Get the repository connected to a project
+      description: >
+        Returns the repository currently connected to the project for this
+        provider, including its deployment settings. Requires `operate` or
+        `manage` access to the project.
+      parameters:
+        - $ref: "#/components/parameters/ProjectID"
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          description: Connected repository details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectedRepository"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            Caller lacks `operate`/`manage` permission on the project, or
+            fails its RBAC/DAC checks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Provider is not supported, project not found
+            (`project_not_found`), or no repository is connected
+            (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+    post:
+      tags: [Project Git Integration]
+      operationId: connectRepositoryToProject
+      summary: Connect a repository to a project
+      description: >
+        Connects a GitHub repository to the project and stores the deployment
+        settings (watched branch, auto deploy, check suite). Returns an empty
+        body with HTTP 201.
+      parameters:
+        - $ref: "#/components/parameters/ProjectID"
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectRepositoryToProjectRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/EmptyCreated"
+        "400":
+          $ref: "#/components/responses/Error400Response"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            Caller lacks `operate`/`manage` permission on the project, or
+            fails its RBAC/DAC checks; also returned when the authenticated
+            user is not a member of the GitHub organization the repository
+            belongs to (`organization_member_check_error`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Provider is not supported, the user has no provider integration
+            (`git_provider_integration_not_found`), no repository
+            integration exists for the requested scope
+            (`repository_integration_not_found`), project not found
+            (`project_not_found`), or the repository could not be found on
+            GitHub (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+        "409":
+          description: A repository is already connected to this project (`repository_already_connected`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error409"
+    put:
+      tags: [Project Git Integration]
+      operationId: updateProjectRepositorySettings
+      summary: Update repository deployment settings
+      description: >
+        Updates the deployment settings of the repository connected to the
+        project. Returns an empty body.
+      parameters:
+        - $ref: "#/components/parameters/ProjectID"
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRepositorySettingsRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/EmptyOK"
+        "400":
+          $ref: "#/components/responses/Error400Response"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "404":
+          description: >
+            Provider is not supported, project not found
+            (`project_not_found`), or no repository is connected
+            (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+    delete:
+      tags: [Project Git Integration]
+      operationId: disconnectRepositoryFromProject
+      summary: Disconnect the repository from the project
+      description: >
+        Soft-deletes the connected repository of the project for this
+        provider. Returns an empty body.
+      parameters:
+        - $ref: "#/components/parameters/ProjectID"
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          $ref: "#/components/responses/EmptyOK"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            Caller lacks `operate`/`manage` permission on the project, or
+            fails its RBAC/DAC checks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Provider is not supported, project not found
+            (`project_not_found`), or no repository is connected
+            (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+  /v1/projects/{projectID}/git-repository-integration/{provider}/manual-deploy:
+    post:
+      tags: [Project Git Integration]
+      operationId: manualDeployRepository
+      summary: Trigger a manual deployment
+      description: >
+        Manually triggers a deployment of the repository connected to the
+        project: fetches the latest commit on the watched branch from
+        GitHub and creates a release from it. Returns an empty body with
+        HTTP 201.
+      parameters:
+        - $ref: "#/components/parameters/ProjectID"
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "201":
+          $ref: "#/components/responses/EmptyCreated"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            The provider integration's info check failed
+            (`check_info_failed`), or the authenticated user is not a
+            member of the GitHub organization the repository belongs to
+            (`organization_member_check_error`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Provider is not supported, the user has no provider integration
+            (`git_provider_integration_not_found`), project not found
+            (`project_not_found`), or no repository is connected to the
+            project (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+        "409":
+          description: A deploy is already in progress for this repository (`deploy_already_in_progress`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error409"
+  /v1/projects/{project_id}/repository-deployment-failures/{connectedRepositoryID}/{repositoryDeploymentFailureID}:
+    get:
+      tags: [Project Git Integration]
+      operationId: getRepositoryDeploymentFailure
+      summary: Get repository deployment failure details
+      description: >
+        Returns the details (message, git info, state) of a failed repository
+        deployment for a connected repository of the project. Requires
+        `operate` or `manage` access to the project.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Project ID (slug).
+          schema:
+            type: string
+          example: my-project
+        - name: connectedRepositoryID
+          in: path
+          required: true
+          description: ID of the connected repository document.
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+        - name: repositoryDeploymentFailureID
+          in: path
+          required: true
+          description: ID of the deployment failure document.
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+      responses:
+        "200":
+          description: Deployment failure details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepositoryDeploymentFailureDetail"
+        "401":
+          $ref: "#/components/responses/Error401Response"
+        "403":
+          description: >
+            Caller lacks `operate`/`manage` permission on the project, or
+            fails its RBAC/DAC checks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error403"
+        "404":
+          description: >
+            Project not found (`project_not_found`), connected repository
+            not found (`connected_repository_not_found`), or deployment
+            failure not found (`repository_deployment_failure_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+  # ---------------------------------------------------------------- One-Click Apps
+
+  /v1/one-click-apps:
+    get:
+      tags: [One-Click Apps]
+      operationId: listOneClickApps
+      summary: List one-click apps
+      description: >
+        Public catalog listing of one-click apps with pagination, optional
+        name search (case-insensitive regex match on the app name) and
+        category filter. Sort by newest or by popularity — exactly one of the
+        two sort flags may be set.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - name: count
+          in: query
+          description: Number of apps per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+        - name: name
+          in: query
+          description: Filter by app name (regex match).
+          schema:
+            type: string
+          example: wordpress
+        - name: category
+          in: query
+          description: Filter by category.
+          schema:
+            type: string
+            enum:
+              - Software Development
+              - CMS
+              - Internal Tools
+              - Communications
+              - Financial Service
+              - No-Code
+              - Low-Code
+              - Monitoring
+              - Observability
+              - Backend as a Service
+              - Knowledge Management
+              - Database
+              - Notetaking
+              - Product Analytics
+              - API Platform
+              - Auth & SSO
+              - Commerce
+              - Communities
+              - Productivity
+              - AI
+              - CRM
+              - Email
+              - Website Builder
+              - Website Analytics
+              - Workflow Automation
+              - IaaS
+              - VM
+          example: CMS
+        - name: sortByDate
+          in: query
+          description: >
+            Sort by newest first. At most one of `sortByDate` /
+            `sortByPopularity` may be set (both may be omitted).
+          schema:
+            type: boolean
+        - name: sortByPopularity
+          in: query
+          description: >
+            Sort by number of installations. At most one of `sortByDate` /
+            `sortByPopularity` may be set (both may be omitted).
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Paginated list of one-click apps.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OneClickAppList"
+        "400":
+          description: >
+            Invalid query, e.g. both `sortByDate` and `sortByPopularity`
+            set (mutually exclusive), `count` > 100, or `page` <= 0.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error400"
+  /v1/one-click-apps/{oneClickAppName}:
+    get:
+      tags: [One-Click Apps]
+      operationId: getOneClickApp
+      summary: Get a one-click app
+      description: >
+        Public endpoint returning the full details of a single one-click app,
+        including its spec and GitHub metadata placeholder.
+      security: []
+      parameters:
+        - name: oneClickAppName
+          in: path
+          required: true
+          description: Unique name of the one-click app.
+          schema:
+            type: string
+          example: wordpress
+      responses:
+        "200":
+          description: One-click app details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OneClickAppDetail"
+        "404":
+          description: >
+            No one-click app exists with this name. Returned as a generic
+            not-found error with no `data.code`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Not Found
+
+  /v1/one-click-apps/{oneClickAppName}/increase-installations:
+    patch:
+      tags: [One-Click Apps]
+      operationId: increaseOneClickAppInstallations
+      summary: Increment install counter
+      description: >
+        Public endpoint that increments the `numberOfInstall` counter of the
+        one-click app. Called by the panel when an app is installed.
+      security: []
+      parameters:
+        - name: oneClickAppName
+          in: path
+          required: true
+          description: Unique name of the one-click app.
+          schema:
+            type: string
+          example: wordpress
+      responses:
+        "200":
+          description: Counter incremented.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: success
+        "404":
+          description: >
+            No one-click app exists with this name. Returned as a generic
+            not-found error with no `data.code`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error404"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Not Found
+
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Liara API token issued by the authentication endpoints
+        (`Authorization: Bearer <token>`).
+  schemas:
+    Error:
+      type: object
+      description: Standard error payload returned by the API.
+      required:
+        - statusCode
+        - error
+        - message
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code.
+          example: 404
+        error:
+          type: string
+          description: HTTP reason phrase.
+          example: Not Found
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Project not found.
+        data:
+          type: object
+          description: Optional machine-readable context, usually containing `code`.
+          properties:
+            code:
+              type: string
+              example: project_not_found
+    Error400:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+        - type: object
+          properties:
+            statusCode:
+              example: 400
+            error:
+              example: Bad Request
+            message:
+              example: '"repositoryFullname" is required'
+    Error401:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+        - type: object
+          properties:
+            statusCode:
+              example: 401
+            error:
+              example: Unauthorized
+            message:
+              example: Authorization failed.
+    Error403:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+        - type: object
+          properties:
+            statusCode:
+              example: 403
+            error:
+              example: Forbidden
+            message:
+              example: Git repository integration not found.
+            data:
+              properties:
+                code:
+                  example: git_repository_integration_not_found
+    Error404:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+        - type: object
+          properties:
+            statusCode:
+              example: 404
+            error:
+              example: Not Found
+            message:
+              example: Project not found.
+            data:
+              properties:
+                code:
+                  example: project_not_found
+    Error409:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+        - type: object
+          properties:
+            statusCode:
+              example: 409
+            error:
+              example: Conflict
+            message:
+              example: Git provider integration already exists.
+            data:
+              properties:
+                code:
+                  example: git_provider_integration_already_exists
+
+    # ---- Git provider integration
+
+    ConnectResponse:
+      type: object
+      required: [url, githubOAuthCSRFToken]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: GitHub OAuth authorization URL to redirect the user to.
+          example: https://github.com/login/oauth/authorize?client_id=...&state=...
+        githubOAuthCSRFToken:
+          type: string
+          description: >
+            Short-lived (1 minute) JWT used as CSRF protection when completing
+            the connection with POST /v1/git-provider-integration/{provider}.
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    ValidateConnectionRequest:
+      type: object
+      required: [code, callback_url]
+      properties:
+        code:
+          type: string
+          description: OAuth code returned by GitHub after authorization.
+        callback_url:
+          type: string
+          description: Callback URL, must match the one used in the connect request.
+        githubOAuthCSRFToken:
+          type: string
+          description: >
+            CSRF token obtained from GET /v1/git-provider-integration/{provider}.
+    ValidateConnectionResponse:
+      type: object
+      required: [email, fullname, avatar, api_token]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        fullname:
+          type: string
+          example: Amin Developer
+        avatar:
+          type: string
+          format: uri
+          example: https://avatars.githubusercontent.com/u/1234567
+        nationalCode:
+          type: string
+          nullable: true
+          description: National code of the authenticated user, when present.
+        api_token:
+          type: string
+          description: Fresh Liara auth JWT for the user.
+    GitHubOrganization:
+      type: object
+      description: >
+        GitHub organization entry as returned by GitHub `GET /user/orgs`;
+        passthrough of GitHub's payload.
+      required: [login, id]
+      properties:
+        login:
+          type: string
+          example: liara-cloud
+        id:
+          type: integer
+          example: 12345678
+        node_id:
+          type: string
+        url:
+          type: string
+          format: uri
+        avatar_url:
+          type: string
+          format: uri
+        description:
+          type: string
+          nullable: true
+
+    # ---- Git repository integration
+
+    RepositoryMeta:
+      type: object
+      required: [id, name, full_name, private]
+      properties:
+        id:
+          type: integer
+          example: 429984538
+        node_id:
+          type: string
+          example: R_kgDOGi3K2g
+        name:
+          type: string
+          example: my-app
+        full_name:
+          type: string
+          example: liara-cloud/my-app
+        private:
+          type: boolean
+          example: false
+    Repository:
+      type: object
+      required: [metaData]
+      properties:
+        metaData:
+          $ref: "#/components/schemas/RepositoryMeta"
+    RepositoryList:
+      type: object
+      required: [total, repositories]
+      properties:
+        total:
+          type: integer
+          description: Total number of installation repositories available.
+          example: 3
+        repositories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Repository"
+    RepositorySettings:
+      type: object
+      required: [branches]
+      properties:
+        branches:
+          type: array
+          maxItems: 1
+          items:
+            type: string
+          description: >
+            Branch(es) to watch for automatic deployment. Limited to a single
+            branch (`maxItems: 1`) by the validation schema.
+          example: [main]
+        checkSuite:
+          type: boolean
+          description: Require a passing check suite before deploying.
+          default: false
+        autoDeploy:
+          type: boolean
+          description: Deploy automatically on pushes to the watched branch.
+          default: true
+    ConnectRepositoryToProjectRequest:
+      type: object
+      required: [repositoryFullname, settings]
+      properties:
+        repositoryFullname:
+          type: string
+          description: Full repository name (`{owner}/{repo}`).
+          example: liara-cloud/my-app
+        settings:
+          $ref: "#/components/schemas/RepositorySettings"
+        organizationID:
+          type: integer
+          nullable: true
+          description: GitHub organization (installation) ID the repository belongs to.
+          example: 12345678
+    UpdateRepositorySettingsRequest:
+      type: object
+      required: [settings]
+      properties:
+        settings:
+          $ref: "#/components/schemas/RepositorySettings"
+    ConnectedRepository:
+      type: object
+      description: >
+        Repository connected to a project (ConnectedRepository document,
+        `deletedAt` and `__v` are stripped).
+      properties:
+        _id:
+          type: string
+          description: Internal object ID (24 hex characters).
+          example: 64f1b2c93f8a9d0012ab34cd
+        providerIntegration:
+          type: string
+          example: 64f1b2c93f8a9d0012ab34aa
+        repositoryIntegration:
+          type: string
+          example: 64f1b2c93f8a9d0012ab34bb
+        project:
+          type: string
+          example: 64f1b2c93f8a9d0012ab34cc
+        metaData:
+          $ref: "#/components/schemas/RepositoryMeta"
+        settings:
+          $ref: "#/components/schemas/RepositorySettings"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RepositoryDeploymentFailureDetail:
+      type: object
+      required: [project, repository, message, state]
+      properties:
+        project:
+          type: string
+          description: Project ID (slug) the failure belongs to.
+          example: my-project
+        repository:
+          type: string
+          description: Full name of the connected repository.
+          example: liara-cloud/my-app
+        message:
+          type: string
+          description: Build/deploy failure message.
+          example: Build failed at "npm run build" (exit code 1).
+        gitInfo:
+          type: object
+          description: >
+            Git context of the failed deployment (commit info); stored as a
+            free-form Mixed document.
+          nullable: true
+        state:
+          type: string
+          enum: [inactive, failure]
+          example: failure
+
+    # ---- One-Click apps
+
+    OneClickApp:
+      type: object
+      properties:
+        id:
+          type: string
+          description: One-click app document ID.
+          example: 64f1b2c93f8a9d0012ab34dd
+        name:
+          type: string
+          description: Unique, lowercased app name.
+          example: wordpress
+        about:
+          type: string
+          description: Short tagline.
+          example: Popular content management system
+        description:
+          type: string
+          description: Long-form description (Markdown/HTML as stored).
+        categories:
+          type: array
+          items:
+            type: string
+          example: [CMS]
+        numberOfInstall:
+          type: integer
+          example: 1520
+        icon:
+          type: string
+          description: Icon URL or data URI.
+        mediaItems:
+          type: array
+          items:
+            type: string
+          description: Screenshot/media URLs.
+        videoURL:
+          type: string
+          nullable: true
+          description: Demo video URL.
+        spec:
+          type: string
+          nullable: true
+          description: App spec (stringified template). Not returned by the list endpoint.
+        githubOrg:
+          type: string
+          example: wordpress
+          description: Not returned by the list endpoint.
+        githubRepo:
+          type: string
+          example: wordpress
+          description: Not returned by the list endpoint.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          description: Not returned by the list endpoint.
+    OneClickAppList:
+      type: object
+      required: [status, oneClickApps]
+      properties:
+        status:
+          type: string
+          example: success
+        oneClickApps:
+          type: array
+          items:
+            $ref: "#/components/schemas/OneClickApp"
+    OneClickAppDetail:
+      type: object
+      required: [status, oneClickApp, metadata]
+      properties:
+        status:
+          type: string
+          example: success
+        oneClickApp:
+          $ref: "#/components/schemas/OneClickApp"
+        metadata:
+          type: object
+          description: >
+            GitHub repository metadata (forks/stars/language/URL). Currently
+            always an empty object on this endpoint (GitHub metadata fetch is
+            disabled in the backend).
+          example: {}
+
+  parameters:
+    Provider:
+      name: provider
+      in: path
+      required: true
+      description: >
+        Git provider name. Only `github` is currently implemented; any other
+        value yields `404 Not Found`.
+      schema:
+        type: string
+        enum: [github]
+    Page:
+      name: page
+      in: query
+      description: Page number (1-based).
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    OrganizationID:
+      name: organizationID
+      in: query
+      description: GitHub organization (installation) ID to scope the request to.
+      schema:
+        type: integer
+        nullable: true
+        default: null
+    ProjectID:
+      name: projectID
+      in: path
+      required: true
+      description: Project ID (24-hex object ID).
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{24}$"
+        example: 64f1b2c93f8a9d0012ab34cc
+
+  responses:
+    EmptyOK:
+      description: Empty response (operation completed, no body).
+    EmptyCreated:
+      description: Empty response; resource created / deployment triggered.
+    Error400Response:
+      description: Validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error400"
+    Error401Response:
+      description: Missing or invalid authentication token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error401"
+    Error409Response:
+      description: Git provider integration already exists.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error409"

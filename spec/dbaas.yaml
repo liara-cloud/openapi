@@ -1,833 +1,1827 @@
 openapi: 3.0.1
 info:
   title: DBaaS
-  description: |-
-    Manage your databases using our API
-
-    Parameters:
-    - `teamID`: To access services in a team
-    
-  termsOfService: '#'
-  contact:
-    email: info@liara.ir
   version: 1.0.0
-externalDocs:
-  description: Find out more about DBaaS
-  url: http://liara.ir
+  description: |
+    Managed databases on Liara. Provision, resize, back up, monitor and
+    delete managed database instances (MySQL, MariaDB, MongoDB, PostgreSQL,
+    Redis, MS SQL Server, Elasticsearch, RabbitMQ and ClickHouse), manage
+    their private networks, control panels and public network exposure.
 servers:
-- url: https://api.iran.liara.ir
+  - url: https://api.iran.liara.ir
 security:
-- jwt: []
+  - jwt: []
 tags:
   - name: Databases
-    description: Everything about your Databases
-  - name: Backups
-    description: Backups endpoints
-  - name: Reports
-    description: Reports of your app
+    description: |
+      Lifecycle management of managed database instances: listing, creation,
+      retrieval, deletion, unfreezing, scaling, resizing (plan and bundle
+      plan), control panel, public network exposure and database settings.
+  - name: Database Backups
+    description: |
+      Backup management for database instances: listing stored backups,
+      creating manual backups, generating backup download links and
+      restoring from MSSQL `.bak` / ClickHouse `.bak` files.
+  - name: Database Metrics
+    description: Resource usage metrics (CPU, memory, disk and network) of database instances.
+  - name: Database Events
+    description: Events for the database.
+  - name: Networks
+    description: Private networks that database instances (and g2 plans) are attached to.
 paths:
-  '/v1/databases/{id}':
-    get:
-      tags:
-      - Databases
-      summary: Get a database
-      description: get a database that user owns
-      operationId: getDatabase
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DB-details'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-    delete:
-      tags:
-      - Databases
-      summary: Delete a database
-      description: delete a database that user owns
-      operationId: deleteDatabase
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
   /v1/databases:
     get:
       tags:
-      - Databases
-      summary: Get all databases
-      description: get all databases that user owns
-      operationId: getListDatabases
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DBs-details'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-    post:
-      tags:
-      - Databases
-      summary: Create a database
-      description: create a database that user owns
-      operationId: createDatabase
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Create-databases'
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                type: object
-                properties:
-                  databaseID:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-      x-codegen-request-body-name: Create a databases
-  '/v1/databases/{id}/actions/scale':
-    post:
-      tags:
-      - Databases
-      summary: Power on or power off a database
-      description: power on or power off a database that user owns
-      operationId: TurnDatabase
+        - Databases
+      operationId: listDatabases
+      summary: List databases
+      description: |
+        Returns all database instances of the authenticated user (or of the
+        team referenced by `teamID`, filtered by the actor's database
+        permissions). Results are sorted by creation (newest first).
       parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      requestBody:
-        description: 1 for power on or 0 for power off
-        content:
-          application/json:
-            schema:
-              required:
-              - scale
-              type: object
-              properties:
-                scale:
-                  type: number
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-      x-codegen-request-body-name: scale
-  '/v1/databases/{id}/resize':
-    post:
-      tags:
-      - Databases
-      summary: Resize a database
-      description: resize a database that user owns
-      operationId: resizeDatabase
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              required:
-              - planID
-              type: object
-              properties:
-                disk:
-                  type: boolean
-                planID:
-                  type: string
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-      x-codegen-request-body-name: resize
-  '/v1/databases/{id}/backups':
-    get:
-      tags:
-      - Backups
-      summary: Get all backups
-      description: get all backups that user owns
-      operationId: getListBackups
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                type: object
-                properties:
-                  backups:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                        lastModified:
-                          type: string
-                        etag:
-                          type: string
-                        size:
-                          type: number
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-    post:
-      tags:
-      - Backups
-      summary: Backup a database
-      description: backup a database that user owns
-      operationId: createBackup
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-  '/v1/databases/{id}/settings':
-    patch:
-      tags:
-      - Databases
-      summary: Settings a database
-      description: settings a database that user owns
-      operationId: databasesSettings
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Databases-settings'
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-  '/v1/databases/{id}/backups/{name}/download':
-    post:
-      tags:
-      - Backups
-      summary: Download a backup
-      description: download a backup that user owns
-      operationId: downloadBackup
-      parameters:
-      - name: id
-        in: path
-        required: true
-        description: The id of your database
-        schema:
-          type: string
-      - name: name
-        in: path
-        required: true
-        description: The name of your backup
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                type: object
-                properties:
-                  link:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-  '/v1/databases/{id}/control-panel/{status}':
-    post:
-      tags:
-      - Databases
-      summary: Change control-panel status
-      description: change control-panel status that user owns
-      operationId: changeControlPanel
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: status
-        in: path
-        required: true
-        schema:
-          type: string
-          enum:
-          - enable
-          - disable
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  controlPanelID:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-  '/v1/databases/{id}/public-network/{status}':
-    patch:
-      tags:
-      - Databases
-      summary: Change public network status
-      description: change public network status that user owns
-      operationId: changePublicNetwork
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: status
-        in: path
-        required: true
-        schema:
-          type: string
-          enum:
-          - enable
-          - disable
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database not found
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-  '/v1/databases/{id}/metrics/cpu':
-    get:
-      tags:
-      - Reports
-      summary: Get cpu reports of database
-      description: get cpu reports of database that user owns
-      operationId: getDatabaseCpuReports
-      parameters:
-      - name: id
-        in: path
-        description: The name of your database
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your cpu reports
-        required: true
-        schema:
-          type: number
-      responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database does not exists.
-          content: {}
-  '/v1/databases/{id}/metrics/memory':
-    get:
-      tags:
-      - Reports
-      summary: Get memory reports of database
-      description: get memory reports of database that user owns
-      operationId: getDatabaseMemoryReports
-      parameters:
-      - name: id
-        in: path
-        description: The name of your database
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your memory reports
-        required: true
-        schema:
-          type: number
-      responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database does not exists.
-          content: {}
-  '/v1/databases/{id}/metrics/network-receive':
-    get:
-      tags:
-      - Reports
-      summary: Get network-receive reports of database
-      description: get network-receive reports of database that user owns
-      operationId: getDatabaseNetworkReceiveReports
-      parameters:
-      - name: id
-        in: path
-        description: The name of your database
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your network-receive reports
-        required: true
-        schema:
-          type: number
-      responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database does not exists.
-          content: {}
-  '/v1/databases/{id}/metrics/network-transmit':
-    get:
-      tags:
-      - Reports
-      summary: Get network-transmit reports of database
-      description: get network-transmit reports of database that user owns
-      operationId: getDatabaseNetworkTransmitReports
-      parameters:
-      - name: id
-        in: path
-        description: The name of your database
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your network-transmit reports
-        required: true
-        schema:
-          type: number
-      responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database does not exists.
-          content: {}
-  '/v1/databases/{id}/metrics/summary':
-    get:
-      tags:
-      - Reports
-      summary: Get summary reports of database
-      description: get summary reports of database that user owns
-      operationId: getDatabaseSummaryReports
-      parameters:
-      - name: id
-        in: path
-        description: The name of your database
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  cpuUsage:
-                    type: array 
-                    items:
-                      type: object
-                      properties:
-                        value:
-                          type: array
-                          items:
-                            oneOf:
-                              - type: number
-                              - type: string
-                        applet:
-                          type: string
-                  memoryUsage:
-                    type: array 
-                    items:
-                      type: object
-                      properties:
-                        value:
-                          type: array
-                          items:
-                            oneOf:
-                              - type: number
-                              - type: string
-                        applet:
-                          type: string
-                  disksUsage:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        size:
-                          type: string
-                        usage:
-                          type: string
-                        reportedAt:
-                          type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database does not exists.
-          content: {}
-  '/v1/databases/{name}/events':
-    get:
-      summary: Get events of the database
-      description: get events of the database owned by user
-      operationId: getDatabaseEvents
-      parameters:
-        - name: name
-          in: path
-          description: The name of database
-          required: true
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - name: status
+          in: query
+          required: false
+          description: Filter databases by status.
+          schema:
+            $ref: '#/components/schemas/DatabaseStatus'
+        - name: type
+          in: query
+          required: false
+          description: Filter databases by database engine type.
+          schema:
+            $ref: '#/components/schemas/DatabaseType'
+        - name: isManagedWordpress
+          in: query
+          required: false
+          description: |
+            Only the exact string `true` selects managed WordPress databases;
+            any other value (or omission) returns only non-managed-WordPress
+            databases.
           schema:
             type: string
+            enum:
+              - 'true'
+              - 'false'
+      responses:
+        '200':
+          description: Databases retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabasesListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Databases
+      operationId: createDatabase
+      summary: Create a database
+      description: |
+        Creates a new managed database instance. Validation is conditional on
+        `type` (version and planID must be supported by the selected engine,
+        and `options` accepts engine-specific keys). Behaviour notes derived
+        from the backend:
+        - `hostname` must be unique among the caller's databases and projects
+          (409 Conflict otherwise).
+        - `planID: "free"` is only allowed for `mariadb`, `postgres` and
+          `redis`, only one free database per account, and is not allowed
+          when acting on behalf of a team.
+        - `bundlePlanID` becomes required (and must be one of
+          `free|basic|standard|pro`) when `network` is provided.
+        - `backupSourceId` and `backupToRestoreName` must be provided
+          together (all-or-none) and only work for `mariadb`, `mongodb`,
+          `postgres` and `mysql` on private-network infrastructure.
+        - g2 plans (`planID` ending in `-g2`) require `network`; legacy g1
+          plans reject `network`.
+        - Requires enough account balance for plan + bundle plan (402
+          otherwise).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDatabaseRequest'
+            examples:
+              postgresPrivateNetwork:
+                summary: PostgreSQL on a private network
+                value:
+                  hostname: my-postgres-db
+                  type: postgres
+                  version: 18.4
+                  planID: small-g2
+                  network: 60b1e2f3c4d5e6f7a8b9c0d1
+                  bundlePlanID: standard
+                  publicNetwork: false
+                  options:
+                    postgis: false
+                    pgvector: true
+              freeRedis:
+                summary: Free Redis instance
+                value:
+                  hostname: my-redis
+                  type: redis
+                  planID: free
+      responses:
+        '200':
+          description: Database created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDatabaseResponse'
+        '400':
+          description: |
+            Validation failure, or one of: the requested `bundlePlanID`
+            is not available for a free plan (message: `"The {bundlePlanID}
+            bundlePlan is not available for free plan."`); a `-g2` `planID`
+            was given without `network` (message: `g2_plan_unavailable`); a
+            non-free, non-`-g2` `planID` was given together with `network`
+            (message: `g1_plan_unavailable`); the bundle plan is not
+            available for the selected `planID` (message: `"This bundle
+            plan is not available for this plan."`); or no `network` was
+            given and the caller's account does not have the legacy-network
+            feature enabled (message: `network_is_required`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '403':
+          description: |
+            One of: creating a free-plan database on behalf of a team
+            (`data.code: cannot_create_free_database_in_team`); the free
+            plan is not available for the selected `type`
+            (`data.code: free_plan_type`); the caller already has a
+            free-plan database (`data.code: free_plan_count`); restoring
+            from a backup on legacy (no-network) infrastructure
+            (`data.code: cannot_use_restore_feature_in_legacy_infra`); an
+            unsupported Redis version on legacy infrastructure; or a
+            deprecated PostgreSQL version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: The given `network` does not belong to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /v1/databases/versions:
+    get:
+      tags:
+        - Databases
+      operationId: getDatabaseVersions
+      summary: List available database versions
+      description: |
+        Returns the available versions per database engine. This endpoint is
+        public and does not require authentication.
+      security: []
+      responses:
+        '200':
+          description: Versions retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionsResponse'
+  /v1/databases/{databaseID}:
+    get:
+      tags:
+        - Databases
+      operationId: getDatabase
+      summary: Get a database
+      description: |
+        Returns a single database instance with computed fields:
+        `hourlyPrice`, `bundleHourlyPrice` (plan price scaled by `scale`,
+        divided by 3 when the database is stopped), `username`
+        (engine-specific root username, `null` for Redis),
+        `controlPanelSatus` (note the API field name typo; one of the
+        control-panel release states, `null`, or `no-control-panel`) and
+        `databaseInspectorUrl` (only present when the database is attached
+        to a private network). `root_password` is returned decrypted unless
+        the database status is `STARTED` or `FAILED`. The `replicaSetKey`
+        metadata field is omitted from `metaData`.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Database retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Databases
+      operationId: deleteDatabase
+      summary: Delete a database
+      description: |
+        Permanently deletes a database. Only databases in `RUNNING`, `FROZEN`
+        or `FAILED` status can be deleted. Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Database deleted successfully. Empty response body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: |
+            Database not found (or not in a deletable status).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/databases/{databaseID}/unfreeze:
+    post:
+      tags:
+        - Databases
+      operationId: unfreezeDatabase
+      summary: Unfreeze a frozen database
+      description: |
+        Unfreezes a database in `FROZEN` status. Free-plan databases are
+        additionally subject to the free-databases quota of the current
+        subscription plan. Requires enough account balance for plan +
+        bundle plan. Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Database unfreeze scheduled successfully. Empty response body.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          description: Not enough balance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequiredError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found (or not frozen).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '428':
+          description: |
+            Free databases quota reached (`data.code`:
+            `free_databases_limit`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/databases/{hostname}/check-availability:
+    get:
+      tags:
+        - Databases
+      operationId: checkHostnameAvailability
+      summary: Check hostname availability
+      description: |
+        Checks whether a database hostname is available for the caller
+        (unique among the caller's databases and projects). Responds with an
+        empty body when available and 409 Conflict when already taken.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/HostnamePath'
+      responses:
+        '200':
+          description: Hostname is available. Empty response body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Hostname is already taken.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+  /v1/databases/{databaseID}/resize:
+    post:
+      tags:
+        - Databases
+      operationId: resizeDatabase
+      summary: Resize a database plan
+      description: |
+        Changes the plan of a `RUNNING` database. Notes from the backend:
+        - `disk: true` also grows the disk volume to the new plan's volume
+          size; the volume can never shrink.
+        - Moving between legacy (g1) and g2 plans is rejected
+          (`g2_plan_unavailable`).
+        - `disk` cannot be used on scaled (scale > 0) non-MongoDB databases
+          (`disk_is_busy`).
+        - Only one resize per short period is allowed.
+        - Downgrading a free bundle plan with edit-parameters/public-network
+          features in use is rejected (428).
+        Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResizeRequest'
+      responses:
+        '200':
+          description: Resize scheduled successfully. Empty response body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          description: Not enough balance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequiredError'
+        '403':
+          description: |
+            Free plan not available for this database type
+            (`data.code: free_plan_type`) or free plan quota reached
+            (`data.code: free_plan_count`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Database not found (or not running).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '428':
+          description: |
+            Plan downgrade blocked because database parameters
+            (`data.code: parameter_limit`) or the public network
+            (`data.code: public_network_limit`) are in use.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/databases/{databaseID}/resize-bundle-plan:
+    post:
+      tags:
+        - Databases
+      operationId: resizeDatabaseBundlePlan
+      summary: Resize a database bundle plan
+      description: |
+        Changes the bundle plan (`free|basic|standard|pro`) of a `RUNNING`
+        database attached to a private network. Downgrades are limited to
+        once per day (`downgrade_limit`) and blocked when parameters or the
+        public network are in use. Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResizeBundlePlanRequest'
+      responses:
+        '200':
+          description: Bundle plan changed successfully. Empty response body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found (or not running on a private network).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '428':
+          description: |
+            Downgrade limit reached (`data.code: downgrade_limit`), or
+            downgrade blocked because parameters (`data.code:
+            parameter_limit`) or the public network (`data.code:
+            public_network_limit`) are in use.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/databases/{databaseID}/actions/scale:
+    post:
+      tags:
+        - Databases
+      operationId: scaleDatabase
+      summary: Scale a database
+      description: |
+        Stops (`scale: 0`) or starts (`scale: 1`) a database in `RUNNING` or
+        `CRASH_LOOP` status. Free plans are no longer scalable. Responds
+        with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScaleRequest'
+      responses:
+        '200':
+          description: Scale applied successfully. Empty response body.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: |
+            Free plans are no longer available (`data.code:
+            PLAN_UPGRADE_REQUIRED`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Database not found (or not in a scalable status).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/databases/{databaseID}/control-panel/enable:
+    post:
+      tags:
+        - Databases
+      operationId: enableDatabaseControlPanel
+      summary: Enable a database control panel
+      description: |
+        Deploys a web control panel (phpMyAdmin / pgAdmin / phpRedisAdmin /
+        Kibana / RabbitMQ UI depending on the engine) for the database.
+        Supported engines: `mysql`, `mariadb`, `postgres`, `redis`,
+        `rabbitmq`. The database must not be `FROZEN` or `SUSPENDED` and
+        must not already have a control panel.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Control panel deployment started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ControlPanelResponse'
+        '400':
+          description: This database does not support control panel.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found (or frozen/suspended).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: This database already has a control panel.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+  /v1/databases/{databaseID}/public-network/enable:
+    patch:
+      tags:
+        - Databases
+      operationId: enableDatabasePublicNetwork
+      summary: Enable public network
+      description: |
+        Enables public internet access for a database. Requires the current
+        bundle plan to support public network and the database to not be
+        `FROZEN`/`SUSPENDED`. Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Public network enablement scheduled successfully. Empty response body.
+        '400':
+          description: Request param is not valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found (or frozen/suspended).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: public network is already enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '428':
+          description: |
+            This database plan does not support public network
+            (`data.code: public_network_limit`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/databases/{databaseID}/public-network/disable:
+    patch:
+      tags:
+        - Databases
+      operationId: disableDatabasePublicNetwork
+      summary: Disable public network
+      description: |
+        Disables public internet access for a database. Legacy MongoDB
+        standalone replica sets without a private network cannot disable
+        their public network. Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Public network disablement scheduled successfully. Empty response body.
+        '400':
+          description: |
+            Request param is not valid, or the database is a legacy
+            standaloneReplicaSet MongoDB whose public network cannot be
+            disabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found (or frozen).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: public network is already disabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '428':
+          description: |
+            This database plan does not support public network
+            (`data.code: public_network_limit`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/databases/{databaseID}/settings:
+    patch:
+      tags:
+        - Databases
+      operationId: setDatabaseArgs
+      summary: Update database settings
+      description: |
+        Updates engine parameters/extensions (`metaData`) of a database.
+        Only `mysql`, `mariadb` and `postgres` databases accept settings,
+        the database type must match `type`, and the database must be
+        attached to a private network. Editing parameters requires a bundle
+        plan with the edit-parameters feature (extensions `postgis`/
+        `pgvector` are always allowed). Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatabaseArgsRequest'
+      responses:
+        '200':
+          description: Settings updated successfully. Empty response body.
+        '400':
+          description: |
+            Invalid database ID, database must have a network, or unknown
+            PostgreSQL version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Cannot modify settings for deprecated PostgreSQL version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Database not found (or frozen).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '428':
+          description: |
+            This database plan does not support editing parameters
+            (`data.code: parameter_limit`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/databases/{databaseID}/events:
+    get:
+      tags:
+        - Database Events
+      operationId: listDatabaseEvents
+      summary: List database events
+      description: |
+        Returns the database's events for a time window (defaults to the
+        last day; `start` is clamped to at most 7 days ago because log
+        retention is 8 days). `end` must be after `start`.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
         - name: search
           in: query
-          description: Show events based on search query
           required: false
+          description: Text filter applied to events (minimum 3 characters, backticks not allowed).
           schema:
             type: string
+            minLength: 3
         - name: start
           in: query
-          description: start timestamp
-          example: 1704028315
           required: false
+          description: Start of the time range (UNIX timestamp, seconds).
           schema:
-            type: number
+            type: integer
+            minimum: 1
         - name: end
           in: query
-          description: end timestamp
-          example: 1704028315
           required: false
+          description: End of the time range (UNIX timestamp, seconds). Must be greater than `start`.
           schema:
-            type: number
+            type: integer
+            minimum: 1
+        - name: direction
+          in: query
+          required: false
+          description: Log query direction.
+          schema:
+            type: string
+            enum:
+              - backward
+              - forward
+            default: backward
       responses:
-        200:
-          description: Successful operation
+        '200':
+          description: Events retrieved successfully.
           content:
             application/json:
               schema:
-                required:
-                  - data
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        metaData:
-                          type: object
-                        values:
-                          type: array
-                          items:
-                            type: array
-                            items:
-                              type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Database does not exists.
-          content: {}
+                $ref: '#/components/schemas/EventsResponse'
+        '400':
+          description: |
+            Validation failure, or `end` is before or equal to `start`
+            (message: `"end" must not be before or equal to start`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/databases/{databaseID}/metrics/summary:
+    get:
+      tags:
+        - Database Metrics
+      operationId: getDatabaseMetricsSummary
+      summary: Get database metrics summary
+      description: |
+        Returns the current CPU usage, memory usage and disk usage of a
+        database instance.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Metrics summary retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsSummaryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/databases/{databaseID}/metrics/{stat}:
+    get:
+      tags:
+        - Database Metrics
+      operationId: getDatabaseMetric
+      summary: Get a database metric
+      description: |
+        Returns a time series of a database resource metric. `since` is a
+        UNIX timestamp (seconds); the maximum look-back window depends on
+        the database bundle plan (e.g. 7 days on the default legacy bundle,
+        up to 60 days on paid bundle plans).
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+        - $ref: '#/components/parameters/StatPath'
+        - name: since
+          in: query
+          required: true
+          description: Start of the time range (UNIX timestamp, in seconds).
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Metric data retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '428':
+          description: The maximum allowed value for since is exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /v1/databases/{databaseID}/backups:
+    get:
+      tags:
+        - Database Backups
+      operationId: listDatabaseBackups
+      summary: List database backups
+      description: |
+        Lists the stored backups (manual, hourly, daily, weekly, monthly) of
+        a database, newest first. Backups are not supported for
+        `elasticsearch` and `rabbitmq` databases.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Backups retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupsResponse'
+        '400':
+          description: This database type does not support backups.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+    post:
+      tags:
+        - Database Backups
+      operationId: createManualDatabaseBackup
+      summary: Create a manual backup
+      description: |
+        Schedules a manual backup (dump) of a `RUNNING` database. The request
+        has no body. Manual backups are subject to the bundle plan rate
+        limit (per hour) and are not available on every bundle plan.
+        Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Manual backup scheduled successfully. Empty response body.
+        '400':
+          description: |
+            This database type does not support backups, or the database is
+            not running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '428':
+          description: |
+            Manual backups are not available on this bundle plan, or the
+            manual backup rate limit has been reached.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/databases/{databaseID}/backups/{interval}/{backup}/download:
+    post:
+      tags:
+        - Database Backups
+      operationId: downloadDatabaseBackup
+      summary: Generate a backup download link
+      description: |
+        Generates a temporary download link for a stored backup file.
+        Backups are not supported for `elasticsearch` and `rabbitmq`
+        databases.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+        - $ref: '#/components/parameters/BackupIntervalPath'
+        - name: backup
+          in: path
+          required: true
+          description: Backup file name (as returned by the backup list endpoint).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Download link generated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadLinkResponse'
+        '400':
+          description: This database type does not support backups.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/databases/{databaseID}/mssql-bak:
+    post:
+      tags:
+        - Database Backups
+      operationId: putMssqlBakFile
+      summary: Restore an MSSQL .bak file
+      description: |
+        Restores a Microsoft SQL Server database from a `.bak` file
+        downloadable over HTTP(S). Only works for `mssql` databases and is
+        rate limited to 5 operations per hour. Responds with an empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutBakFileRequest'
+      responses:
+        '200':
+          description: Restore operation scheduled successfully. Empty response body.
+        '400':
+          description: |
+            Invalid request body or this database type does not support
+            putting bak file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '429':
+          description: Rate limit exceeded (5 operations per hour).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TooManyRequestsError'
+  /v1/databases/{databaseID}/clickhouse-bak:
+    post:
+      tags:
+        - Database Backups
+      operationId: putClickhouseBakFile
+      summary: Restore a ClickHouse .bak file
+      description: |
+        Restores a ClickHouse database from a `.bak` file downloadable over
+        HTTP(S). Only works for `clickhouse` databases. Responds with an
+        empty body.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutBakFileRequest'
+      responses:
+        '200':
+          description: Restore operation scheduled successfully. Empty response body.
+        '400':
+          description: |
+            Invalid request body or this database type does not support
+            putting bak file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v2/databases/{databaseID}/reset-password:
+    patch:
+      tags:
+        - Databases
+      operationId: resetDatabasePassword
+      summary: Reset the database root password
+      description: |
+        Generates and applies a new random 24-character alphanumeric root
+        password for a database. The request has no body. Only supported for
+        `mongodb`, `mariadb`, `mysql` and `postgres` databases that are
+        running and attached to a private network. Throttled to one reset
+        per database per 5 minutes. Responds with an empty body; the new
+        password can be read afterwards from the database details endpoint
+        once its status leaves `STARTED`/`FAILED`.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - $ref: '#/components/parameters/DatabaseIDPath'
+      responses:
+        '200':
+          description: Password reset scheduled successfully. Empty response body.
+        '400':
+          description: |
+            Invalid database ID, the database is stopped
+            (`data.code: cannot_change_password_of_stopped_database`), or
+            the change password feature is not available for the database
+            type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: |
+            The database is not running
+            (`data.code: can_only_change_password_of_running_database`) or
+            is on legacy infrastructure
+            (`data.code: cannot_use_restore_password_feature_in_legacy_infra`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Database not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '429':
+          description: Password was already reset for this database in the last 5 minutes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TooManyRequestsError'
+  /v1/networks:
+    get:
+      tags:
+        - Networks
+      operationId: listNetworks
+      summary: List private networks
+      description: |
+        Returns the caller's private (non-legacy) networks with the number
+        of attached projects and databases, newest first.
+      parameters:
+        - $ref: '#/components/parameters/TeamIDQuery'
+        - name: isManagedWordpress
+          in: query
+          required: false
+          description: |
+            Only the exact string `true` selects managed WordPress networks;
+            any other value (or omission) returns only other networks.
+          schema:
+            type: string
+            enum:
+              - 'true'
+              - 'false'
+      responses:
+        '200':
+          description: Networks retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworksListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+        - Networks
+      operationId: createNetwork
+      summary: Create a private network
+      description: |
+        Creates a private network. Rejected once the caller already owns
+        more than 50 private networks (i.e. a user can end up with at most
+        51). Network names are unique per user (409 Conflict otherwise).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNetworkRequest'
+      responses:
+        '201':
+          description: Network created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateNetworkResponse'
+        '400':
+          description: Max number of networks reached, or validation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A network with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
 components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TeamIDQuery:
+      name: teamID
+      in: query
+      required: false
+      description: |
+        Optional team ID. When provided, the operation is executed on behalf
+        of the team (subject to the caller's team role permissions).
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+    DatabaseIDPath:
+      name: databaseID
+      in: path
+      required: true
+      description: Database identifier (24-character hexadecimal ID).
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+    HostnamePath:
+      name: hostname
+      in: path
+      required: true
+      description: |
+        Desired database hostname. Must start and end with an alphanumeric
+        character, may contain hyphens, must not be all digits, must be
+        3-50 characters long and must not be `localhost`.
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 50
+        pattern: '^[a-z0-9][a-z0-9\-]+[a-z0-9]$'
+    StatPath:
+      name: stat
+      in: path
+      required: true
+      description: Metric to retrieve.
+      schema:
+        type: string
+        enum:
+          - cpu
+          - memory
+          - network-receive
+          - network-transmit
+    BackupIntervalPath:
+      name: interval
+      in: path
+      required: true
+      description: Backup interval folder of the stored backup.
+      schema:
+        type: string
+        enum:
+          - manual
+          - hourly
+          - daily
+          - weekly
+          - monthly
+  responses:
+    BadRequest:
+      description: Bad request (validation error).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+    Unauthorized:
+      description: |
+        Missing, invalid or expired bearer token. Note: the authentication
+        middleware responds with `{"error": "Unauthorized."}`.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnauthorizedError'
+    Forbidden:
+      description: |
+        The caller (or actor team member) lacks the required permission, the
+        account is not verified, or a team-level rule blocks the action.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ForbiddenError'
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
+    Conflict:
+      description: Conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConflictError'
+    PaymentRequired:
+      description: Not enough balance.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'
+    PreconditionRequired:
+      description: Precondition required (plan/feature limitation).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PreconditionRequiredError'
+    TooManyRequests:
+      description: Too many requests (rate limited).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TooManyRequestsError'
+    ServiceUnavailable:
+      description: Upstream monitoring/log service unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ServiceUnavailableError'
   schemas:
-    Create-databases:
+    Error:
       type: object
+      description: Standard error response returned by the API.
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code.
+        error:
+          type: string
+          description: HTTP status phrase (e.g. `Bad Request`).
+        message:
+          type: string
+          description: Human readable error message.
+        data:
+          type: object
+          description: 'Optional structured error data (e.g. a `code` field such as `no_permission`).'
+          properties:
+            code:
+              type: string
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Validation error (HTTP 400).
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 400
+        error:
+          type: string
+          enum:
+            - Bad Request
+    UnauthorizedError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: |
+        Unauthorized (HTTP 401). Note that the authentication middleware
+        responds with the body `{ "error": "Unauthorized." }`.
+    ForbiddenError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: |
+        Forbidden (HTTP 403). Common `data.code` values:
+        `no_permission`, `team_not_found`, `account_verification_required`.
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 403
+        error:
+          type: string
+          enum:
+            - Forbidden
+    NotFoundError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Not found (HTTP 404).
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 404
+        error:
+          type: string
+          enum:
+            - Not Found
+    ConflictError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Conflict (HTTP 409), e.g. hostname already taken.
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 409
+        error:
+          type: string
+          enum:
+            - Conflict
+    BadRequestError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Bad request (HTTP 400) raised by controller logic.
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 400
+        error:
+          type: string
+          enum:
+            - Bad Request
+    PaymentRequiredError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Payment required (HTTP 402), e.g. "Not enough balance.".
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 402
+        error:
+          type: string
+          enum:
+            - Payment Required
+    PreconditionRequiredError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Precondition required (HTTP 428), e.g. plan/feature limits with a `data.code`.
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 428
+        error:
+          type: string
+          enum:
+            - Precondition Required
+    TooManyRequestsError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Too many requests (HTTP 429).
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 429
+        error:
+          type: string
+          enum:
+            - Too Many Requests
+    ServiceUnavailableError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Service unavailable (HTTP 503), raised when the metrics/logs service is temporarily unavailable.
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 503
+        error:
+          type: string
+          enum:
+            - Service Unavailable
+    DatabaseType:
+      type: string
+      description: Supported database engine types.
+      enum:
+        - mysql
+        - mariadb
+        - mongodb
+        - postgres
+        - redis
+        - mssql
+        - elasticsearch
+        - rabbitmq
+        - clickhouse
+    DatabaseStatus:
+      type: string
+      description: |
+        Database lifecycle status. `UNFREEZING` is a transient status set
+        while a legacy database is being unfrozen.
+      enum:
+        - STARTED
+        - DEPLOYED
+        - RUNNING
+        - FROZEN
+        - FAILED
+        - CRASH_LOOP
+        - SUSPENDED
+        - UNFREEZING
+    DatabasePlanID:
+      type: string
+      description: |
+        Database plan identifier. Availability of plans is region-dependent:
+        `small`, `medium`, `standard`, `large`, `large-3x` and `large-4x`
+        are only available in the Germany region; `ir-*`, `standard-base`,
+        `standard-pro`, `pro`, `pro-plus`, `pro-max` and all `-g2` plans are
+        generally available. Each plan also supports a specific set of
+        database types (e.g. `ir-small` supports mysql, mariadb, mongodb,
+        postgres, redis and rabbitmq; `-g2` plans support all types except
+        as noted in the product documentation).
+      enum:
+        - small
+        - medium
+        - standard
+        - large
+        - large-3x
+        - large-4x
+        - ir-small
+        - ir-medium
+        - standard-base
+        - standard-pro
+        - pro
+        - pro-plus
+        - pro-max
+        - small-g2
+        - medium-g2
+        - standard-base-g2
+        - standard-pro-g2
+        - pro-g2
+        - pro-plus-g2
+        - pro-max-g2
+    DatabaseVersion:
+      type: string
+      description: |
+        Database engine version. Must be a version of the selected `type`:
+        - mysql: `9.0.1` (default), `8.0.30`, `5.7.44`
+        - mariadb: `12.0.2` (default), `11.2.3`, `10.10.7`, `10.8.4`, `10.6.8`
+        - postgres: `18.4` (default), `17.10`, `16.14`, `15.18`, `14.23`,
+          `13.23` (deprecated/older versions such as `18.0`, `17.6`,
+          `16.10`, `15.14`, `14.19`, `13.22`, `17.1`, `16.3`, `16.1`,
+          `15.4`, `14.9`, `13.12`, `12.16`, `11.21-bullseye` are rejected
+          at creation time)
+        - mongodb: `8.0.1-noble` (default), `7.0.5`, `6.0.6`
+        - redis: `8.0.2` (default), `7.2.3`, `6.2.14`
+        - mssql: `2022-CU11-ubuntu-20.04` (default), `2019-CU24-ubuntu-20.04`,
+          `2017-CU31-ubuntu-18.04`
+        - elasticsearch: `9.1.4` (default), `8.11.1`, `8.4.1`, `7.17.6`
+        - rabbitmq: `4.0.2-management` (default), `3.13.7-management`
+        - clickhouse: `26.3` (default), `25.8`
+      enum:
+        - 9.0.1
+        - 8.0.30
+        - 5.7.44
+        - 12.0.2
+        - 11.2.3
+        - 10.10.7
+        - 10.8.4
+        - 10.6.8
+        - 8.0.1-noble
+        - 7.0.5
+        - 6.0.6
+        - 18.4
+        - 17.10
+        - 16.14
+        - 15.18
+        - 14.23
+        - 13.23
+        - 18.0
+        - 17.6
+        - 16.10
+        - 15.14
+        - 14.19
+        - 13.22
+        - 17.1
+        - 16.3
+        - 16.1
+        - 15.4
+        - 14.9
+        - 13.12
+        - 12.16
+        - 11.21-bullseye
+        - 8.0.2
+        - 7.2.3
+        - 6.2.14
+        - 2022-CU11-ubuntu-20.04
+        - 2019-CU24-ubuntu-20.04
+        - 2017-CU31-ubuntu-18.04
+        - 9.1.4
+        - 8.11.1
+        - 8.4.1
+        - 7.17.6
+        - 4.0.2-management
+        - 3.13.7-management
+        - '26.3'
+        - '25.8'
+    BundlePlanID:
+      type: string
+      description: |
+        Backup/feature bundle plan attached to a database running on private
+        network infrastructure.
+      enum:
+        - free
+        - basic
+        - standard
+        - pro
+    NetworkReference:
+      type: object
+      nullable: true
+      description: Private network attached to the database (populated subset).
+      properties:
+        _id:
+          type: string
+          description: Network ID (24-character hexadecimal ID).
+        name:
+          type: string
+        node:
+          type: object
+          nullable: true
+          description: Populated only in the single-database response.
+          properties:
+            _id:
+              type: string
+            host:
+              type: string
+    DatabaseSummary:
+      type: object
+      description: Database entry as returned by the list endpoint.
+      properties:
+        _id:
+          type: string
+          description: Database ID (24-character hexadecimal ID).
+        name:
+          type: string
+          nullable: true
+          description: Legacy database name (only used when the private-network feature is disabled).
+        hostname:
+          type: string
+        type:
+          $ref: '#/components/schemas/DatabaseType'
+        status:
+          $ref: '#/components/schemas/DatabaseStatus'
+        planID:
+          type: string
+        scale:
+          type: integer
+        publicNetwork:
+          type: boolean
+        network:
+          $ref: '#/components/schemas/NetworkReference'
+        created_at:
+          type: string
+          format: date-time
+        bundlePlanID:
+          type: string
+          nullable: true
+    Database:
+      type: object
+      description: Full database resource with computed fields.
+      properties:
+        _id:
+          type: string
+          description: Database ID (24-character hexadecimal ID).
+        id:
+          type: string
+          description: String form of the database's ID.
+        name:
+          type: string
+          nullable: true
+        hostname:
+          type: string
+        type:
+          $ref: '#/components/schemas/DatabaseType'
+        port:
+          type: integer
+          nullable: true
+          description: Public port (null when public network is disabled).
+        internalPort:
+          type: integer
+          description: Engine default internal port (e.g. 3306 for MySQL/MariaDB, 5432 for PostgreSQL, 6379 for Redis, 1433 for MSSQL, 27017 for MongoDB, 9200 for Elasticsearch, 5672 for RabbitMQ, 8123 for ClickHouse).
+        status:
+          $ref: '#/components/schemas/DatabaseStatus'
+        root_password:
+          type: string
+          description: |
+            Root password. Returned decrypted unless the database status is
+            `STARTED` or `FAILED` (in which case the stored encrypted value
+            is returned).
+        dbName:
+          type: string
+          nullable: true
+        version:
+          type: string
+        planID:
+          type: string
+        bundlePlanID:
+          type: string
+          nullable: true
+        resources:
+          type: object
+          nullable: true
+          properties:
+            cpus:
+              type: number
+            memory:
+              type: number
+            storage:
+              type: number
+        volumeSize:
+          type: number
+          nullable: true
+          description: Disk volume size in GB.
+        publicNetwork:
+          type: boolean
+        scale:
+          type: integer
+        network:
+          $ref: '#/components/schemas/NetworkReference'
+        node:
+          type: object
+          nullable: true
+          description: Legacy (Swarm) node of the database.
+          properties:
+            _id:
+              type: string
+            host:
+              type: string
+        metaData:
+          type: object
+          additionalProperties: true
+          description: |
+            Engine metadata/settings (e.g. `maxConnections`, `postgis`,
+            `standaloneReplicaSet`, control panel fields). The secret
+            `replicaSetKey` is omitted.
+        created_at:
+          type: string
+          format: date-time
+        hourlyPrice:
+          type: number
+          description: Hourly plan price multiplied by `scale` (a third of it when `scale` is 0).
+        bundleHourlyPrice:
+          type: number
+          description: Hourly bundle plan price multiplied by `scale` (a third of it when `scale` is 0).
+        username:
+          type: string
+          nullable: true
+          description: |
+            Engine root username (`root` for most engines, `sa` for MSSQL,
+            `elastic` for Elasticsearch, `null` for Redis).
+        controlPanelSatus:
+          type: string
+          nullable: true
+          description: |
+            Control panel state (note the API field name typo
+            "controlPanelSatus"): the control panel release state, `null`
+            when it cannot be determined, or `no-control-panel` when no
+            control panel exists.
+        databaseInspectorUrl:
+          type: string
+          nullable: true
+          description: Database inspector URL (only present when the database is attached to a private network).
+    CreateDatabaseRequest:
+      type: object
+      required:
+        - type
+        - hostname
       properties:
         hostname:
           type: string
-          description: The hostname of databases that you want to create
-        options:
-          type: object  
-          properties:
-            standaloneReplicaSet:
-              type: boolean
+          minLength: 3
+          maxLength: 50
+          pattern: '^[a-z0-9][a-z0-9\-]+[a-z0-9]$'
+          description: |
+            Unique database hostname (lowercase; must not be all digits and
+            must not be `localhost`). Required when the private-network
+            feature is enabled (current production behaviour).
+        name:
+          type: string
+          maxLength: 50
+          description: |
+            Legacy database name; only accepted when the private-network
+            feature flag is disabled (replaces `hostname` in that mode).
+        type:
+          $ref: '#/components/schemas/DatabaseType'
+        version:
+          $ref: '#/components/schemas/DatabaseVersion'
+        planID:
+          $ref: '#/components/schemas/DatabasePlanID'
+        network:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+          description: ID of the private network to attach the database to. Required for `-g2` plans.
         publicNetwork:
           type: boolean
-          description: The publicNetwork of databases that you want to create
-        type:
+          default: true
+          description: Whether the database should get a public network endpoint.
+        bundlePlanID:
+          $ref: '#/components/schemas/BundlePlanID'
+        options:
+          type: object
+          description: |
+            Engine-specific creation options. The accepted keys depend on
+            `type`:
+            - `mysql`/`mariadb`: `rootPassword`, `defaultDBName`,
+              `eventScheduler` (`ON`|`OFF`)
+            - `mongodb`: `standaloneReplicaSet` (boolean, default false)
+            - `postgres`: `postgis` and `pgvector` (booleans, default false)
+            - `mssql`: `FTS` (boolean, default false)
+          properties:
+            rootPassword:
+              type: string
+              description: Root password (mysql/mariadb only). Generated when omitted.
+            defaultDBName:
+              type: string
+              description: Initial database name (mysql/mariadb only).
+            eventScheduler:
+              type: string
+              enum:
+                - 'ON'
+                - 'OFF'
+              description: MySQL/MariaDB event scheduler state.
+            standaloneReplicaSet:
+              type: boolean
+              default: false
+              description: Deploy MongoDB as a standalone replica set.
+            postgis:
+              type: boolean
+              default: false
+              description: Install the PostGIS extension (postgres only).
+            pgvector:
+              type: boolean
+              default: false
+              description: Install the pgvector extension (postgres only).
+            FTS:
+              type: boolean
+              default: false
+              description: Enable full-text search (mssql 2022 only).
+        backupSourceId:
           type: string
-          description: The type of databases that you want to create
-        planID:
+          pattern: '^[0-9a-fA-F]{24}$'
+          description: ID of an existing database to restore a backup from (must be provided together with `backupToRestoreName`).
+        backupToRestoreName:
           type: string
-          description: The planID of databases that you want to create
-        version:
+          maxLength: 100
+          description: Name of the backup file to restore (must be provided together with `backupSourceId`).
+        isManagedWordpress:
+          type: boolean
+          description: Marks the database as a managed WordPress database.
+    CreateDatabaseResponse:
+      type: object
+      properties:
+        databaseID:
           type: string
-          description: The version of databases that you want to create
-    DB-details:
+          description: ID of the created database (24-character hexadecimal ID).
+    DatabasesListResponse:
+      type: object
+      properties:
+        databases:
+          type: array
+          items:
+            $ref: '#/components/schemas/DatabaseSummary'
+    DatabaseResponse:
       type: object
       properties:
         database:
-          type: object
-          properties:
-            DBId:
-              type: string
-              description: The ID of the database
-            type:
-              type: string
-              description: The type of the database
-            planID:
-              type: string
-              description: The plan ID
-            status:
-              type: string
-              description: The status of the database
-            scale:
-              type: integer
-              description: The scale of the database
-            hostname:
-              type: string
-              description: The hostname of the database
-            publicNetwork:
-              type: boolean
-              description: Indicates if the database is on a public network
-            version:
-              type: string
-              description: The database version
-            volumeSize:
-              type: integer
-              description: The size of the database volume
-            created_at:
-              type: string
-              description: The creation timestamp of the database
-            dbName:
-              type: string
-              description: The name of db
-            node:
-              type: object
-              properties:
-                _id:
-                  type: string
-                  description: The ID of the database node
-                host:
-                  type: string
-                  description: The host of the database node
-            port:
-              type: integer
-              description: The port number for the database connection
-            root_password:
-              type: string
-              description: The root password for the database
-            internalPort:
-              type: integer
-              description: The internal port of the database
-            id:
-              type: string
-              description: The unique ID of the database
-            hourlyPrice:
-              type: number
-              description: The hourly price of the database
-            metaData:
-              type: object
-              properties:
-                standaloneReplicaSet:
-                  type: boolean
-                  description: Indicates if the database uses a standalone replica
-                    set
-                privateNetwork:
-                  type: boolean
-                  description: Indicates if the database is on a private network
-            username:
-              type: string
-              description: The username associated with the database
-    Reports:
-      type: object
-      properties:
-        end:
-          type: number
-        result:
-          type: array
-          items:
-            type: object
-            properties:
-              values:
-                type: array
-                items:
-                  type: array
-                  items:
-                    oneOf:
-                      - type: number
-                      - type: string
-              applet:
-                type: string
-    DBs-details:
+          $ref: '#/components/schemas/Database'
+    VersionsResponse:
       type: object
       properties:
         databases:
@@ -835,63 +1829,255 @@ components:
           items:
             type: object
             properties:
-              DBId:
+              name:
                 type: string
-                description: The ID of the database
-              type:
-                type: string
-                description: The type of the database
-              planID:
-                type: string
-                description: The plan ID
-              status:
-                type: string
-                description: The status of the database
-              scale:
-                type: integer
-                description: The scale of the database
-              hostname:
-                type: string
-                description: The hostname of the database
-              publicNetwork:
-                type: boolean
-                description: Indicates if the database is on a public network
-              created_at:
-                type: string
-                description: The creation timestamp of the database
-              internalPort:
-                type: integer
-                description: The internal port of the database
-              id:
-                type: string
-                description: The unique ID of the database
-    Databases-settings:
+                description: Database engine type.
+              labels:
+                type: array
+                items:
+                  type: string
+                description: Human readable version labels (e.g. `9.0`, `10.6 (LTS)`).
+    ControlPanelResponse:
       type: object
       properties:
-        type: 
+        controlPanelID:
           type: string
+          description: ID of the deployed control panel project (prefixed with `controlpanel-`).
+    ResizeRequest:
+      type: object
+      required:
+        - planID
+        - disk
+      properties:
+        disk:
+          type: boolean
+          description: |
+            Whether to also grow the disk volume to the new plan's volume
+            size. Must be included explicitly in the request body (the
+            backend's `disk` field is required, it does not fall back to a
+            default when the key is omitted).
+        planID:
+          $ref: '#/components/schemas/DatabasePlanID'
+    ResizeBundlePlanRequest:
+      type: object
+      required:
+        - bundlePlanID
+      properties:
+        bundlePlanID:
+          $ref: '#/components/schemas/BundlePlanID'
+    ScaleRequest:
+      type: object
+      properties:
+        scale:
+          type: integer
+          minimum: 0
+          maximum: 1
+          description: 0 to stop the database, 1 to run a single instance.
+    DatabaseArgsRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - mysql
+            - mariadb
+            - postgres
+          description: Database engine type (must match the database's type).
         options:
           type: object
+          description: |
+            Engine parameters to store in `metaData`. The accepted keys
+            depend on `type`:
+            - `mysql`/`mariadb`: `maxConnections`, `netBufferLength`,
+              `maxAllowedPacket`, `connectTimeout`, `maxJoinSize` (numbers),
+              `eventScheduler` (`ON`|`OFF`)
+            - `postgres`: `connectTimeout` (minimum 2), `clientEncoding`,
+              `maxConnections`, `sharedBuffers` and the `postgis`/`pgvector`
+              extension flags
           properties:
             maxConnections:
               type: number
+              nullable: true
             netBufferLength:
               type: number
-            selectLimit:
-              type: number
+              nullable: true
             maxAllowedPacket:
               type: number
+              nullable: true
             connectTimeout:
               type: number
+              nullable: true
+              minimum: 2
             maxJoinSize:
               type: number
-            clientEncoding:
-              type: string
+              nullable: true
             sharedBuffers:
               type: number
-  securitySchemes:
-    jwt:
-      type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
-      name: Authorization
-      in: header
+              nullable: true
+            clientEncoding:
+              type: string
+              nullable: true
+            eventScheduler:
+              type: string
+              enum:
+                - 'ON'
+                - 'OFF'
+            postgis:
+              type: boolean
+              default: false
+            pgvector:
+              type: boolean
+              default: false
+    EventsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          description: |
+            Event entries for the database (structure varies by event type).
+          items:
+            type: object
+            additionalProperties: true
+    MetricsResponse:
+      type: object
+      properties:
+        end:
+          type: integer
+          description: End of the queried range (UNIX timestamp, seconds; ~30 seconds in the past).
+        result:
+          type: array
+          description: One entry per metric series (e.g. per instance).
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                description: Result type (`matrix`).
+              values:
+                type: array
+                description: Array of `[unixTimestamp, "value"]` sample pairs.
+                items:
+                  type: array
+                  items: {}
+              applet:
+                type: string
+                nullable: true
+                description: Instance name the series belongs to.
+    MetricsSummaryResponse:
+      type: object
+      properties:
+        cpuUsage:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricPoint'
+        memoryUsage:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricPoint'
+        diskUsage:
+          type: object
+          nullable: true
+          properties:
+            size:
+              type: string
+              description: Disk size label reported by the agent.
+            usage:
+              type: string
+              description: Disk usage percentage as a string.
+            reportedAt:
+              type: number
+              description: Sample timestamp (UNIX seconds).
+    MetricPoint:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Result type (`vector`).
+        value:
+          type: array
+          description: 'Sample pair of `[unixTimestamp, "value"]`.'
+          items: {}
+        applet:
+          type: string
+          nullable: true
+    BackupsResponse:
+      type: object
+      properties:
+        backups:
+          type: array
+          items:
+            $ref: '#/components/schemas/Backup'
+    Backup:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Backup file name including its interval prefix (e.g. `daily/db-....dump`).
+        size:
+          type: integer
+          description: Backup size in bytes.
+        lastModified:
+          type: string
+          format: date-time
+      additionalProperties: true
+    DownloadLinkResponse:
+      type: object
+      properties:
+        link:
+          type: string
+          description: Temporary pre-signed download URL for the backup file.
+    PutBakFileRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: HTTP(S) URL of the `.bak` file to restore.
+    NetworksListResponse:
+      type: object
+      properties:
+        networks:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetworkSummary'
+    NetworkSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Network ID (24-character hexadecimal ID).
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        projectCount:
+          type: integer
+        databaseCount:
+          type: integer
+    CreateNetworkRequest:
+      type: object
+      required:
+        - networkName
+      properties:
+        networkName:
+          type: string
+          minLength: 3
+          pattern: '^[a-z0-9][a-z0-9\-]+[a-z0-9]$'
+          description: Unique (per user) network name; stored lowercased.
+        isManagedWordpress:
+          type: boolean
+          description: Marks the network as a managed WordPress network.
+    CreateNetworkResponse:
+      type: object
+      properties:
+        network:
+          type: object
+          properties:
+            _id:
+              type: string
+              description: ID of the created network (24-character hexadecimal ID).

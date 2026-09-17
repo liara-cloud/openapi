@@ -1,0 +1,48 @@
+---
+title: Platform Core API
+description: Cross-service APIs for identity, teams, billing, and support on the Liara Cloud Platform
+---
+
+# Platform Core API
+
+Liara's Platform Core API covers the cross-service operations that are not tied to a single runtime product such as PaaS or DBaaS: account lifecycle, team collaboration, billing, and support.
+
+## What's inside
+
+- **Authentication & Account** — login, registration, OAuth, API tokens, password flows, two-factor authentication, account verification, profile management
+- **Teams & Access** — teams, invitations, members, custom roles, and permission assignment (RBAC/DAC)
+- **Billing & Subscription** — credit, payments, invoices, receipts, discount codes, and subscription plans
+- **Support & Notifications** — support tickets, comments, attachments, notification channels, and preferences
+
+## Authentication
+
+Most endpoints require a JWT Bearer token:
+
+```text
+Authorization: Bearer <your-api-token>
+```
+
+You can generate an API token in the [Liara Console](https://console.liara.ir) or via `POST /v1/api-token`. Public endpoints (login, registration, gateway callbacks) are marked in the endpoint reference.
+
+## Error format
+
+All errors return a consistent JSON envelope:
+
+```json
+{
+  "statusCode": 403,
+  "error": "Forbidden",
+  "message": "You do not have permission to access this resource.",
+  "data": { "code": "no_permission" }
+}
+```
+
+Common `data.code` values include `no_permission`, `team_not_found`, `account_verification_required`, and `two_fa_expired`.
+
+## Base URL
+
+```text
+https://api.iran.liara.ir
+```
+
+Explore the endpoint references in this section for full request bodies, response schemas, and error codes.

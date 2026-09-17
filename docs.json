@@ -29,6 +29,49 @@
     },
     "products": [
       {
+        "product": "Platform Core",
+        "icon": "layer-group",
+        "groups": [
+          {
+            "group": "Introduction",
+            "icon": "rocket",
+            "pages": ["pages/platform-core"]
+          },
+          {
+            "group": "Authentication & Account",
+            "icon": "id-card",
+            "openapi": {
+              "source": "spec/platform-auth.yaml",
+              "directory": "platform-auth"
+            }
+          },
+          {
+            "group": "Teams & Access",
+            "icon": "users",
+            "openapi": {
+              "source": "spec/platform-teams.yaml",
+              "directory": "platform-teams"
+            }
+          },
+          {
+            "group": "Billing & Subscription",
+            "icon": "receipt",
+            "openapi": {
+              "source": "spec/platform-billing.yaml",
+              "directory": "platform-billing"
+            }
+          },
+          {
+            "group": "Support & Notifications",
+            "icon": "bell",
+            "openapi": {
+              "source": "spec/platform-support.yaml",
+              "directory": "platform-support"
+            }
+          }
+        ]
+      },
+      {
         "product": "PaaS",
         "icon": "cloud",
         "groups": [
@@ -38,11 +81,27 @@
             "pages": ["pages/paas"]
           },
           {
-            "group": "API Endpoints",
-            "icon": "file-code",
+            "group": "Apps & Deployments",
+            "icon": "cube",
             "openapi": {
               "source": "spec/paas.yaml",
-              "directory": "pass"
+              "directory": "paas"
+            }
+          },
+          {
+            "group": "Git Integration & One-Click Apps",
+            "icon": "code-branch",
+            "openapi": {
+              "source": "spec/paas-git-oneclick.yaml",
+              "directory": "paas-git-oneclick"
+            }
+          },
+          {
+            "group": "Domains, Disks & Storage",
+            "icon": "disk",
+            "openapi": {
+              "source": "spec/paas-domains-disks.yaml",
+              "directory": "paas-domains-disks"
             }
           }
         ]
@@ -61,7 +120,7 @@
             "icon": "file-code",
             "openapi": {
               "source": "spec/dbaas.yaml",
-              "directory": "dbass"
+              "directory": "dbaas"
             }
           }
         ]

@@ -1,0 +1,2056 @@
+openapi: 3.0.1
+info:
+  title: PaaS — Domains, Disks & Storage
+  version: 1.0.0
+  description: >-
+    Liara PaaS API for domain management (with SSL certificate lifecycle),
+    project disks (create, resize, delete), disk backups and metrics, FTP
+    access credentials for disks, and the account-level object storage
+    service lifecycle. Derived from the Liara API backend (v1/v2 routes).
+servers:
+  - url: https://api.iran.liara.ir
+security:
+  - jwt: []
+tags:
+  - name: Domains
+    description: Register domains, attach them to projects or buckets, verify DNS status and delete them.
+  - name: SSL
+    description: SSL certificate provisioning, disabling and certificate issuance history for domains.
+  - name: Default Subdomain
+    description: Toggle the project's free `*.liara.run` default subdomain.
+  - name: Disks
+    description: Persistent disks attached to a project — list, create, inspect, resize and delete.
+  - name: Disk Backups
+    description: Automatic and manual disk backups — list, create manual backups, download and restore.
+  - name: Disk Metrics
+    description: Real-time disk usage metrics reported by the node agent.
+  - name: FTP Access
+    description: FTP credentials to access disk contents, including the public FTP login check.
+  - name: Storage Account
+    description: Account-level object storage service lifecycle (disable / unfreeze).
+paths:
+  /v1/domains:
+    get:
+      tags:
+        - Domains
+      operationId: listDomains
+      summary: List domains
+      description: >-
+        Returns the caller's domains, paginated and filterable. Domains are of
+        type PROJECT by default; pass `type` to list BUCKET or STORAGE domains.
+        When acting on behalf of a team, only projects/buckets the actor has
+        any permission on are returned.
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: Filter by domain type. Defaults to PROJECT.
+          schema:
+            type: string
+            enum:
+              - PROJECT
+              - STORAGE
+              - BUCKET
+            default: PROJECT
+        - name: project
+          in: query
+          required: false
+          description: Project ID (project_id) to filter domains by.
+          schema:
+            type: string
+        - name: bucket
+          in: query
+          required: false
+          description: Bucket name to filter domains by.
+          schema:
+            type: string
+        - name: domain
+          in: query
+          required: false
+          description: Case-insensitive partial match on the domain name.
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9.]*$'
+        - name: count
+          in: query
+          required: false
+          description: Number of domains to return (limit).
+          schema:
+            type: integer
+        - name: page
+          in: query
+          required: false
+          description: Page number (1-based); used with `count` for skip calculation.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Domains list with total count.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domains:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DomainListItem'
+                  total:
+                    type: integer
+                    description: Total number of domains matching the query.
+                required:
+                  - domains
+                  - total
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags:
+        - Domains
+      operationId: createDomain
+      summary: Add a domain
+      description: >-
+        Adds a domain and assigns it to a project, a bucket, or the account's
+        object storage. Conditional rules from the validation schema:
+
+        - `project` is required when `type` is `PROJECT` (Liara project_id).
+
+        - `bucket` is required when `type` is `BUCKET` (bucket name).
+
+        - `isWildcard` is only allowed for PROJECT domains; when `name` starts
+        with `*.` the domain is automatically treated as wildcard.
+        The domain status is ACTIVE immediately when the root domain (or an
+        active DNS zone) is already verified for the account, otherwise it is
+        PENDING until `GET /v1/domains/{domainID}/check` verifies ownership.
+        Requires the `allowedToUseServices` check to pass (account verified).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: >-
+                    Domain name, lowercased by the API. Must be a valid
+                    hostname; a `*.` prefix marks a wildcard domain.
+                  example: app.example.com
+                type:
+                  type: string
+                  enum:
+                    - PROJECT
+                    - STORAGE
+                    - BUCKET
+                  default: PROJECT
+                project:
+                  type: string
+                  description: Required when type is PROJECT. The project_id of the target project.
+                bucket:
+                  type: string
+                  description: Required when type is BUCKET. The name of the target bucket.
+                isWildcard:
+                  type: boolean
+                  default: false
+                  description: Only allowed when type is PROJECT.
+              required:
+                - name
+      responses:
+        '201':
+          description: Domain created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        description: ID of the newly created domain.
+                    required:
+                      - _id
+        '400':
+          description: >-
+            Validation error, or one of the domain policy errors (a 400
+            with `data.code`): `unknown_tld` ("Unknown TLDs are
+            not allowed."), `deep_domain` ("Too deep domains are not allowed."),
+            `free_tlds` ("Free TLDs are not allowed."), "Wildcard domains are
+            only allowed for projects."
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationError'
+                  - $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: >-
+            Account verification required (`data.code` =
+            `account_verification_required`), actor lacks `operate`/`manage`
+            permission on the target project/bucket (`data.code` =
+            `no_permission`), or team authorization failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Bucket not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: '"Domain name already exists."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '428':
+          description: '"You have reached the maximum number of domains for this project."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/domains/{domainName}:
+    get:
+      tags:
+        - Domains
+      operationId: showDomain
+      summary: Get a domain by name
+      description: >-
+        Returns a single domain owned by the caller (matched case-insensitively
+        on the lowercased name) with populated project network node host or
+        bucket cluster endpoint, plus computed DNS instructions fields:
+        `isRoot`, `subdomain` and `target`.
+      parameters:
+        - name: domainName
+          in: path
+          required: true
+          description: The domain name (matched lowercase).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The domain with computed fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    $ref: '#/components/schemas/Domain'
+                required:
+                  - domain
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Domain not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/domains/{domainID}/set-redirect:
+    post:
+      tags:
+        - Domains
+      operationId: setDomainRedirect
+      summary: Set or clear a domain redirect
+      description: >-
+        Configures HTTP redirection for a PROJECT-type domain. Pass an empty
+        `redirectTo` to clear the redirect. Returns an empty body on success.
+        Actors need `operate`/`manage` permission on the domain's project.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirectTo:
+                  type: string
+                  default: ''
+                  description: >-
+                    Target URL. Must be a valid absolute URL and must not point
+                    to a wildcard (`*.`) hostname. Empty string clears the
+                    redirect.
+                redirectStatus:
+                  type: integer
+                  enum:
+                    - 301
+                    - 302
+                  default: 302
+                  description: HTTP redirect status code.
+      responses:
+        '200':
+          description: Redirect saved (empty response body).
+        '400':
+          description: >-
+            "Redirecting to wildcard domains is not allowed." or "This is only
+            applicable to domains with type PROJECT.", or validation error.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationError'
+                  - $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Domain not found (generic not-found error, no custom message).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/domains/provision-ssl-certs:
+    post:
+      tags:
+        - SSL
+      operationId: provisionDomainSSLCerts
+      summary: Request SSL certificates for a domain
+      description: >-
+        Starts SSL certificate issuance for one of the caller's domains by
+        setting its certificates status to REQUESTING and queueing the
+        provisioning job. Note this endpoint validates the body manually
+        and uses a different error body shape than other endpoints — a
+        `code` field instead of the usual error envelope.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                domain:
+                  type: string
+                  description: Name of the domain to provision certificates for.
+              required:
+                - domain
+      responses:
+        '200':
+          description: Provisioning accepted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - success
+                required:
+                  - code
+        '400':
+          description: Empty body — `domain` is missing or not a string.
+        '403':
+          description: >-
+            Either certificates already exist for the domain
+            (`{"code":"ssl_certs_exist"}`) or the actor lacks permission
+            (the standard error response, with `data.code` =
+            `no_permission`).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      code:
+                        type: string
+                        enum:
+                          - ssl_certs_exist
+                    required:
+                      - code
+                  - $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Domain not found for the caller.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    enum:
+                      - domain_not_found
+                required:
+                  - code
+  /v1/domains/{domainID}/ssl/disable:
+    post:
+      tags:
+        - SSL
+      operationId: disableDomainSSL
+      summary: Disable SSL for a domain
+      description: >-
+        Disables SSL certificates for the domain (certificates status becomes
+        DEACTIVE) and cancels scheduled renewal jobs. Returns 204 with no
+        body. Actors need `operate`/`manage` permission.
+      parameters:
+        - name: domainID
+          in: path
+          required: true
+          description: Domain ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        '204':
+          description: SSL disabled.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Domain not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/domains/{domainName}/certs-history:
+    get:
+      tags:
+        - SSL
+      operationId: listDomainCertsHistory
+      summary: List SSL certificate issuance history
+      description: >-
+        Returns the certificate manager log entries for the given domain,
+        newest first.
+      parameters:
+        - name: domainName
+          in: path
+          required: true
+          description: The domain name (matched lowercase).
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Certificate issuance history.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  certLogs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        domain:
+                          type: string
+                        isSuccess:
+                          type: boolean
+                          nullable: true
+                          description: Whether the issuance attempt succeeded.
+                        createdAt:
+                          type: string
+                          format: date-time
+                      required:
+                        - _id
+                        - domain
+                required:
+                  - certLogs
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Domain not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/domains/{domainID}:
+    delete:
+      tags:
+        - Domains
+      operationId: deleteDomain
+      summary: Delete a domain
+      description: >-
+        Deletes one of the caller's domains. Fails if the attached project or
+        bucket is SUSPENDED. Actors need `operate`/`manage` permission.
+        Returns an empty body on success.
+      parameters:
+        - name: domainID
+          in: path
+          required: true
+          description: Domain ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        '200':
+          description: Domain deleted (empty response body).
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: >-
+            "Suspended services are not allowed to delete domains." or actor
+            lacks `operate`/`manage` permission (`data.code` = `no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Domain not found (generic not-found error, no custom message).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/domains/{domainID}/check:
+    get:
+      tags:
+        - Domains
+      operationId: checkDomainStatus
+      summary: Check domain DNS status
+      description: >-
+        Re-checks domain ownership and DNS configuration: verifies the TXT
+        challenge record (`liara-challenge.<base-domain>`), the CNAME record
+        against the project's node, and the ACME DNS challenge record. Updates
+        and returns the domain with refreshed `status` (ACTIVE/PENDING),
+        `CNameRecord`, `acmeRecord` and `behindCdn`. Fails with 409 if an
+        ACTIVE domain with the same name exists for another user.
+      parameters:
+        - name: domainID
+          in: path
+          required: true
+          description: Domain ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        '200':
+          description: The domain with refreshed status fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    $ref: '#/components/schemas/Domain'
+                required:
+                  - domain
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Domain not found (generic not-found error, no custom message).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: '"Domain name already exists." (an ACTIVE domain with the same name belongs to another user).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+  /v1/projects/{projectID}/default-subdomain/enable:
+    post:
+      tags:
+        - Default Subdomain
+      operationId: enableDefaultSubdomain
+      summary: Enable the default subdomain
+      description: >-
+        Enables the project's free default `*.liara.run` subdomain. Rejected
+        if the subdomain's free period has expired and the project has not
+        been granted `keepDefaultSubdomain`. Returns an empty body.
+        Actors need `operate`/`manage` permission on the project.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        '200':
+          description: Default subdomain enabled (empty response body).
+        '400':
+          description: '"Default subdomain has expired for this project."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Project not found (generic not-found error, no custom message).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/projects/{projectID}/default-subdomain/disable:
+    post:
+      tags:
+        - Default Subdomain
+      operationId: disableDefaultSubdomain
+      summary: Disable the default subdomain
+      description: >-
+        Disables the project's default `*.liara.run` subdomain. Returns an
+        empty body. Actors need `operate`/`manage` permission on the project.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        '200':
+          description: Default subdomain disabled (empty response body).
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: Project not found (generic not-found error, no custom message).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/projects/{projectID}/disks:
+    get:
+      tags:
+        - Disks
+      operationId: listDisks
+      summary: List project disks
+      description: >-
+        Lists the disks attached to the given project together with the mount
+        points from the latest READY release. `projectID` is the internal
+        project ID (a 24-hex object ID). For network-based projects each disk
+        also carries a `filebrowserUrl`.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        '200':
+          description: Disks and their mounts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DiskListItem'
+                  mounts:
+                    type: array
+                    description: >-
+                      Mount points of the latest READY release. When the
+                      release uses a single default volume, contains one entry
+                      named `default`.
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        mountedTo:
+                          type: string
+                          description: Path the disk/volume is mounted to.
+                      required:
+                        - name
+                        - mountedTo
+                required:
+                  - disks
+                  - mounts
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/projects/{project_id}/disks:
+    post:
+      tags:
+        - Disks
+      operationId: createDisk
+      summary: Create a disk
+      description: >-
+        Creates a new disk attached to the given project. `project_id` here is
+        the public project identifier (slug). Enforces the plan's maximum
+        number of disks per project (428) and available storage space (400).
+        Returns 201 with an empty body. Requires `project.manage` permission
+        when acting on behalf of a team.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Public project identifier (project_id slug).
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  $ref: '#/components/schemas/DiskName'
+                size:
+                  $ref: '#/components/schemas/DiskSize'
+              required:
+                - name
+                - size
+      responses:
+        '201':
+          description: Disk created (empty response body).
+        '400':
+          description: >-
+            Validation error, or "not_enough_storage_space" (plan volume limit
+            exceeded).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationError'
+                  - $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: '"Disk already exists." (a disk with the same name is attached to the project).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '428':
+          description: '"max_disks_reached" — the plan limit of disks per project is reached.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/projects/{project_id}/disks/{name}:
+    get:
+      tags:
+        - Disks
+      operationId: showDisk
+      summary: Get a disk
+      description: >-
+        Returns a single disk attached to the project (by public project_id)
+        along with its mount points from the latest READY release (array of
+        mount path strings; empty when nothing is mounted).
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Public project identifier (project_id slug).
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      responses:
+        '200':
+          description: The disk and its mounts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disk:
+                    $ref: '#/components/schemas/Disk'
+                  mounts:
+                    type: array
+                    description: Mount paths of this disk in the latest READY release.
+                    items:
+                      type: string
+                required:
+                  - disk
+                  - mounts
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/projects/{projectID}/disks/{name}:
+    delete:
+      tags:
+        - Disks
+      operationId: deleteDisk
+      summary: Delete a disk
+      description: >-
+        Deletes a disk attached to the given project (internal project ID).
+        The project must not be SUSPENDED (otherwise it is simply not found).
+        Fails with 409 while the disk is still mounted in the latest READY
+        release. Returns an empty body on success. Requires `project.manage`.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: name
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      responses:
+        '200':
+          description: Disk deleted (empty response body).
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: '"disk_is_in_use" — the disk is mounted in the latest READY release.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+  /v1/projects/{project_id}/disks/{name}/resize:
+    post:
+      tags:
+        - Disks
+      operationId: resizeDisk
+      summary: Resize a disk
+      description: >-
+        Grows a disk to a new, larger size. Shrinking, or resizing to the
+        same size, is rejected with 409.
+        Fails with 400 when the plan does not have enough storage space
+        (`not_enough_storage_space`) or the disk is mounted while the project
+        is scaled up (`disk_is_busy`). Returns an empty body on success.
+        Requires `project.operate` or `project.manage`.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Public project identifier (project_id slug).
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                size:
+                  $ref: '#/components/schemas/DiskSize'
+              required:
+                - size
+      responses:
+        '200':
+          description: Resize accepted (empty response body).
+        '400':
+          description: >-
+            Validation error, "not_enough_storage_space" or "disk_is_busy"
+            (disk is mounted and the project has scale > 0).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationError'
+                  - $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: '"Can not shrink a disk."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+  /v1/projects/{projectID}/disks/{name}/metrics:
+    get:
+      tags:
+        - Disk Metrics
+      operationId: getDiskMetrics
+      summary: Get disk usage metrics
+      description: >-
+        Returns the disk usage percentage of the given disk (last ~10
+        seconds) as a single normalized series.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: name
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      responses:
+        '200':
+          description: Latest disk usage sample.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    description: >-
+                      The latest metric sample. This key is entirely absent
+                      from the response body (not `null`) when the disk has
+                      no reported series yet, since the backend serializes
+                      an `undefined` value by omitting the key.
+                    type: object
+                    properties:
+                      size:
+                        type: string
+                        description: Disk size label reported by the agent.
+                      usage:
+                        type: string
+                        description: Disk usage percentage.
+                      reportedAt:
+                        type: number
+                        description: Unix timestamp (seconds) of the sample.
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '503':
+          description: Metrics temporarily unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceUnavailableError'
+  /v1/projects/{projectID}/disks/{name}/backups:
+    get:
+      tags:
+        - Disk Backups
+      operationId: listDiskBackups
+      summary: List disk backups
+      description: >-
+        Lists the backups stored for the disk across all backup intervals
+        (manual, daily, weekly, monthly, hourly), sorted by last modified date
+        (newest first). Backup `name` is relative to the disk's internal
+        realName, i.e. `<interval>/<file>`.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: name
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      responses:
+        '200':
+          description: Backups of the disk.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DiskBackup'
+                required:
+                  - backups
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+    post:
+      tags:
+        - Disk Backups
+      operationId: createManualDiskBackup
+      summary: Create a manual disk backup
+      description: >-
+        Triggers an immediate manual backup of the disk by creating a
+        DiskBackup node operation. The project must have at least one release;
+        the bundle plan must allow manual backups and its rate limit (manual
+        backups per hour per disk) must not be exhausted. Returns an empty
+        body. Requires `project.operate` or `project.manage`.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: name
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      responses:
+        '200':
+          description: Backup started (empty response body).
+        '400':
+          description: '"Project has no releases yet."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '428':
+          description: >-
+            "Manual backup is not available in this bundle plan." or an empty
+            message when the per-hour manual backup rate limit is reached.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/projects/{projectID}/disks/{name}/backups/{interval}/{backup}/download:
+    post:
+      tags:
+        - Disk Backups
+      operationId: createDiskBackupDownloadLink
+      summary: Generate a disk backup download link
+      description: >-
+        Generates a pre-signed download link for a specific backup object of
+        the disk. Neither `interval` nor `backup` are validated against a
+        schema; an unknown object yields a link that will not resolve.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID).
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: name
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+        - name: interval
+          in: path
+          required: true
+          description: Backup interval folder — one of manual, hourly, daily, weekly, monthly.
+          schema:
+            type: string
+        - name: backup
+          in: path
+          required: true
+          description: Backup file name, e.g. `2026-09-17T09-30-00-000.tar`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pre-signed download link.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link:
+                    type: string
+                    description: Pre-signed URL for downloading the backup.
+                required:
+                  - link
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v2/projects/{projectID}/disks/{name}/restore:
+    post:
+      tags:
+        - Disk Backups
+      operationId: restoreDiskBackup
+      summary: Restore a disk backup
+      description: >-
+        Restores a backup of one disk onto a target disk in a (possibly
+        different) target project of the same account. The backup must exist
+        in one of the backup intervals and the target project must run on the
+        current (network-based) infrastructure. Path parameters are validated
+        together with the body: `projectID` must be a 24-hex object ID
+        and `name`/`targetDiskName` must match the disk name rules. Returns an
+        empty body. Requires `project.manage`.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          description: Internal project ID (24-hex object ID) owning the source disk.
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+        - name: name
+          in: path
+          required: true
+          description: Source disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                backupName:
+                  type: string
+                  maxLength: 100
+                  description: >-
+                    Name of the backup to restore, relative to the disk's
+                    internal realName (e.g. `daily/2026-09-17T03-00-00-000.tar`).
+                targetProjectID:
+                  type: string
+                  pattern: '^[0-9a-fA-F]{24}$'
+                  description: Internal ID of the project that owns the target disk.
+                targetDiskName:
+                  $ref: '#/components/schemas/DiskName'
+              required:
+                - targetDiskName
+              description: >-
+                Note: only `targetDiskName` is actually enforced as required by
+                the backend's validation — `backupName` and
+                `targetProjectID` are not marked required despite being
+                needed; omitting them causes the lookups below to fail in
+                an unhandled way (not a clean 400) rather than a validation
+                error. Always send all three fields.
+      responses:
+        '200':
+          description: Restore operation created (empty response body).
+        '400':
+          description: Validation error (invalid path parameter values).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: >-
+            "You cannot use restore feature in legacy infra" with
+            `data.code` = `cannot_use_restore_feature_in_legacy_infra`, or
+            missing `project.manage` permission (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: >-
+            "Project not found.", "Target project not found.", "Disk not
+            found.", "Target disk not found." or "Backup not found."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/projects/{project_id}/disks/{diskName}/ftp:
+    get:
+      tags:
+        - FTP Access
+      operationId: listFTPAccesses
+      summary: List FTP accesses of a disk
+      description: >-
+        Lists the FTP accounts created for the disk with their decrypted
+        passwords, plus the FTP host (the node host of the project). The
+        project must have at least one release.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Public project identifier (project_id slug).
+          schema:
+            type: string
+        - name: diskName
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      responses:
+        '200':
+          description: FTP accesses and host.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accesses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FTPAccess'
+                  host:
+                    type: string
+                    description: FTP host (node host of the project).
+                required:
+                  - accesses
+                  - host
+        '400':
+          description: '"Project does not have any releases."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/projects/{project_id}/disks/{diskName}/ftp/:
+    post:
+      tags:
+        - FTP Access
+      operationId: createFTPAccess
+      summary: Create an FTP access for a disk
+      description: >-
+        Creates an FTP account for the disk with a generated password
+        (UUID v4, returned once in plain text). The username must be
+        globally unique. Enforces the bundle plan's maximum FTP accounts per
+        disk (428). Requires `project.operate` or `project.manage`.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Public project identifier (project_id slug).
+          schema:
+            type: string
+        - name: diskName
+          in: path
+          required: true
+          description: Disk name.
+          schema:
+            $ref: '#/components/schemas/DiskName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  $ref: '#/components/schemas/FTPUsername'
+                readOnly:
+                  type: boolean
+                  default: false
+                  description: Whether the FTP account is read-only.
+              required:
+                - username
+      responses:
+        '200':
+          description: FTP access created with the generated credentials.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  password:
+                    type: string
+                    description: Generated plain-text password (UUID v4).
+                  host:
+                    type: string
+                    description: FTP host (node host of the project).
+                required:
+                  - username
+                  - password
+                  - host
+        '400':
+          description: Validation error (invalid username or readOnly).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Project not found." or "Disk not found."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '409':
+          description: '"Username already taken."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '428':
+          description: '"Max number of accesses reached." (bundle plan limit per disk).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreconditionRequiredError'
+  /v1/ftp/login/:
+    post:
+      tags:
+        - FTP Access
+      operationId: ftpLogin
+      summary: FTP credential check (public)
+      description: >-
+        Public endpoint (no authentication) used by the FTP service to verify
+        credentials. Returns the real volume name of the disk behind the FTP
+        account and whether the account is read-only.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  $ref: '#/components/schemas/FTPUsername'
+                password:
+                  type: string
+                  maxLength: 64
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Credentials are valid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  volumeName:
+                    type: string
+                    description: Internal realName of the disk.
+                  readOnly:
+                    type: boolean
+                required:
+                  - volumeName
+                  - readOnly
+        '400':
+          description: Validation error (invalid username or password).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '403':
+          description: '"Invalid credential."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: '"Access not found"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/ftp/{username}/:
+    delete:
+      tags:
+        - FTP Access
+      operationId: deleteFTPAccess
+      summary: Delete an FTP access
+      description: >-
+        Deletes an FTP account, but only when the disk it belongs to is owned
+        by the caller. Returns an empty body on success.
+      parameters:
+        - name: username
+          in: path
+          required: true
+          description: FTP username.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: FTP access deleted (empty response body).
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: '"Access not found." (unknown username or not owned by the caller).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /v1/ftp/{username}/check-availability:
+    get:
+      tags:
+        - FTP Access
+      operationId: checkFTPUsernameAvailability
+      summary: Check FTP username availability
+      description: >-
+        Checks whether an FTP username is still available. The username is
+        validated against the FTP username rules (400 on violation) and
+        returns 409 when it is already taken. Returns an empty body when
+        available.
+      parameters:
+        - name: username
+          in: path
+          required: true
+          description: FTP username to check.
+          schema:
+            $ref: '#/components/schemas/FTPUsername'
+      responses:
+        '200':
+          description: Username is available (empty response body).
+        '400':
+          description: Validation error (username does not match the rules).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: '"Username already taken."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+  /v1/storage/disable:
+    post:
+      tags:
+        - Storage Account
+      operationId: disableStorageService
+      summary: Disable the object storage service
+      description: >-
+        Starts deactivation of the account's object storage service by setting
+        its status to DEACTIVATING and queueing the deactivation job. Returns
+        an empty body on success. When the service is already DEACTIVE or
+        DEACTIVATING, responds 400 with a non-standard body
+        (`{"message":"Storage service is inactive already."}`).
+      responses:
+        '200':
+          description: Deactivation started (empty response body).
+        '400':
+          description: Storage service is inactive already (raw body, no statusCode/error fields).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Storage service is inactive already.
+                required:
+                  - message
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+  /v1/storage/unfreeze:
+    post:
+      tags:
+        - Storage Account
+      operationId: unfreezeStorageService
+      summary: Unfreeze the object storage service
+      description: >-
+        Unfreezes a FROZEN object storage service after checking that the
+        account balance covers the current plan's price. Returns an empty body
+        on success.
+      responses:
+        '200':
+          description: Storage service unfrozen (empty response body).
+        '400':
+          description: '"Storage service is not frozen."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '402':
+          description: '"Not enough balance."'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequiredError'
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      description: >-
+        Standard error response returned by the API:
+        `{ statusCode, error, message, data }` (data omitted when the error
+        carries none).
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code.
+        error:
+          type: string
+          description: HTTP status phrase, e.g. "Bad Request".
+        message:
+          type: string
+          description: Human-readable error message.
+        data:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code, e.g. no_permission.
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 400
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+          description: Message describing the invalid field.
+    UnauthorizedError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: >-
+        Missing, malformed or expired bearer token. Note the authentication
+        middleware actually responds with the shorter body
+        `{"error":"Unauthorized."}` (no statusCode/message).
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 401
+        error:
+          type: string
+          enum:
+            - Unauthorized.
+    ForbiddenError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: >-
+        Insufficient permissions or policy rejection. Common `data.code`
+        values: `no_permission` ("You do not have permission to access this
+        resource."), `account_verification_required` ("You must verify your
+        account, first."), `cannot_use_restore_feature_in_legacy_infra`
+        ("You cannot use restore feature in legacy infra").
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 403
+        error:
+          type: string
+          enum:
+            - Forbidden
+        data:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - no_permission
+                - account_verification_required
+                - cannot_use_restore_feature_in_legacy_infra
+    NotFoundError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: >-
+        Requested resource not found. The message varies per endpoint, e.g.
+        "Project not found.", "Disk not found.", "Domain not found." or a
+        generic "Not Found".
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 404
+        error:
+          type: string
+          enum:
+            - Not Found
+    ConflictError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: >-
+        Resource conflict, e.g. "Domain name already exists.", "Disk already
+        exists.", "Username already taken.", "disk_is_in_use".
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 409
+        error:
+          type: string
+          enum:
+            - Conflict
+    PreconditionRequiredError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: >-
+        A plan limit or precondition blocked the operation (HTTP 428), e.g.
+        "max_disks_reached", "Max number of accesses reached.", "You have
+        reached the maximum number of domains for this project.", "Manual
+        backup is not available in this bundle plan."
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 428
+        error:
+          type: string
+          enum:
+            - Precondition Required
+    PaymentRequiredError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Account balance is insufficient ("Not enough balance.").
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 402
+        error:
+          type: string
+          enum:
+            - Payment Required
+    ServiceUnavailableError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+      type: object
+      description: Upstream dependency unavailable (HTTP 503).
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 503
+        error:
+          type: string
+          enum:
+            - Service Unavailable
+    DomainProjectRef:
+      type: object
+      description: Populated project reference (as returned by the domains list endpoint).
+      properties:
+        _id:
+          type: string
+        project_id:
+          type: string
+    DomainNetworkNode:
+      type: object
+      description: Populated node of the project's network (host always present; IP included by the domain check endpoint).
+      properties:
+        _id:
+          type: string
+        host:
+          type: string
+        IP:
+          type: string
+          description: Only populated by GET /v1/domains/{domainID}/check.
+    DomainProjectNested:
+      type: object
+      description: Populated project with its network node.
+      properties:
+        _id:
+          type: string
+        project_id:
+          type: string
+        network:
+          type: object
+          nullable: true
+          properties:
+            _id:
+              type: string
+            node:
+              $ref: '#/components/schemas/DomainNetworkNode'
+    DomainBucketNested:
+      type: object
+      description: Populated bucket with its cluster endpoint.
+      properties:
+        _id:
+          type: string
+        cluster:
+          type: object
+          nullable: true
+          properties:
+            endPoint:
+              type: string
+    Domain:
+      type: object
+      description: >-
+        Full domain document as returned by the show and check endpoints
+        (user and __v excluded). For GET /v1/domains/{domainName} it also
+        carries the computed `isRoot`, `subdomain` and `target` fields; the
+        check endpoint refreshes `status`, `CNameRecord`, `acmeRecord` and
+        `behindCdn` before returning.
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        punycodeName:
+          type: string
+          description: Punycode (ASCII) form of the domain name.
+        type:
+          type: string
+          enum:
+            - PROJECT
+            - STORAGE
+            - BUCKET
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACTIVE
+        verificationCode:
+          type: string
+          description: UUID TXT-record value used to verify domain ownership (liara-challenge TXT record).
+        certificatesStatus:
+          type: string
+          enum:
+            - DEACTIVE
+            - REQUESTING
+            - ACTIVE
+        CNameRecord:
+          type: string
+          nullable: true
+          enum:
+            - VALID
+            - INVALID
+        redirectTo:
+          type: string
+        redirectStatus:
+          type: integer
+          enum:
+            - 301
+            - 302
+        behindCdn:
+          type: boolean
+        isWildcard:
+          type: boolean
+        acmeRecord:
+          type: string
+          nullable: true
+          enum:
+            - VALID
+            - INVALID
+        issuedAt:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        project:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/DomainProjectNested'
+        bucket:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/DomainBucketNested'
+        isRoot:
+          type: boolean
+          description: Computed for the show endpoint — whether the domain is its own root domain.
+        subdomain:
+          type: string
+          description: Computed for the show endpoint — the subdomain part (empty for root domains).
+        target:
+          type: string
+          description: >-
+            Computed for the show endpoint — the CNAME target: the project
+            node host or bucket cluster endpoint, falling back to
+            `to.liara.zone`.
+    DomainListItem:
+      type: object
+      description: Domain projection returned by the domains list endpoint.
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACTIVE
+        project:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/DomainProjectRef'
+        type:
+          type: string
+          enum:
+            - PROJECT
+            - STORAGE
+            - BUCKET
+        CNameRecord:
+          type: string
+          nullable: true
+          enum:
+            - VALID
+            - INVALID
+        certificatesStatus:
+          type: string
+          enum:
+            - DEACTIVE
+            - REQUESTING
+            - ACTIVE
+        redirectTo:
+          type: string
+        redirectStatus:
+          type: integer
+          enum:
+            - 301
+            - 302
+        created_at:
+          type: string
+          format: date-time
+        behindCdn:
+          type: boolean
+        isWildcard:
+          type: boolean
+        acmeRecord:
+          type: string
+          nullable: true
+          enum:
+            - VALID
+            - INVALID
+    DiskName:
+      type: string
+      description: >-
+        Disk name — lowercased by the API; must match
+        ^[a-z0-9][a-z0-9-]+[a-z0-9]$ and be at least 3 characters.
+      pattern: '^[a-z0-9][a-z0-9\-]+[a-z0-9]$'
+      minLength: 3
+    DiskSize:
+      type: number
+      description: Disk size in GB; minimum 0.1 with at most one decimal place.
+      minimum: 0.1
+      multipleOf: 0.1
+    Disk:
+      type: object
+      description: Disk projection returned by the single-disk endpoint.
+      properties:
+        name:
+          type: string
+        size:
+          type: number
+          description: Disk size in GB.
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - name
+        - size
+    DiskListItem:
+      type: object
+      description: Disk entry returned by the disks list endpoint.
+      properties:
+        name:
+          type: string
+        size:
+          type: number
+          description: Disk size in GB.
+        updatedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        filebrowserUrl:
+          type: string
+          nullable: true
+          description: >-
+            Filebrowser base URL of the node (`https://filebrowser-<host>`);
+            absent for legacy projects.
+      required:
+        - name
+        - size
+    DiskBackup:
+      type: object
+      description: Backup object as listed from the backup storage.
+      properties:
+        name:
+          type: string
+          description: Backup path relative to the disk's internal realName (`<interval>/<file>`).
+        lastModified:
+          type: string
+          format: date-time
+        etag:
+          type: string
+          nullable: true
+        size:
+          type: integer
+      required:
+        - name
+        - lastModified
+        - size
+    FTPUsername:
+      type: string
+      description: >-
+        FTP username — lowercased by the API; must match
+        ^[a-z][a-z0-9_]+[a-z0-9]$ and be 5–16 characters.
+      pattern: '^[a-z][a-z0-9\_]+[a-z0-9]$'
+      minLength: 5
+      maxLength: 16
+    FTPAccess:
+      type: object
+      description: FTP account of a disk (password decrypted for the disk owner).
+      properties:
+        _id:
+          type: string
+        disk:
+          type: string
+          description: ID of the disk the account belongs to.
+        username:
+          type: string
+        password:
+          type: string
+          description: Decrypted plain-text password.
+        readOnly:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - _id
+        - disk
+        - username
+        - password
+        - readOnly
+  responses:
+    ValidationError:
+      description: Bad request — invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+    UnauthorizedError:
+      description: Missing, invalid or expired bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnauthorizedError'
+    ForbiddenError:
+      description: Insufficient permissions or policy rejection.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ForbiddenError'
+    NotFoundError:
+      description: Requested resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
+    ConflictError:
+      description: Resource conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConflictError'
+    PreconditionRequiredError:
+      description: Plan limit or precondition not met.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PreconditionRequiredError'
+    PaymentRequiredError:
+      description: Insufficient account balance.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaymentRequiredError'

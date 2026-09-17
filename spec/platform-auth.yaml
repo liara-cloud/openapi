@@ -1,0 +1,2438 @@
+openapi: 3.0.1
+info:
+  title: Platform — Authentication & Account
+  version: 1.0.0
+  description: >
+    Authentication & Account domain of the Liara platform API
+    (api.iran.liara.ir). Covers OAuth sign-in, login (password and SMS OTP),
+    registration, user profile, password management, two-factor
+    authentication, email/phone verification, gifts and platform misc
+    endpoints. JWT tokens returned by login/register flows must be sent as
+    `Authorization: Bearer <token>` on protected endpoints.
+servers:
+  - url: https://api.iran.liara.ir
+tags:
+  - name: Authentication
+    description: >-
+      OAuth sign-in, password/SMS-OTP login, registration, account conversion
+      and session token issuance.
+  - name: Account
+    description: >-
+      Current user profile, fullname/contact information, invoice issuing
+      entity and personal API tokens.
+  - name: Password
+    description: Set/change the account password and the forgot/reset password flow.
+  - name: Two-Factor Authentication
+    description: TOTP configuration, enabling/disabling 2FA, recovery codes and verification.
+  - name: Verification
+    description: >-
+      Identity (phone + national code) verification, email verification and
+      notification-channel phone/email verification codes.
+  - name: Gifts
+    description: Promotional gift credit providers.
+  - name: Platform
+    description: Feature flags and Liara service availability.
+security:
+  - jwt: []
+paths:
+  /v1/oauth/{provider}:
+    get:
+      tags:
+        - Authentication
+      operationId: oauthRedirect
+      summary: Start an OAuth sign-in flow
+      description: >-
+        Returns the OAuth provider redirect (HTML page) for the given
+        provider. Supported providers: `google`, `github`. The optional
+        `callback_url` query parameter is forwarded to the provider driver.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: OAuth provider name.
+          schema:
+            type: string
+            enum: [google, github]
+        - name: callback_url
+          in: query
+          required: false
+          description: URL the OAuth driver uses as the callback target.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OAuth redirect page/URL for the requested provider.
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Unknown OAuth provider.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/oauth/{provider}/users:
+    post:
+      tags:
+        - Authentication
+      operationId: oauthUser
+      summary: Complete an OAuth sign-in / sign-up
+      description: >-
+        Exchanges the OAuth `code` for the provider profile and either logs
+        the existing user in or registers a new account (email taken from the
+        provider). Returns a JWT `api_token`. If the account has 2FA enabled
+        the request fails with error code `two_fa_required` and a temporary
+        `twoFAToken` (valid 5 minutes) that must be used with
+        `POST /v1/oauth/{provider}/users/two-fa`.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: OAuth provider name.
+          schema:
+            type: string
+            enum: [google, github]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, callback_url]
+              properties:
+                code:
+                  type: string
+                  description: Authorization code returned by the OAuth provider.
+                callback_url:
+                  type: string
+                  description: Callback URL used when the flow was started.
+                githubOAuthCSRFToken:
+                  type: string
+                  description: Optional GitHub OAuth CSRF state token.
+      responses:
+        "200":
+          description: Authenticated (existing or newly created) user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthLoginResponse"
+        "400":
+          description: >-
+            Validation error, or 2FA required (`data.code` =
+            `two_fa_required`, `data.twoFAToken` present).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Banned user (`data.code` = `user_banned`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Unknown provider or user not found (`data.code` = `user_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: >-
+            Email already taken by another account (`data.code` =
+            `email_already_taken`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/oauth/{provider}/users/two-fa:
+    post:
+      tags:
+        - Authentication
+      operationId: oauthUserWithTwoFA
+      summary: Complete an OAuth sign-in with two-factor authentication
+      description: >-
+        Second step of OAuth sign-in for accounts with 2FA enabled. Requires
+        the temporary `x-oauth-token` header (JWT, type `twoFA`, 5 minutes)
+        returned as `data.twoFAToken` by the `two_fa_required` error of
+        `POST /v1/oauth/{provider}/users`. Returns a JWT `api_token`.
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: OAuth provider name.
+          schema:
+            type: string
+            enum: [google, github]
+        - name: x-oauth-token
+          in: header
+          required: true
+          description: >-
+            Temporary two-factor token obtained from the
+            `two_fa_required` error payload.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OAuthTwoFARequest"
+      responses:
+        "200":
+          description: Authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthLoginResponse"
+        "400":
+          description: >-
+            Validation error, invalid `totp` (`code` = `invalid_totp`) or
+            missing/invalid `twoFAType` (`code` = `two_fa_type_required`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Missing/expired/invalid `x-oauth-token` header.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: >-
+            Banned user (`code` = `user_banned`) or invalid 2FA credentials
+            (`code` = `two_fa_totp_invalid` / `two_fa_recoveryCode_invalid` /
+            `two_fa_validation_failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Unknown OAuth provider.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/login:
+    post:
+      tags:
+        - Authentication
+      operationId: login
+      summary: Log in with email/phone and password
+      description: >-
+        Password login. Exactly one of `email` or `phone` must be provided.
+        If the account has 2FA enabled, `twoFAType` plus either
+        `totp` (6 digits) or `recoveryCode` (10 chars) must be supplied.
+        Optional `expiresIn` query parameter controls the JWT lifetime
+        (default 30d).
+      security: []
+      parameters:
+        - name: expiresIn
+          in: query
+          required: false
+          description: JWT expiration window.
+          schema:
+            type: string
+            enum: ["1h", "1d", "7d", "30d", "180d", "1y"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authenticated user with a fresh JWT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: >-
+            Validation error, invalid `totp` (`code` = `invalid_totp`) or
+            2FA enabled but `twoFAType` missing (`code` =
+            `two_fa_type_required`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: >-
+            Authentication failed (unknown user, wrong password or expired
+            SMS OTP token).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: >-
+            Inactive account, unused for 3+ months with a password unchanged
+            for 7+ days (`code` = `inactive_account`), or invalid 2FA
+            credentials (`code` = `two_fa_totp_invalid` /
+            `two_fa_recoveryCode_invalid` / `two_fa_validation_failed`).
+            Banned accounts are not rejected at login (only on subsequent
+            authenticated requests).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/login/verify-otp-token:
+    post:
+      tags:
+        - Authentication
+      operationId: loginVerifyOtpToken
+      summary: Log in with an SMS OTP token
+      description: >-
+        Completes SMS login using the 6-digit token sent by
+        `POST /v1/login/send-otp-token`. The token is valid for 2 minutes.
+        Supports the same 2FA fields as password login.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmsLoginRequest"
+      responses:
+        "200":
+          description: Authenticated user with a JWT.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmsLoginResponse"
+        "400":
+          description: >-
+            Validation error, invalid `totp` (`code` = `invalid_totp`) or
+            `twoFAType` missing while 2FA is enabled (`code` =
+            `two_fa_type_required`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication failed (unknown phone or invalid/expired token).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Invalid 2FA credentials (`code` = `two_fa_totp_invalid` / `two_fa_recoveryCode_invalid` / `two_fa_validation_failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/login/send-otp-token:
+    post:
+      tags:
+        - Authentication
+      operationId: loginSendOtpToken
+      summary: Send a login OTP code by SMS
+      description: >-
+        Sends a 6-digit login code to the given phone number (valid for
+        2 minutes). If a valid code was already sent in the last minute the
+        endpoint responds with an empty body instead of sending a new SMS.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  pattern: "^09\\d{9}$"
+                  description: Iranian mobile number of the account.
+      responses:
+        "200":
+          description: OTP dispatched (or an empty body when throttled to one code per minute).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "404":
+          description: The phone number was not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/login/check-if-exists:
+    post:
+      tags:
+        - Authentication
+      operationId: loginCheckIfExists
+      summary: Check whether an account exists
+      description: >-
+        Pre-login account lookup. Exactly one of `email` or `phone` must be
+        provided. Reports whether the account exists, whether it has a
+        password set and whether 2FA is enabled.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Lowercased before lookup.
+                phone:
+                  type: string
+                  pattern: "^09\\d{9}$"
+              maxProperties: 1
+              minProperties: 1
+      responses:
+        "200":
+          description: Account existence information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckIfExistsResponse"
+        "400":
+          description: Validation error (missing or both email/phone supplied).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/register:
+    post:
+      tags:
+        - Authentication
+      operationId: register
+      summary: Register a new account
+      description: >-
+        Creates a new personal account and returns a JWT. If an account with
+        the same email and password already exists, the existing account is
+        logged in instead (idempotent re-registration). Registration is
+        disabled in the `germany` region.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created (or matched existing credentials).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: >-
+            Registration disabled in this region or unsupported email domain
+            (`code` = `unsupported_email_domain`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Phone or email has already been taken.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v2/set-delete-reason:
+    post:
+      tags:
+        - Account
+      operationId: setDeleteReason
+      summary: Record a service deletion reason
+      description: >-
+        Stores the reason the user gave when deleting a service. Only one
+        deletion reason per service is allowed. Rate limited per user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetDeleteReasonRequest"
+      responses:
+        "200":
+          description: Deletion reason stored (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller lacks permission to act on behalf of the team (`code` = `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: A deletion reason already exists for this service.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v2/account/convert:
+    post:
+      tags:
+        - Authentication
+      operationId: convertAccountToTeam
+      summary: Convert a personal account into a team account
+      description: >-
+        Converts the caller's personal account into a team account. A new
+        personal user is created to own the team, and a fresh JWT for that
+        new user is returned. The account must be older than one month, have
+        no active integrations/2FA/teams/legacy storage and not be an admin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConvertAccountRequest"
+      responses:
+        "201":
+          description: Account converted; credentials for the new personal owner.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [teamID, api_token, avatar]
+                properties:
+                  teamID:
+                    type: string
+                    description: ObjectId of the converted team account.
+                  api_token:
+                    type: string
+                    description: JWT (30 days) for the newly created personal user.
+                  avatar:
+                    type: string
+                    description: Avatar URL of the new personal user.
+        "400":
+          description: >-
+            Conversion not allowed; `data.code` is one of `new_account`,
+            `already_converted`, `admin_account`, `legacy_storage`,
+            `integrations`, `two_factor_authentication`, `teams`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Account not verified (`code` = `account_verification_required`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/delay-unused-free-services-shutdown:
+    post:
+      tags:
+        - Account
+      operationId: delayUnusedFreeServicesShutdown
+      summary: Postpone shutdown of unused free services
+      description: >-
+        Refreshes the `updated_at` timestamp of the caller's free-tier
+        projects and databases and clears the unused-free-services notice.
+      responses:
+        "200":
+          description: Shutdown postponed (empty body).
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller lacks permission to act on behalf of the team (`code` = `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/me:
+    get:
+      tags:
+        - Account
+      operationId: getCurrentUser
+      summary: Get the current user
+      description: >-
+        Returns the authenticated user profile (user object plus billing
+        snapshot, feature flags, plans and database versions). When the
+        request includes team context (`teamID` query parameter), a `team`
+        object with the acting member's role and permissions is also
+        returned. Password hashes, storage secret keys of other users and
+        other secrets are never returned.
+      parameters:
+        - name: teamID
+          in: query
+          required: false
+          description: >-
+            Team context. When present, the response also contains a `team`
+            object and `user` reflects the acting member.
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+      responses:
+        "200":
+          description: Current user information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Missing team permission (`code` = `no_permission` /
+            `team_not_found`), or the account is banned (response body is
+            `{"error": "Banned."}` instead of the standard error envelope;
+            this is checked before team permissions).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Error"
+                  - $ref: "#/components/schemas/MinimalErrorBody"
+  /v1/billing:
+    get:
+      tags:
+        - Account
+      operationId: getBilling
+      summary: Get billing snapshot
+      description: >-
+        Returns the caller's billing balance, contact info and minimum-credit
+        settings under `user`. When called in team context and the acting
+        member has `billing` permission, a `team` object with the team's own
+        billing snapshot is also returned.
+      parameters:
+        - name: teamID
+          in: query
+          required: false
+          description: Team context.
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{24}$"
+      responses:
+        "200":
+          description: Billing snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingSnapshotResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/usage:
+    get:
+      tags:
+        - Account
+      operationId: calculateUsage
+      summary: Get the current service-usage cost rate
+      description: >-
+        Returns the caller's current running cost, derived from all active
+        services, at hourly/daily/monthly/yearly granularity.
+      responses:
+        "200":
+          description: Current usage cost.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller lacks `billing.manage` permission (`code` = `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/usage-report:
+    get:
+      tags:
+        - Account
+      operationId: usageReport
+      summary: Get a detailed per-service usage report
+      description: >-
+        Breaks down the caller's cost per project, database, bucket, mail
+        server, VM, AI workspace and managed WordPress instance, plus account
+        totals.
+      responses:
+        "200":
+          description: Usage report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageReportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller lacks `billing.manage` permission (`code` = `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/service-count:
+    get:
+      tags:
+        - Account
+      operationId: countServices
+      summary: Count active services by type
+      description: >-
+        Returns the number of active apps, databases, DNS zones, buckets,
+        mail servers, VMs, AI workspaces and managed WordPress instances
+        owned by the caller.
+      responses:
+        "200":
+          description: Service counts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceCountResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/save-fullname:
+    post:
+      tags:
+        - Account
+      operationId: saveFullname
+      summary: Update the account fullname
+      description: >-
+        Updates the fullname (Persian characters only). The previous value is
+        archived in the user change history.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullname]
+              properties:
+                fullname:
+                  type: string
+                  maxLength: 100
+                  pattern: "^[\\u0600-\\u06FF\\s]+$"
+                  description: Persian fullname (only Persian letters and spaces).
+      responses:
+        "201":
+          description: Fullname updated (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/contact-info:
+    post:
+      tags:
+        - Account
+      operationId: saveContactInfo
+      summary: Save billing contact information
+      description: >-
+        Saves real-person or legal-person billing contact information. Once a
+        successful payment exists, only names/addresses can be updated and
+        the `accountType` is locked (conflict `contact_info_locked` when
+        contact info was never saved).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInfoRequest"
+      responses:
+        "200":
+          description: Contact information saved (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Caller lacks `billing.manage` permission (`code` = `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Contact information locked by a previous successful payment (`code` = `contact_info_locked`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/save-info:
+    post:
+      tags:
+        - Account
+      operationId: saveIdentityInfo
+      summary: Verify identity and save phone/national code
+      description: >-
+        Saves the verified phone number and national code. When the phone
+        changes (or is not yet verified) a 6-digit `token` from
+        `POST /v1/send-phone-token` is required. Changing an already verified
+        phone is only possible while the phone change deadline is open.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveInfoRequest"
+      responses:
+        "200":
+          description: Identity information saved (empty body).
+        "400":
+          description: >-
+            Validation error or missing SMS `token` ("Token is required.").
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Invalid SMS token ("Invalid token.").
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: A phone unlock was already requested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/invoice-issuing-entity:
+    post:
+      tags:
+        - Account
+      operationId: setInvoiceIssuingEntity
+      summary: Enable or disable invoice issuing
+      description: >-
+        Toggles whether invoices are issued for the account. Once invoice
+        issuing has been explicitly disabled it cannot be changed again
+        (`invoice_issuing_entity_locked`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invoiceIssuingEntity]
+              properties:
+                invoiceIssuingEntity:
+                  type: boolean
+                  description: New invoice issuing state.
+      responses:
+        "200":
+          description: Invoice issuing preference saved (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Invoice issuing is locked (`code` =
+            `invoice_issuing_entity_locked`) or caller lacks `billing.manage`
+            permission (`code` = `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/api-token:
+    post:
+      tags:
+        - Account
+      operationId: generateAPIToken
+      summary: Generate a new API token
+      description: >-
+        Issues a fresh JWT for the authenticated user. Optional `expiresIn`
+        query parameter controls the token lifetime (default 30d). Requires a
+        verified account.
+      parameters:
+        - name: expiresIn
+          in: query
+          required: false
+          description: Token expiration window.
+          schema:
+            type: string
+            enum: ["1h", "1d", "7d", "30d", "180d", "1y"]
+      responses:
+        "201":
+          description: New API token issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiTokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Account not verified (`code` = `account_verification_required`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/password/set:
+    post:
+      tags:
+        - Password
+      operationId: setPassword
+      summary: Set the initial account password
+      description: >-
+        Sets a password for accounts that do not have one yet (e.g.
+        OAuth-only accounts). Returns a fresh JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password:
+                  type: string
+                  maxLength: 250
+      responses:
+        "200":
+          description: Password set; new JWT returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiTokenResponse"
+        "400":
+          description: Password is already set.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/password/change:
+    post:
+      tags:
+        - Password
+      operationId: changePassword
+      summary: Change the account password
+      description: >-
+        Changes the password. `currentPassword` is required and must be
+        correct when the account already has a password. Returns a fresh JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed; new JWT returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiTokenResponse"
+        "400":
+          description: Validation error or missing current password ("Current password is required.").
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Current password is wrong.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/password/forgot:
+    post:
+      tags:
+        - Password
+      operationId: forgotPassword
+      summary: Request a password reset token
+      description: >-
+        Dispatches a 6-digit reset token by email (valid 3 minutes) or SMS
+        (valid 2 minutes). Exactly one of `email` or `phone` must be
+        provided.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200":
+          description: Reset token dispatched.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/password/reset:
+    post:
+      tags:
+        - Password
+      operationId: resetPassword
+      summary: Reset the password with a reset token
+      description: >-
+        Resets the account password using the token sent by
+        `POST /v1/password/forgot`. Tokens expire after 3 minutes (email) or
+        2 minutes (SMS); after 5 failed attempts within the window the
+        endpoint returns 429.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password reset (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Invalid or expired reset token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many failed attempts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/two-fa/config:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: generateTwoFAConfig
+      summary: Generate a 2FA configuration
+      description: >-
+        Generates a TOTP secret and a QR code (data URL) for authenticator
+        app enrollment. Fails when 2FA is already enabled.
+      responses:
+        "200":
+          description: TOTP secret and QR code.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFAConfigResponse"
+        "400":
+          description: 2FA is already enabled (`code` = `two_fa_already_enabled`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/two-fa:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: enableTwoFA
+      summary: Enable two-factor authentication
+      description: >-
+        Activates 2FA by validating a TOTP token against the secret obtained
+        from `POST /v1/two-fa/config`. Returns one-time recovery codes (8
+        codes, 10 uppercase hex characters) which are only shown once.
+        Requires a verified account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, secretCode]
+              properties:
+                token:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  description: Current 6-digit TOTP from the authenticator app.
+                secretCode:
+                  type: string
+                  description: Base32 secret returned by `POST /v1/two-fa/config`.
+      responses:
+        "200":
+          description: 2FA enabled; recovery codes returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodesResponse"
+        "400":
+          description: >-
+            Non-numeric token (`code` = `invalid_token`) or enable failed
+            (`code` = `enable_two_fa_failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Account not verified (`code` = `account_verification_required`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Two-Factor Authentication
+      operationId: disableTwoFA
+      summary: Disable two-factor authentication
+      responses:
+        "200":
+          description: 2FA disabled (empty body).
+        "400":
+          description: 2FA is already disabled (`code` = `two_fa_already_disabled`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/two-fa/generate-new-recovery-codes:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: generateNewTwoFARecoveryCodes
+      summary: Regenerate recovery codes
+      description: Replaces existing recovery codes with a new set (shown once).
+      responses:
+        "200":
+          description: New recovery codes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodesResponse"
+        "400":
+          description: 2FA is not enabled (`code` = `two_fa_is_not_enabled`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/two-fa/verify:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: verifyTwoFA
+      summary: Verify two-factor credentials
+      description: >-
+        Validates a TOTP token or a recovery code against the caller's
+        enabled 2FA configuration. Requires authentication (JWT) and is not a
+        public endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyTwoFARequest"
+      responses:
+        "200":
+          description: Credentials valid (empty body).
+        "400":
+          description: >-
+            Non-numeric `totp` (`code` = `invalid_totp`) or missing
+            `twoFAType` (`code` = `two_fa_type_required`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Invalid 2FA credentials (`code` = `two_fa_totp_invalid` / `two_fa_recoveryCode_invalid` / `two_fa_validation_failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/send-phone-token:
+    post:
+      tags:
+        - Verification
+      operationId: sendPhoneToken
+      summary: Send a phone verification code
+      description: >-
+        Verifies the phone/national-code pair through Shahkar, then sends a
+        6-digit SMS verification code when OTP verification is required.
+        Returns `requiresOtp: false` when the phone is already verified for
+        this account. The code is consumed by `POST /v1/save-info`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, nationalCode]
+              properties:
+                phone:
+                  type: string
+                  pattern: "^09\\d{9}$"
+                nationalCode:
+                  type: string
+                  pattern: "^\\d{10,12}$"
+      responses:
+        "200":
+          description: Whether an OTP code was dispatched.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendPhoneTokenResponse"
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: >-
+            Phone already taken by another account or a phone unlock was
+            already requested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/send-email-token:
+    post:
+      tags:
+        - Verification
+      operationId: sendEmailToken
+      summary: Send an email verification code
+      description: >-
+        Emails a 6-digit verification token for a new email address or for
+        unlocking the current one. The token is consumed by
+        `POST /v1/verify-email`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email to verify (lowercased).
+      responses:
+        "200":
+          description: Token dispatched (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: >-
+            The email is already in use, or the current email cannot be
+            changed anymore, or an unlock was already requested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/verify-email:
+    post:
+      tags:
+        - Verification
+      operationId: verifyEmail
+      summary: Verify an email address with a token
+      description: >-
+        Confirms the email (and optional address change) using the token sent
+        by `POST /v1/send-email-token`. Tokens expire after 3 minutes; after
+        5 failed attempts within the window the endpoint returns 429.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, token]
+              properties:
+                email:
+                  type: string
+                  format: email
+                token:
+                  type: string
+                  description: 6-digit code sent by email.
+      responses:
+        "200":
+          description: Email verified/changed (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Invalid token ("Invalid token.").
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: An email unlock was already requested or the email can no longer be changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many failed attempts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/channels/send-phone-token:
+    post:
+      tags:
+        - Verification
+      operationId: sendChannelPhoneToken
+      summary: Send a verification code for a new SMS notification channel
+      description: >-
+        Sends a 6-digit SMS token used to register a new SMS notification
+        channel for the account. Requires team `manage` permission when
+        acting in team context. The channel must not already exist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  pattern: "^09\\d{9}$"
+      responses:
+        "200":
+          description: Token dispatched (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Account not verified (`code` = `account_verification_required`)
+            or caller lacks `team.manage` permission (`code` =
+            `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: An SMS channel with this phone already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/channels/send-email-token:
+    post:
+      tags:
+        - Verification
+      operationId: sendChannelEmailToken
+      summary: Send a verification code for a new email notification channel
+      description: >-
+        Emails a 6-digit token used to register a new email notification
+        channel for the account. Requires team `manage` permission when
+        acting in team context. The channel must not already exist.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email to verify (lowercased).
+      responses:
+        "200":
+          description: Token dispatched (empty body).
+        "400":
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Account not verified (`code` = `account_verification_required`)
+            or caller lacks `team.manage` permission (`code` =
+            `no_permission` / `team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: An email channel with this address already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /v1/gifts:
+    get:
+      tags:
+        - Gifts
+      operationId: listGifts
+      summary: List enabled gifts
+      description: Returns the promotional gifts already enabled for the account.
+      responses:
+        "200":
+          description: Enabled gifts.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GiftsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/gifts/{provider}/enable:
+    post:
+      tags:
+        - Gifts
+      operationId: enableGift
+      summary: Enable a promotional gift
+      description: >-
+        Credits the gift amount for the given provider. Disabled in the
+        `iran` region; each gift can only be enabled once per account.
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: Gift provider identifier.
+          schema:
+            type: string
+            enum: [ReactAppOnlineCourses, SevenLearnExperts]
+      responses:
+        "200":
+          description: Gift enabled (empty body).
+        "400":
+          description: Unknown gift provider.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Gift cannot be enabled in this region.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: The gift is already enabled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/feature-flag/{key}:
+    get:
+      tags:
+        - Platform
+      operationId: getFeatureFlag
+      summary: Get a feature flag value
+      description: >-
+        Public endpoint returning the current value of a feature flag.
+        Flags have a string `key` and a `value` of type boolean, string,
+        number or object.
+      security: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          description: Feature flag key.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The feature flag document.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeatureFlag"
+        "404":
+          description: Feature flag not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/liara/services:
+    get:
+      tags:
+        - Platform
+      operationId: getLiaraServices
+      summary: List available Liara services
+      description: >-
+        Returns the legacy file storage service entry when the account's
+        storage service is active; otherwise an empty list.
+      responses:
+        "200":
+          description: Available services.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiaraServicesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Unauthorized:
+      description: >-
+        Missing, invalid or expired JWT. The response body here is a plain
+        `{"error": "Unauthorized."}` — no `statusCode`, `message` or `data`
+        fields.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MinimalErrorBody"
+    Banned:
+      description: >-
+        The authenticated account is banned. The response body here is a
+        plain `{"error": "Banned."}` (checked before any other authorization
+        logic runs), not the standard error envelope.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MinimalErrorBody"
+    TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    MinimalErrorBody:
+      type: object
+      description: >-
+        Minimal error body used only for the "Unauthorized" and "Banned"
+        cases, instead of the standard error envelope.
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: ["Unauthorized.", "Banned."]
+    Error:
+      type: object
+      description: >-
+        Standard error response returned by the API. `data` carries optional
+        machine-readable details such as an error `code`.
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code (e.g. `two_fa_required`).
+    StatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [success]
+    ApiTokenResponse:
+      type: object
+      required: [api_token]
+      properties:
+        api_token:
+          type: string
+          description: 'JWT ({ userID, type: auth }) payload.'
+    LoginRequest:
+      type: object
+      required: [password]
+      description: Exactly one of `email` or `phone` must be present.
+      properties:
+        email:
+          type: string
+          format: email
+          description: Account email (lowercased). The backend also accepts the special value `enamad`.
+        phone:
+          type: string
+          pattern: "^09\\d{9}$"
+        password:
+          type: string
+          maxLength: 250
+        twoFAType:
+          type: string
+          enum: [totp, recoveryCode]
+          description: Required when 2FA is enabled.
+        totp:
+          type: string
+          minLength: 6
+          maxLength: 6
+          description: Required (and only allowed) when `twoFAType` is `totp`.
+        recoveryCode:
+          type: string
+          minLength: 10
+          maxLength: 10
+          description: Required (and only allowed) when `twoFAType` is `recoveryCode`.
+    LoginResponse:
+      type: object
+      required: [api_token, fullname, avatar]
+      properties:
+        api_token:
+          type: string
+        fullname:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+    SmsLoginRequest:
+      type: object
+      required: [phone, token]
+      properties:
+        phone:
+          type: string
+          pattern: "^09\\d{9}$"
+        token:
+          type: string
+          minLength: 6
+          maxLength: 6
+          description: 6-digit OTP sent by `POST /v1/login/send-otp-token`.
+        twoFAType:
+          type: string
+          enum: [totp, recoveryCode]
+        totp:
+          type: string
+          minLength: 6
+          maxLength: 6
+        recoveryCode:
+          type: string
+          minLength: 10
+          maxLength: 10
+    SmsLoginResponse:
+      type: object
+      required: [email, api_token, fullname, avatar]
+      properties:
+        email:
+          type: string
+          nullable: true
+        api_token:
+          type: string
+        fullname:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+    OAuthLoginRequest:
+      type: object
+      required: [code, callback_url]
+      properties:
+        code:
+          type: string
+        callback_url:
+          type: string
+        githubOAuthCSRFToken:
+          type: string
+    OAuthLoginResponse:
+      type: object
+      required: [email, fullname, avatar, nationalCode, api_token]
+      properties:
+        email:
+          type: string
+          nullable: true
+        fullname:
+          type: string
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+        nationalCode:
+          type: string
+          nullable: true
+        api_token:
+          type: string
+    OAuthTwoFARequest:
+      type: object
+      description: >-
+        `totp` is required (and only allowed) when `twoFAType` is `totp`;
+        `recoveryCode` when `twoFAType` is `recoveryCode`.
+      properties:
+        twoFAType:
+          type: string
+          enum: [totp, recoveryCode]
+        totp:
+          type: string
+          minLength: 6
+          maxLength: 6
+        recoveryCode:
+          type: string
+          minLength: 10
+          maxLength: 10
+    RegisterRequest:
+      type: object
+      required: [email, password, fullname, nationalCode, phone]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Account email (lowercased).
+        password:
+          type: string
+          maxLength: 250
+        fullname:
+          type: string
+          maxLength: 100
+          pattern: "^[\\u0600-\\u06FF\\s]+$"
+          description: Persian fullname (only Persian letters and spaces).
+        nationalCode:
+          type: string
+          pattern: "^\\d{10,12}$"
+        phone:
+          type: string
+          pattern: "^09\\d{9}$"
+        userToken:
+          type: string
+          description: Optional invitation/campaign token (currently unused).
+    RegisterResponse:
+      type: object
+      required: [api_token, avatar]
+      properties:
+        api_token:
+          type: string
+        avatar:
+          type: string
+    CheckIfExistsResponse:
+      type: object
+      required: [status, exists, socialCompleted]
+      properties:
+        status:
+          type: string
+          enum: [success]
+        exists:
+          type: boolean
+        socialCompleted:
+          type: boolean
+          description: Whether the account has a password set.
+        twoFAEnabled:
+          type: boolean
+          description: Present only when the account exists.
+    SetDeleteReasonRequest:
+      type: object
+      required: [serviceType, serviceID, type]
+      properties:
+        serviceType:
+          type: string
+          enum: [Mail, Iaas, Paas, DNS, AI, DBaas, ObjectStorage, WP]
+        serviceID:
+          type: string
+          pattern: "^[0-9a-fA-F]{24}$"
+          description: ObjectId of the deleted service.
+        type:
+          type: string
+          enum:
+            - others
+            - heavy_pricing
+            - migration
+            - just_testing
+            - weak_support
+            - project_cancelled
+            - lack_of_features
+            - lack_of_speed_and_performance
+            - security_vulnerabilities
+        description:
+          type: string
+          maxLength: 500
+    ConvertAccountRequest:
+      type: object
+      required: [name, color]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          description: Team name (reserved names are rejected).
+        color:
+          type: string
+          enum:
+            - PURPLE_FIRE
+            - GOLDEN_NATURE
+            - WOLF_AND_MIST
+            - CARBON_SEA
+            - WINTER_FOG
+            - RED_SEA
+    ContactInfoRequest:
+      description: >-
+        Either a full REAL_PERSON or LEGAL_PERSON contact payload, or an
+        empty contact object with `accountType: REAL_PERSON` (used to
+        partially update an already saved contact).
+      oneOf:
+        - type: object
+          required: [accountType, contactInfo]
+          properties:
+            accountType:
+              type: string
+              enum: [REAL_PERSON]
+            contactInfo:
+              type: object
+              required:
+                [firstName, lastName, phone, nationalCode, economicCode, province, city, postalCode, address]
+              properties:
+                firstName:
+                  type: string
+                  maxLength: 250
+                lastName:
+                  type: string
+                  maxLength: 250
+                phone:
+                  type: string
+                  maxLength: 250
+                nationalCode:
+                  type: string
+                  maxLength: 250
+                economicCode:
+                  type: string
+                  maxLength: 250
+                province:
+                  type: string
+                  maxLength: 250
+                city:
+                  type: string
+                  maxLength: 250
+                postalCode:
+                  type: string
+                  maxLength: 250
+                address:
+                  type: string
+                  maxLength: 250
+        - type: object
+          required: [accountType, contactInfo]
+          properties:
+            accountType:
+              type: string
+              enum: [LEGAL_PERSON]
+            contactInfo:
+              type: object
+              required:
+                [companyName, telephone, registrationCode, nationalIdentity, economicCode, province, city, postalCode, address]
+              properties:
+                companyName:
+                  type: string
+                  maxLength: 250
+                telephone:
+                  type: string
+                  maxLength: 250
+                registrationCode:
+                  type: string
+                  maxLength: 250
+                nationalIdentity:
+                  type: string
+                  maxLength: 250
+                economicCode:
+                  type: string
+                  maxLength: 250
+                province:
+                  type: string
+                  maxLength: 250
+                city:
+                  type: string
+                  maxLength: 250
+                postalCode:
+                  type: string
+                  maxLength: 250
+                address:
+                  type: string
+                  maxLength: 250
+        - type: object
+          properties:
+            accountType:
+              type: string
+              enum: [REAL_PERSON]
+            contactInfo:
+              type: object
+              description: Empty object; only address/name fields may be updated.
+              additionalProperties: false
+    SaveInfoRequest:
+      type: object
+      required: [phone, nationalCode]
+      properties:
+        phone:
+          type: string
+          pattern: "^09\\d{9}$"
+        nationalCode:
+          type: string
+          pattern: "^\\d{10,12}$"
+        token:
+          type: string
+          minLength: 6
+          maxLength: 6
+          description: >-
+            6-digit SMS code from `POST /v1/send-phone-token`; required when
+            the phone is new or not yet verified.
+    ChangePasswordRequest:
+      type: object
+      required: [newPassword]
+      properties:
+        currentPassword:
+          type: string
+          maxLength: 250
+          description: Required when the account already has a password.
+        newPassword:
+          type: string
+          maxLength: 250
+    ForgotPasswordRequest:
+      type: object
+      description: Exactly one of `email` or `phone` must be present.
+      properties:
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          pattern: "^09\\d{9}$"
+    ResetPasswordRequest:
+      type: object
+      required: [token, password]
+      description: Exactly one of `email` or `phone` must be present.
+      properties:
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          pattern: "^09\\d{9}$"
+        token:
+          type: string
+          description: 6-digit reset token.
+        password:
+          type: string
+    TwoFAConfigResponse:
+      type: object
+      required: [secretCode, qrcode]
+      properties:
+        secretCode:
+          type: string
+          description: Base32 TOTP secret.
+        qrcode:
+          type: string
+          description: QR code as a data URL for authenticator apps.
+    RecoveryCodesResponse:
+      type: object
+      required: [recoveryCodes]
+      properties:
+        recoveryCodes:
+          type: array
+          description: 8 one-time recovery codes (10 uppercase hex characters).
+          items:
+            type: string
+    VerifyTwoFARequest:
+      type: object
+      required: [twoFAType]
+      description: >-
+        `totp` is required (and only allowed) when `twoFAType` is `totp`;
+        `recoveryCode` when `twoFAType` is `recoveryCode`.
+      properties:
+        twoFAType:
+          type: string
+          enum: [totp, recoveryCode]
+        totp:
+          type: string
+          minLength: 6
+          maxLength: 6
+        recoveryCode:
+          type: string
+          minLength: 10
+          maxLength: 10
+    SendPhoneTokenResponse:
+      type: object
+      required: [requiresOtp]
+      properties:
+        requiresOtp:
+          type: boolean
+          description: >-
+            `false` when the phone is already verified for the account (no
+            SMS is sent); `true` when an OTP was dispatched.
+    Gift:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ObjectId of the gift record.
+        provider:
+          type: string
+          enum: [ReactAppOnlineCourses, SevenLearnExperts]
+        createdAt:
+          type: string
+          format: date-time
+    GiftsResponse:
+      type: object
+      required: [gifts]
+      properties:
+        gifts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Gift"
+    FeatureFlag:
+      type: object
+      required: [key, value]
+      properties:
+        key:
+          type: string
+        value:
+          description: Boolean, string, number or object flag value.
+          oneOf:
+            - type: boolean
+            - type: string
+            - type: number
+            - type: object
+              additionalProperties: true
+    LiaraServicesResponse:
+      type: object
+      required: [liaraServices]
+      properties:
+        liaraServices:
+          type: array
+          items:
+            type: object
+            required: [name, type]
+            properties:
+              name:
+                type: string
+                example: سرویس فایل
+              type:
+                type: string
+                enum: [FILE_SERVICE]
+    CurrentUserResponse:
+      type: object
+      description: >-
+        Current user payload. The `user` object merges the serialized user,
+        billing metadata, feature booleans and git integrations. When called
+        with team context a `team` object (same shape, plus
+        `teamMemberRole`/`teamMemberPermissions`) is returned as well. Top
+        level keys `databaseVersions`, `defaultDatabaseVersions`,
+        `featureFlags` and `plans` mirror platform configuration and are
+        free-form.
+      required: [user, databaseVersions, defaultDatabaseVersions, featureFlags, plans]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        team:
+          $ref: "#/components/schemas/UserProfile"
+          description: >-
+            Present only in team context; additionally includes
+            `teamMemberRole` ({name, permissions}) and
+            `teamMemberPermissions`.
+        databaseVersions:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+          description: Supported versions per database type (disabled postgres versions filtered out).
+        defaultDatabaseVersions:
+          type: object
+          additionalProperties:
+            type: string
+          description: Default version per database type.
+        featureFlags:
+          type: array
+          description: All feature flags ({key, value}).
+          items:
+            $ref: "#/components/schemas/FeatureFlag"
+        plans:
+          type: object
+          additionalProperties: true
+          description: >-
+            Service plan catalogs: `mail`, `projects`, `databases`,
+            `objectStorage`, `legacyStorageService`, `projectBundlePlans`,
+            `databaseBundlePlans`, `subscription`.
+    UserProfile:
+      type: object
+      description: >-
+        Serialized user/actor. Team-only or user-only fields may be absent
+        (or null) depending on the account type.
+      properties:
+        _id:
+          type: string
+          description: ObjectId of the user.
+        fullname:
+          type: string
+          nullable: true
+        nationalCode:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        admin:
+          type: boolean
+          nullable: true
+        avatar:
+          type: string
+          nullable: true
+          description: Custom avatar or Gravatar URL.
+        invoiceIssuingEnabled:
+          type: boolean
+        joined_at:
+          type: string
+          format: date-time
+          nullable: true
+        freeCreditTime:
+          type: integer
+          nullable: true
+          description: Days remaining of the 30-day free credit window.
+        remainingFreeCredit:
+          type: integer
+          nullable: true
+        hasPassword:
+          type: boolean
+          nullable: true
+        emailVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        phoneVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isVerified:
+          type: boolean
+          nullable: true
+          description: Whether the account may use services (fullname, national code, verified phone and email).
+        storage:
+          type: object
+          nullable: true
+          description: Legacy object storage snapshot (user accounts only).
+          properties:
+            namespace:
+              type: string
+            status:
+              type: string
+              enum:
+                - ACTIVATING
+                - ACTIVE
+                - FROZEN
+                - UNFREEZING
+                - DEACTIVATING
+                - DEACTIVE
+            planID:
+              type: string
+              nullable: true
+            space:
+              type: integer
+              nullable: true
+            accessKey:
+              type: string
+              nullable: true
+            secretKey:
+              type: string
+              nullable: true
+        twoFA:
+          type: boolean
+          nullable: true
+        lastTwoFAVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isEmailChangeDeadline:
+          type: boolean
+          nullable: true
+        isPhoneChangeDeadline:
+          type: boolean
+          nullable: true
+        convertedToNewUserAt:
+          type: string
+          format: date-time
+          nullable: true
+        changedTeamCreatorAt:
+          type: string
+          format: date-time
+          nullable: true
+        hasNoPaymentLimit:
+          type: boolean
+          nullable: true
+        isTeam:
+          type: boolean
+        teamName:
+          type: string
+          nullable: true
+        teamCreator:
+          type: string
+          nullable: true
+          description: ObjectId of the team creator (team accounts only).
+        accountType:
+          type: string
+          enum: [REAL_PERSON, LEGAL_PERSON]
+          nullable: true
+        contactInfo:
+          type: object
+          additionalProperties: true
+          nullable: true
+        contactInfoSavedAt:
+          type: string
+          format: date-time
+          nullable: true
+        minCreditAmount:
+          type: number
+          nullable: true
+        isManualMinCredit:
+          type: boolean
+          nullable: true
+        minCreditLastNotifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        legacyNetworkFeature:
+          type: boolean
+        hasSucceedPayment:
+          type: boolean
+        privateNetworkFeature:
+          type: boolean
+        legacyObjectStorageFeature:
+          type: boolean
+        legacyDomainsFeature:
+          type: boolean
+        currentSubscriptionPlan:
+          description: Latest subscription plan history entry or an empty object.
+          oneOf:
+            - type: object
+              additionalProperties: true
+        gitProviderIntegrations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        gitRepositoryIntegrations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        teamMemberRole:
+          type: object
+          description: Team context only.
+          properties:
+            name:
+              type: string
+            permissions:
+              type: array
+              items: {}
+        teamMemberPermissions:
+          type: array
+          description: Team context only.
+          items: {}
+    BillingInfo:
+      type: object
+      properties:
+        balance:
+          type: number
+          description: Current account credit balance.
+        accountType:
+          type: string
+          enum: [REAL_PERSON, LEGAL_PERSON]
+          nullable: true
+        contactInfo:
+          type: object
+          additionalProperties: true
+          nullable: true
+        contactInfoSavedAt:
+          type: string
+          format: date-time
+          nullable: true
+        minCreditAmount:
+          type: number
+          nullable: true
+        isManualMinCredit:
+          type: boolean
+        minCreditLastNotifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+    BillingSnapshotResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/BillingInfo"
+        team:
+          $ref: "#/components/schemas/BillingInfo"
+          description: >-
+            Present only in team context when the acting member has
+            `billing` permission.
+    UsageResponse:
+      type: object
+      required: [hourly, daily, monthly, yearly]
+      properties:
+        hourly:
+          type: number
+          description: Current hourly cost of all active services.
+        daily:
+          type: number
+        monthly:
+          type: number
+        yearly:
+          type: number
+    UsageReportItem:
+      type: object
+      additionalProperties: true
+      description: >-
+        Per-service cost breakdown. Fields vary by service type but always
+        include pricing such as `planHourlyPrice`, `planMonthlyPrice`,
+        `totalHourlyPrice` and `totalMonthlyPrice`, plus an identifying field
+        (e.g. `project_id` for projects).
+    UsageReportResponse:
+      type: object
+      required:
+        - projects
+        - databases
+        - buckets
+        - mailservers
+        - VMs
+        - workspaces
+        - managedWordpress
+        - storage
+        - totalHourlyPrice
+        - totalMonthlyPrice
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageReportItem"
+        databases:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageReportItem"
+        buckets:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageReportItem"
+        mailservers:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageReportItem"
+        VMs:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageReportItem"
+        workspaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageReportItem"
+        managedWordpress:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageReportItem"
+        storage:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/UsageReportItem"
+          description: Legacy object storage cost, present only when active.
+        totalHourlyPrice:
+          type: number
+        totalMonthlyPrice:
+          type: number
+    ServiceCountResponse:
+      type: object
+      required:
+        [apps, databases, zones, buckets, mailServers, VMs, AIWorkspaces, managedWordpress]
+      properties:
+        apps:
+          type: integer
+        databases:
+          type: integer
+        zones:
+          type: integer
+          description: DNS zones.
+        buckets:
+          type: integer
+        mailServers:
+          type: integer
+        VMs:
+          type: integer
+        AIWorkspaces:
+          type: integer
+        managedWordpress:
+          type: integer
