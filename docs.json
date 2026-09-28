@@ -270,6 +270,22 @@
           }
         ]
       },
+
+
+      {
+        "product": "Billing",
+        "icon": "credit-card",
+        "groups": [
+          {
+            "group": "API Endpoints",
+            "icon": "file-code",
+            "openapi": {
+              "source": "spec/billing.yaml",
+              "directory": "billing"
+            }
+          }
+        ]
+      },
       {
         "product": "Account",
         "icon": "user",
