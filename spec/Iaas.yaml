@@ -18,6 +18,7 @@ servers:
   - url: https://iaas-api.liara.ir
 security:
   - jwt: []
+  - bearerAuth: []
 tags:
   - name: VMs
     description: Manage your VMs
@@ -600,6 +601,10 @@ paths:
 components:
   securitySchemes:
     jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT

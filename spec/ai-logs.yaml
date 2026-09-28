@@ -229,11 +229,9 @@ components:
   securitySchemes:
     jwt:
       type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345"'
       name: Authorization
       in: header
     apiKey:
       type: apiKey
-      description: 'Enter the API key with the `Bearer: ` prefix, e.g. "Bearer <your-api-key>"'
       name: Authorization
       in: header

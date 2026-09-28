@@ -16,9 +16,10 @@ externalDocs:
   description: Find out more about Liara Mail Server
   url: https://docs.liara.ir/email/create-mail-server/
 servers:
-  - url: https://mail-service.iran.liara.ir
+  - url: https://mail-service.liara.ir
 security:
   - jwt: []
+  - bearerAuth: []
 tags:
   - name: mails
     description: Everything about your mails
@@ -2127,6 +2128,10 @@ components:
   securitySchemes:
     jwt:
       type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
       name: Authorization
       in: header
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+

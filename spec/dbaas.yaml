@@ -15,9 +15,10 @@ externalDocs:
   description: Find out more about DBaaS
   url: http://liara.ir
 servers:
-- url: https://api.iran.liara.ir
+- url: https://api.liara.ir
 security:
 - jwt: []
+- bearerAuth: []
 tags:
   - name: Databases
     description: Everything about your Databases
@@ -892,6 +893,10 @@ components:
   securitySchemes:
     jwt:
       type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
       name: Authorization
       in: header
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+

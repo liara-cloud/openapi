@@ -1,0 +1,208 @@
+openapi: 3.0.1
+
+info:
+  title: Liara Account API
+  version: 1.0.0
+  description: Retrieve current authenticated user and console information.
+
+servers:
+  - url: https://api.liara.ir
+
+tags:
+  - name: User
+
+paths:
+  /v1/me:
+    get:
+      tags:
+        - User
+      summary: Get current user and console information
+      operationId: getMe
+      description: Returns complete authenticated user profile and console configuration.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user and console information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+        "401":
+          description: Unauthorized
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    MeResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        databaseVersions:
+          $ref: "#/components/schemas/DatabaseVersions"
+        defaultDatabaseVersions:
+          type: object
+          additionalProperties:
+            type: string
+        featureFlags:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeatureFlag"
+        plans:
+          $ref: "#/components/schemas/Plans"
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        fullname:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+        hasPassword:
+          type: boolean
+        emailVerifiedAt:
+          type: string
+          nullable: true
+        phoneVerifiedAt:
+          type: string
+          nullable: true
+        isVerified:
+          type: boolean
+        twoFA:
+          type: boolean
+        accountType:
+          type: string
+        invoiceIssuingEnabled:
+          type: boolean
+        storage:
+          $ref: "#/components/schemas/Storage"
+        currentSubscriptionPlan:
+          $ref: "#/components/schemas/Subscription"
+        gitProviderIntegrations:
+          type: array
+          items:
+            type: object
+        gitRepositoryIntegrations:
+          type: array
+          items:
+            type: object
+
+    Storage:
+      type: object
+      properties:
+        namespace:
+          type: string
+        status:
+          type: string
+        planID:
+          type: string
+        accessKey:
+          type: string
+        secretKey:
+          type: string
+
+    Subscription:
+      type: object
+      additionalProperties: true
+
+    DatabaseVersions:
+      type: object
+      properties:
+        mysql:
+          $ref: "#/components/schemas/DatabaseVersionList"
+        mariadb:
+          $ref: "#/components/schemas/DatabaseVersionList"
+        postgres:
+          $ref: "#/components/schemas/PostgresVersionList"
+        mssql:
+          $ref: "#/components/schemas/DatabaseVersionList"
+        mongodb:
+          $ref: "#/components/schemas/DatabaseVersionList"
+        redis:
+          $ref: "#/components/schemas/DatabaseVersionList"
+        elasticsearch:
+          $ref: "#/components/schemas/DatabaseVersionList"
+        rabbitmq:
+          $ref: "#/components/schemas/DatabaseVersionList"
+        clickhouse:
+          $ref: "#/components/schemas/DatabaseVersionList"
+
+    DatabaseVersionList:
+      type: array
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          value:
+            type: string
+
+    PostgresVersionList:
+      type: array
+      items:
+        type: object
+        properties:
+          label:
+            type: string
+          value:
+            type: string
+          postgisValue:
+            type: string
+          pgvectorValue:
+            type: string
+
+    FeatureFlag:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: boolean
+            - type: object
+            - type: array
+
+    Plans:
+      type: object
+      description: All available console plans.
+      properties:
+        mail:
+          type: object
+          additionalProperties: true
+        projects:
+          type: object
+          additionalProperties: true
+        databases:
+          type: object
+          additionalProperties: true
+        objectStorage:
+          type: object
+          additionalProperties: true
+        legacyStorageService:
+          type: object
+          additionalProperties: true
+        projectBundlePlans:
+          type: object
+          additionalProperties: true
+        databaseBundlePlans:
+          type: object
+          additionalProperties: true
+        subscription:
+          type: object
+          additionalProperties: true

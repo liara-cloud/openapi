@@ -17,9 +17,10 @@ externalDocs:
   description: Find out more about Liara Object Storage
   url: https://docs.liara.ir/buckets/about/
 servers:
-- url: https://storage-service.iran.liara.ir
+- url: https://storage-service.liara.ir
 security:
 - jwt: []
+- bearerAuth: []
 tags:
 - name: Bucket
   description: Operations about bucket
@@ -1240,6 +1241,10 @@ components:
   securitySchemes:
     jwt:
       type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
       name: Authorization
       in: header
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+

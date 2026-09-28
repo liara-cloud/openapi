@@ -4,8 +4,8 @@ info:
   description: |-
     Manage your apps using our API
 
-    [wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>](
-    wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>)
+    [wss://api.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>](
+    wss://api.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>)
 
     Parameters:
     - `token`: Your api token in liara
@@ -26,9 +26,10 @@ externalDocs:
   description: Find out more about PaaS
   url: http://liara.ir
 servers:
-- url: https://api.iran.liara.ir
+- url: https://api.liara.ir
 security:
 - jwt: []
+- bearerAuth: []
 tags:
   - name: Apps
     description: Everything about your Apps
@@ -2030,6 +2031,9 @@ components:
   securitySchemes:
     jwt:
       type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
       name: Authorization
       in: header
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

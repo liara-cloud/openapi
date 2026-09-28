@@ -23,6 +23,7 @@ servers:
         description: This value is assigned by the service provider.
 security:
   - jwt: []
+  - bearerAuth: []
 tags:
   - name: Disks
     description: Everything about your File Browser in Disks
@@ -629,6 +630,10 @@ components:
   securitySchemes:
     jwt:
       type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
       name: Authorization
       in: header
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+

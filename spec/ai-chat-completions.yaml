@@ -20,6 +20,7 @@ servers:
   - url: https://ai.liara.ir
 security:
   - apiKey: []
+
 tags:
   - name: Chat Completions
     description: Generate chat completions with various AI models
@@ -408,6 +409,5 @@ components:
   securitySchemes:
     apiKey:
       type: apiKey
-      description: 'Enter the API key with the `Bearer: ` prefix, e.g. "Bearer <your-api-key>"'
       name: Authorization
       in: header
