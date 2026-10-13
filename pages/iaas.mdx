@@ -25,6 +25,7 @@ The IaaS API enables you to:
 - **Multiple OS Support**: Choose from Ubuntu, Debian, and other popular operating systems
 - **Flexible Plans**: Select from various plans with different CPU, RAM, and storage configurations
 - **SSH Key Configuration**: Add SSH keys for secure access during creation
+- **Change SSH PORT **: Change SSH Port during creation
 - **IPv4 and IPv6**: Automatic IP address assignment
 
 ### Power Management
@@ -80,6 +81,7 @@ When creating a VM, specify:
 - **OS**: The operating system to install
 - **plan**: The resource plan
 - **config.SSHKeys**: SSH public keys for access (optional)
+- **config.SSHPort**: Change SSH Port (optional)
 
 ### Power Management
 
@@ -123,6 +125,7 @@ Control VM power state:
 ## Best Practices
 
 - Use SSH keys instead of passwords for better security
+- Change SSH Port for better security plus less restrictions to reach the server from another country
 - Regularly backup important data
 - Monitor resource usage to optimize costs
 - Choose appropriate plan sizes based on your workload
@@ -132,6 +135,7 @@ Control VM power state:
 
 - Protect your API credentials
 - Use SSH keys for authentication
+- Change SSH Port for better security
 - Configure firewall rules as needed
 - Regularly update your VM's operating system
 - Monitor for unusual activity through traffic graphs

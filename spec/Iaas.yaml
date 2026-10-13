@@ -651,6 +651,8 @@ components:
         config:
           type: object
           properties:
+            sshPort:
+              type: string
             SSHKeys:
               type: array
               items:
@@ -727,6 +729,8 @@ components:
           description: The config of vm that you want to create
           type: object
           properties:
+            sshPort:
+              type: string
             SSHKeys:
               type: array
               items:
