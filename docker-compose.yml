@@ -26,4 +26,5 @@ services:
         { url: '/spec/ai-models.yaml', name: 'AI - Models' },
         { url: '/spec/ai-logs.yaml', name: 'AI - Logs' },
         { url: '/spec/ai-playground.yaml', name: 'AI - Playground' },
+        { url: '/spec/me.yaml', name: 'Account' },
         ]"

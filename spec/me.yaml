@@ -18,7 +18,9 @@ paths:
         - User
       summary: Get current user and console information
       operationId: getMe
-      description: Returns complete authenticated user profile and console configuration.
+      description: >-
+        Returns the authenticated user profile and console configuration.
+        In team mode, the response also includes a `team` object.
       security:
         - bearerAuth: []
       responses:
@@ -28,6 +30,101 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MeResponse"
+        "401":
+          description: Unauthorized
+
+  /v1/me/subscription:
+    get:
+      tags:
+        - User
+      summary: Get current subscription plan
+      operationId: getMeSubscription
+      description: Returns the current subscription plan of the user (or the team in team mode). Returns an empty object when there is no active plan.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current subscription plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeSubscriptionResponse"
+        "401":
+          description: Unauthorized
+
+  /v1/me/two-fa:
+    get:
+      tags:
+        - User
+      summary: Get two-factor authentication status
+      operationId: getMeTwoFA
+      description: Returns the two-factor authentication status of the user. Both fields are omitted for teams.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Two-factor authentication status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeTwoFAResponse"
+        "401":
+          description: Unauthorized
+
+  /v1/me/free-credit:
+    get:
+      tags:
+        - User
+      summary: Get remaining free credit
+      operationId: getMeFreeCredit
+      description: Returns the remaining free credit of the user. The field is omitted for teams.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Remaining free credit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeFreeCreditResponse"
+        "401":
+          description: Unauthorized
+
+  /v1/me/git-integrations:
+    get:
+      tags:
+        - User
+      summary: Get Git integrations
+      operationId: getMeGitIntegrations
+      description: Returns the connected Git providers and their repository integrations.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Git integrations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeGitIntegrationsResponse"
+        "401":
+          description: Unauthorized
+
+  /v1/me/utm:
+    get:
+      tags:
+        - User
+      summary: Get UTM information
+      operationId: getMeUTM
+      description: Returns the UTM campaign the account joined through, or null if none.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: UTM information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeUTMResponse"
         "401":
           description: Unauthorized
 
@@ -46,12 +143,12 @@ components:
       properties:
         user:
           $ref: "#/components/schemas/User"
+        team:
+          $ref: "#/components/schemas/Team"
         databaseVersions:
-          $ref: "#/components/schemas/DatabaseVersions"
+          type: object
         defaultDatabaseVersions:
           type: object
-          additionalProperties:
-            type: string
         featureFlags:
           type: array
           items:
@@ -83,24 +180,64 @@ components:
           nullable: true
         isVerified:
           type: boolean
-        twoFA:
+        isTeam:
           type: boolean
-        accountType:
+        isTeamCreator:
+          type: boolean
+          description: Present only in team mode.
+        nationalCode:
           type: string
         invoiceIssuingEnabled:
           type: boolean
         storage:
           $ref: "#/components/schemas/Storage"
-        currentSubscriptionPlan:
-          $ref: "#/components/schemas/Subscription"
-        gitProviderIntegrations:
-          type: array
-          items:
-            type: object
-        gitRepositoryIntegrations:
-          type: array
-          items:
-            type: object
+        accountType:
+          type: string
+        contactInfo:
+          type: object
+          additionalProperties: true
+        contactInfoSavedAt:
+          type: string
+          format: date-time
+          nullable: true
+        minCreditAmount:
+          type: number
+        isManualMinCredit:
+          type: boolean
+        minCreditLastNotifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        hasSucceedPayment:
+          type: boolean
+        legacyNetworkFeature:
+          type: boolean
+        privateNetworkFeature:
+          type: boolean
+        legacyObjectStorageFeature:
+          type: boolean
+
+    Team:
+      description: Present only in team mode. Contains the team profile, billing information and the member's role and permissions.
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          properties:
+            balance:
+              type: number
+            teamMemberRole:
+              type: object
+              properties:
+                name:
+                  type: string
+                permissions:
+                  type: array
+                  items:
+                    type: string
+            teamMemberPermissions:
+              type: array
+              items:
+                type: string
 
     Storage:
       type: object
@@ -119,6 +256,111 @@ components:
     Subscription:
       type: object
       additionalProperties: true
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+          example: subscription
+        userID:
+          type: string
+        subscriptionPlanID:
+          type: string
+          example: free
+        subscriptionPlanExpiration:
+          type: string
+          format: date-time
+        maxTechnicalTicketsPerMonth:
+          oneOf:
+            - type: integer
+            - type: string
+          example: infinite
+        subscriptionDurationType:
+          type: string
+          example: monthly
+        technicalTicketsCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MeSubscriptionResponse:
+      type: object
+      properties:
+        currentSubscriptionPlan:
+          $ref: "#/components/schemas/Subscription"
+
+    MeTwoFAResponse:
+      type: object
+      properties:
+        twoFA:
+          type: boolean
+        lastTwoFAVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    MeFreeCreditResponse:
+      type: object
+      properties:
+        remainingFreeCredit:
+          type: number
+
+    MeGitIntegrationsResponse:
+      type: object
+      properties:
+        gitProviderIntegrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/GitProviderIntegration"
+        gitRepositoryIntegrations:
+          type: array
+          items:
+            $ref: "#/components/schemas/GitRepositoryIntegration"
+
+    GitProviderIntegration:
+      type: object
+
+    GitRepositoryIntegration:
+      type: object
+  
+    MeUTMResponse:
+      type: object
+      properties:
+        utm:
+          $ref: "#/components/schemas/UTM"
+
+    UTM:
+      type: object
+      nullable: true
+      properties:
+        _id:
+          type: string
+        source:
+          type: string
+        medium:
+          type: string
+        campaign:
+          type: string
+        freeCreditAmount:
+          type: number
+        allowedServices:
+          type: array
+          items:
+            type: string
+        joinedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
 
     DatabaseVersions:
       type: object
@@ -180,7 +422,7 @@ components:
 
     Plans:
       type: object
-      description: All available console plans.
+      description: All available plans.
       properties:
         mail:
           type: object
