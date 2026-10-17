@@ -1409,8 +1409,8 @@ paths:
     get:
       tags:
         - tags
-      summary: get all tags
-      operationId: getTags
+      summary: get tags stats
+      operationId: getTagsStats
       parameters:
         - name: mailServerID
           in: path
@@ -1423,7 +1423,7 @@ paths:
           schema:
             maximum: 180
             minimum: 1
-            type: number
+            type: integer
             default: 30
       responses:
         200:
@@ -1433,15 +1433,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  date:
-                    type: integer
-                    description: Unix timestamp
-                  tag:
+                  data:
                     type: object
                     properties:
-                      count:
-                        type: integer
-                        description: count of occurrences
+                      result:
+                        type: array
+                        description: One item per day, from today back to lastNDays days ago
+                        items:
+                          type: object
+                          required:
+                            - date
+                          properties:
+                            date:
+                              type: integer
+                              description: Unix timestamp of the day
+                          additionalProperties:
+                            type: object
+                            description: Usage of the tag (the property name is the tag) on this day.
+                            properties:
+                              count:
+                                type: integer
+                                description: Number of mails sent with this tag
         400:
           description: Bad Request
           content: {}
