@@ -1,0 +1,1711 @@
+openapi: 3.0.1
+info:
+  title: Billing & Subscription
+  version: 1.0.0
+  description: |
+    Check your balance and costs, add credit, download invoices and receipts,
+    manage your subscription plan, and apply discount codes.
+
+    All amounts are in Toman (IRT).
+
+    With `teamID`, these endpoints work on the team's billing. Most of them
+    need the `billing.manage` permission in the team; the description of each
+    endpoint says which permission it needs.
+servers:
+  - url: https://api.liara.ir
+security:
+  - bearerAuth: []
+tags:
+  - name: Balance & Usage
+    description: Balance, current costs and service counts.
+  - name: Payments
+    description: Add credit and list past payments.
+  - name: Invoices & Receipts
+    description: Monthly billing invoices and payment receipts.
+  - name: Subscription
+    description: View and change the account's subscription plan.
+  - name: Discount Codes
+    description: Check and apply discount codes.
+paths:
+  /v1/billing:
+    get:
+      tags:
+        - Balance & Usage
+      operationId: getBilling
+      summary: Get balance and billing details
+      description: >-
+        Returns your balance and billing contact details. With `teamID`, it
+        also returns the team's, if your role has a billing permission there.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: Balance and billing details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/BillingDetails"
+                  team:
+                    allOf:
+                      - $ref: "#/components/schemas/BillingDetails"
+                    description: >-
+                      Only with `teamID`. Empty if your role has no billing
+                      permission in the team.
+              example:
+                user:
+                  balance: 2500000
+                  accountType: REAL_PERSON
+                  contactInfo: {}
+                  minCreditAmount: 20000
+                  isManualMinCredit: false
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /v1/usage:
+    get:
+      tags:
+        - Balance & Usage
+      operationId: getUsage
+      summary: Get current cost
+      description: >-
+        Estimates what your current services cost per hour, day, month and
+        year, at their current plans. With `teamID`, this needs the
+        `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: Estimated cost.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hourly:
+                    type: number
+                  daily:
+                    type: number
+                  monthly:
+                    type: number
+                  yearly:
+                    type: number
+              example:
+                hourly: 250
+                daily: 6000
+                monthly: 180000
+                yearly: 2160000
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/usage-report:
+    get:
+      tags:
+        - Balance & Usage
+      operationId: getUsageReport
+      summary: Get cost by service
+      description: >-
+        Breaks down the hourly and monthly cost of each of your current
+        services, with totals. With `teamID`, this needs the `billing.manage`
+        permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: >-
+            Cost per service. The response can include additional fields not
+            listed here.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    description: Apps.
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            project_id:
+                              type: string
+                              description: The app's name.
+                            type:
+                              type: string
+                              description: The app's platform.
+                            isOneClickApp:
+                              type: boolean
+                            planID:
+                              type: string
+                            bundlePlanID:
+                              type: string
+                            planHourlyPrice:
+                              type: number
+                            bundlePlanHourlyPrice:
+                              type: number
+                            planMonthlyPrice:
+                              type: number
+                            bundlePlanMonthlyPrice:
+                              type: number
+                        - $ref: "#/components/schemas/CostTotals"
+                  databases:
+                    type: array
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            hostname:
+                              type: string
+                            type:
+                              type: string
+                            planID:
+                              type: string
+                            bundlePlanID:
+                              type: string
+                            planHourlyPrice:
+                              type: number
+                            bundlePlanHourlyPrice:
+                              type: number
+                            planMonthlyPrice:
+                              type: number
+                            bundlePlanMonthlyPrice:
+                              type: number
+                        - $ref: "#/components/schemas/CostTotals"
+                  buckets:
+                    type: array
+                    description: Object storage buckets.
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            name:
+                              type: string
+                            planID:
+                              type: string
+                            planHourlyPrice:
+                              type: number
+                            planMonthlyPrice:
+                              type: number
+                        - $ref: "#/components/schemas/CostTotals"
+                  mailservers:
+                    type: array
+                    description: Mail servers. Only a monthly price is given.
+                    items:
+                      type: object
+                      properties:
+                        domain:
+                          type: string
+                        planID:
+                          type: string
+                        monthlyPrice:
+                          type: number
+                  VMs:
+                    type: array
+                    description: Virtual machines, including their public IPv4 addresses and snapshots.
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            name:
+                              type: string
+                            planID:
+                              type: string
+                            OS:
+                              type: string
+                            planHourlyPrice:
+                              type: number
+                            planMonthlyPrice:
+                              type: number
+                            IPv4sHourlyPrice:
+                              type: number
+                            IPv4sMonthlyPrice:
+                              type: number
+                            snapshotsHourlyPrice:
+                              type: number
+                            snapshotMonthlyPrice:
+                              type: number
+                        - $ref: "#/components/schemas/CostTotals"
+                  workspaces:
+                    type: array
+                    description: AI workspaces.
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            name:
+                              type: string
+                            planID:
+                              type: string
+                            planHourlyPrice:
+                              type: number
+                            planMonthlyPrice:
+                              type: number
+                        - $ref: "#/components/schemas/CostTotals"
+                  managedWordpress:
+                    type: array
+                    description: Managed WordPress sites, each with the combined cost of its app and database.
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            name:
+                              type: string
+                        - $ref: "#/components/schemas/CostTotals"
+                  totalHourlyPrice:
+                    type: number
+                  totalMonthlyPrice:
+                    type: number
+              example:
+                projects:
+                  - project_id: my-app
+                    type: node
+                    isOneClickApp: false
+                    planID: "<plan-id>"
+                    bundlePlanID: "<bundle-plan-id>"
+                    planHourlyPrice: 100
+                    bundlePlanHourlyPrice: 20
+                    planMonthlyPrice: 72000
+                    bundlePlanMonthlyPrice: 14400
+                    totalHourlyPrice: 120
+                    totalMonthlyPrice: 86400
+                databases: []
+                buckets: []
+                mailservers: []
+                VMs: []
+                workspaces: []
+                managedWordpress: []
+                totalHourlyPrice: 120
+                totalMonthlyPrice: 86400
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/service-count:
+    get:
+      tags:
+        - Balance & Usage
+      operationId: countServices
+      summary: Count your services
+      description: >-
+        Counts your services by type. With `teamID`, it counts the team's
+        services that you have access to.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: Service counts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apps:
+                    type: integer
+                  databases:
+                    type: integer
+                  zones:
+                    type: integer
+                    description: DNS zones.
+                  buckets:
+                    type: integer
+                    description: Object storage buckets.
+                  mailServers:
+                    type: integer
+                  VMs:
+                    type: integer
+                  AIWorkspaces:
+                    type: integer
+                  managedWordpress:
+                    type: integer
+                    description: Managed WordPress sites.
+              example:
+                apps: 3
+                databases: 1
+                zones: 1
+                buckets: 0
+                mailServers: 0
+                VMs: 0
+                AIWorkspaces: 0
+                managedWordpress: 0
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /v1/payments:
+    get:
+      tags:
+        - Payments
+      operationId: listPayments
+      summary: List payments
+      description: >-
+        Lists all your completed and failed payments, newest first. With
+        `teamID`, this needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: Your payments.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Payment"
+              example:
+                payments:
+                  - _id: "000000000000000000000060"
+                    amount: 1000000
+                    status: SUCCEED
+                    gateway:
+                      name: "<gateway-name>"
+                    invoiceNumber: 1000
+                    created_at: "2026-01-01T08:00:00.000Z"
+                    actor:
+                      fullname: نام نمونه
+                      email: you@example.com
+                    paymentVersion: 2
+                    hasInvoice: false
+                    invoiceType: 2
+                    traceNumber: "<trace-number>"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/payments/pay:
+    post:
+      tags:
+        - Payments
+      operationId: createPayment
+      summary: Add credit
+      description: >-
+        Starts an online payment to add credit to your balance. Send the
+        user's browser to the returned `url`, using `method` and `params`, to
+        complete the payment. When it succeeds, the amount is added to the
+        balance.
+
+
+        The amount must be within the allowed minimum and maximum. If you
+        have frozen mail servers, the amount must also cover reactivating them
+        (see `GET /v1/payments/minimum-credit`). Your account must be
+        verified. With `teamID`, this needs the `billing.manage` permission.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: integer
+                  description: Amount to pay.
+                gateway:
+                  type: string
+                  description: Payment gateway to use. Omit it to use the default gateway.
+            example:
+              amount: 1000000
+      responses:
+        "200":
+          description: The payment was created. Send the browser to `url`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: Payment page.
+                  method:
+                    type: string
+                    description: HTTP method to open `url` with.
+                  params:
+                    type: object
+                    description: Parameters to send to `url`, if any.
+              example:
+                url: https://payment-gateway.example.com/pay
+                method: POST
+                params:
+                  token: "<payment-token>"
+        "400":
+          description: >-
+            The amount is outside the allowed range, the amount doesn't cover your
+            frozen mail servers (`minimum_credit_required`, with the required
+            amount in `data.minimumCredit`), or the gateway rejected the
+            payment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                belowMinimum:
+                  summary: Amount below the minimum
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Minimum amount is <minimum-amount>.
+                    data: null
+                frozenMailServers:
+                  summary: Amount doesn't cover frozen mail servers
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: You need to pay at least 1500000 to unfreeze your mailservers.
+                    data:
+                      code: minimum_credit_required
+                      minimumCredit: 1500000
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Your account isn't verified (`account_verification_required`), or,
+            with `teamID`, you aren't a member (`team_not_found`) or lack
+            `billing.manage` (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: You must verify your account, first.
+                data:
+                  code: account_verification_required
+        "429":
+          description: Too many payments in a short time (`too_many_payments_per_hour` or `too_many_payments_per_day`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/payments/minimum-credit:
+    get:
+      tags:
+        - Payments
+      operationId: getMinimumCredit
+      summary: Get the minimum payment for frozen mail servers
+      description: >-
+        Returns the smallest payment that reactivates your frozen mail
+        servers, or `0` if none are frozen. Your account must be verified.
+        With `teamID`, this needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: The minimum payment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  minimumCredit:
+                    type: number
+              example:
+                minimumCredit: 0
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Your account isn't verified (`account_verification_required`), or,
+            with `teamID`, you aren't a member (`team_not_found`) or lack
+            `billing.manage` (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/billing-invoices:
+    get:
+      tags:
+        - Invoices & Receipts
+      operationId: listBillingInvoices
+      summary: List monthly invoices
+      description: >-
+        Lists your monthly billing invoices, newest first. With `teamID`, this
+        needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Count"
+      responses:
+        "200":
+          description: Billing invoices, without their line items.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalBillingInvoices:
+                    type: integer
+                  billingInvoices:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BillingInvoiceSummary"
+              example:
+                totalBillingInvoices: 1
+                billingInvoices:
+                  - _id: "000000000000000000000070"
+                    user: "000000000000000000000001"
+                    accountType: REAL_PERSON
+                    totalAmount: 180000
+                    totalTaxAmount: 18000
+                    jalaliDateAt: 1405-01-01
+                    invoiceNumber: 1000
+                    createdAt: "2026-03-21T00:00:00.000Z"
+                    updatedAt: "2026-03-21T00:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/billing-invoices/{billingInvoiceID}:
+    get:
+      tags:
+        - Invoices & Receipts
+      operationId: getBillingInvoice
+      summary: Get a monthly invoice
+      description: >-
+        Returns a monthly billing invoice with its line items. With `teamID`,
+        this needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: billingInvoiceID
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectID"
+      responses:
+        "200":
+          description: The invoice.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  billingInvoice:
+                    $ref: "#/components/schemas/BillingInvoice"
+              example:
+                billingInvoice:
+                  _id: "000000000000000000000070"
+                  user: "000000000000000000000001"
+                  invoiceNumber: 1000
+                  accountType: REAL_PERSON
+                  totalAmount: 180000
+                  totalTaxAmount: 18000
+                  jalaliDateAt: 1405-01-01
+                  items:
+                    - code: "<product-code>"
+                      name: پلتفرم لیارا
+                      quantity: 1
+                      unit: عدد
+                      taxPercentage: 0.1
+                      pricePerUnit: 180000
+                      taxPricePerUnit: 18000
+                  vendorInfo:
+                    name: "<vendor-name>"
+                  customerInfo:
+                    firstName: نام
+                    lastName: نام خانوادگی
+                  createdAt: "2026-03-21T00:00:00.000Z"
+                  updatedAt: "2026-03-21T00:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: No invoice with this ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: no_invoice
+                data: null
+
+  /v1/payments/{paymentID}/billing-receipt:
+    get:
+      tags:
+        - Invoices & Receipts
+      operationId: getBillingReceipt
+      summary: Get a payment receipt
+      description: >-
+        Returns the receipt of a successful payment. Available for payments
+        with `paymentVersion: 2`. With `teamID`, this needs the
+        `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/PaymentID"
+      responses:
+        "200":
+          description: The receipt.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  billingReceipt:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      payment:
+                        type: object
+                        properties:
+                          _id:
+                            type: string
+                          amount:
+                            type: number
+                          status:
+                            type: string
+                          gateway:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                description: Display name of the payment gateway.
+                          traceNumber:
+                            type: string
+                            description: The gateway's reference number for the payment.
+                          created_at:
+                            type: string
+                            format: date-time
+                          actor:
+                            type: object
+                            description: The person who made the payment.
+                            properties:
+                              fullname:
+                                type: string
+                              email:
+                                type: string
+                          paymentVersion:
+                            type: integer
+                      vendorInfo:
+                        type: object
+                        description: Seller details.
+                      customerInfo:
+                        type: object
+                        description: Your billing contact details at the time of payment.
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+              example:
+                billingReceipt:
+                  _id: "000000000000000000000080"
+                  payment:
+                    _id: "000000000000000000000060"
+                    amount: 1000000
+                    status: SUCCEED
+                    gateway:
+                      name: "<gateway-name>"
+                    traceNumber: "<trace-number>"
+                    created_at: "2026-01-01T08:00:00.000Z"
+                    paymentVersion: 2
+                  vendorInfo:
+                    name: "<vendor-name>"
+                  customerInfo:
+                    firstName: نام
+                    lastName: نام خانوادگی
+                    phone: "09120000000"
+                  createdAt: "2026-01-01T08:00:10.000Z"
+                  updatedAt: "2026-01-01T08:00:10.000Z"
+        "400":
+          description: "The ID is invalid, or the payment isn't a `paymentVersion: 2` payment."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: invalid_payment_version
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The payment doesn't exist, or it has no receipt (for example, because it failed).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: no_billing_receipt
+                data: null
+
+  /v1/payments/{paymentID}/invoice:
+    get:
+      tags:
+        - Invoices & Receipts
+      operationId: getPaymentInvoice
+      summary: Get a payment invoice
+      description: >-
+        Returns the invoice of an older successful payment (one with
+        `paymentVersion: 1` and `hasInvoice: true` in `GET /v1/payments`).
+        Newer payments have a receipt instead. With `teamID`, this needs the
+        `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/PaymentID"
+      responses:
+        "200":
+          description: The invoice.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invoice:
+                    type: object
+                    properties:
+                      version:
+                        type: integer
+                      invoiceNumber:
+                        type: integer
+                      customerInfo:
+                        type: object
+                      vendorInfo:
+                        type: object
+                      paidAt:
+                        type: string
+                        format: date-time
+                      items:
+                        type: array
+                        items:
+                          type: object
+                      accountType:
+                        type: string
+              example:
+                invoice:
+                  version: 2
+                  invoiceNumber: 100
+                  customerInfo:
+                    firstName: نام
+                    lastName: نام خانوادگی
+                  vendorInfo:
+                    name: "<vendor-name>"
+                  paidAt: "2024-01-01T08:00:00.000Z"
+                  items: []
+                  accountType: REAL_PERSON
+        "400":
+          description: "The payment isn't a `paymentVersion: 1` payment."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: invalid_payment_version
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The payment doesn't exist, or it has no invoice.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: no_invoice
+                data: null
+
+  /v1/subscription:
+    get:
+      tags:
+        - Subscription
+      operationId: listSubscriptions
+      summary: List subscription history
+      description: >-
+        Lists the account's subscription plans, newest first, including a
+        scheduled plan change if there is one (it has
+        `subscriptionPlanReservation`). The current plan also includes the
+        number of technical tickets opened in the current period. With
+        `teamID`, it lists the team's subscriptions.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: Subscription history.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
+              example:
+                - _id: "000000000000000000000003"
+                  type: subscription
+                  userID: "000000000000000000000001"
+                  subscriptionPlanID: standard
+                  subscriptionPlanExpiration: "2026-02-01T08:00:00.000Z"
+                  maxTechnicalTicketsPerMonth: infinite
+                  subscriptionDurationType: monthly
+                  technicalTicketsCount: 2
+                  createdAt: "2026-01-01T08:00:00.000Z"
+                  updatedAt: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+    post:
+      tags:
+        - Subscription
+      operationId: changeSubscription
+      summary: Subscribe or change plan
+      description: >-
+        Subscribes the account to a plan, or changes its current plan. With
+        `teamID`, it applies to the team and needs the `team.operate` or
+        `team.manage` permission.
+
+
+        - **No current plan:** the plan starts now and its price plus tax is
+          charged from the balance.
+
+        - **More expensive plan:** the change happens now and the new price
+          plus tax is charged from the balance.
+
+        - **Same or cheaper plan:** the change is scheduled for when the
+          current plan expires, and the response is `{"reservation": true}`.
+          You can cancel it with `DELETE /v1/subscription/reservation`.
+
+
+        Monthly plans last 30 days and yearly plans 1 year.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subscriptionPlanID
+              properties:
+                subscriptionPlanID:
+                  type: string
+                  enum:
+                    - free
+                    - standard
+                    - enterprise
+                durationType:
+                  type: string
+                  enum:
+                    - monthly
+                    - yearly
+                  default: monthly
+            example:
+              subscriptionPlanID: standard
+              durationType: monthly
+      responses:
+        "201":
+          description: >-
+            The plan was applied (empty body), or a plan change was scheduled
+            (`{"reservation": true}`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    type: boolean
+              example:
+                reservation: true
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: The balance doesn't cover the plan's price plus tax.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 402
+                error: Payment Required
+                message: Not enough balance.
+                data: null
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "428":
+          description: >-
+            You already have this plan and duration
+            (`already_have_subscription_plan`), or a plan change is already
+            scheduled (`already_have_subscription_plan_reservation`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: You already have a subscription plan reservation.
+                data:
+                  code: already_have_subscription_plan_reservation
+
+  /v1/subscription/reservation:
+    delete:
+      tags:
+        - Subscription
+      operationId: cancelSubscriptionReservation
+      summary: Cancel a scheduled plan change
+      description: >-
+        Cancels a plan change scheduled by `POST /v1/subscription`, before it
+        takes effect. With `teamID`,
+        this needs the `team.operate` or `team.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "204":
+          description: The scheduled change was cancelled.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "428":
+          description: >-
+            No plan change is scheduled (`no_subscription_plan_reservation`),
+            or it's too late to cancel it (`reservation_expired`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: You don't have a subscription plan reservation.
+                data:
+                  code: no_subscription_plan_reservation
+
+  /v1/discount-codes:
+    get:
+      tags:
+        - Discount Codes
+      operationId: listDiscountCodes
+      summary: List your discount codes
+      description: >-
+        Lists the discount codes on your account, with the services they're
+        applied to. With `teamID`, this needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Count"
+        - name: serviceType
+          in: query
+          required: false
+          description: Only list codes applied to this kind of service.
+          schema:
+            $ref: "#/components/schemas/DiscountServiceType"
+      responses:
+        "200":
+          description: Your discount codes.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalDiscountCodes:
+                    type: integer
+                  discountCodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DiscountCode"
+              example:
+                totalDiscountCodes: 1
+                discountCodes:
+                  - _id: "000000000000000000000090"
+                    code: "<discount-code>"
+                    discountPercentage: 20
+                    maxUsageAmount: 500000
+                    currentUsageAmount: 0
+                    validUntil: "2026-06-01T00:00:00.000Z"
+                    expiresAt: "2026-02-01T08:00:00.000Z"
+                    timespan: 30
+                    serviceType: project
+                    projects:
+                      - _id: "000000000000000000000050"
+                        project_id: my-app
+                    databases: []
+                    mailServers: []
+                    buckets: []
+                    vms: []
+                    ais: []
+                    createdAt: "2026-01-01T08:00:00.000Z"
+                    updatedAt: "2026-01-02T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/discount-codes/show:
+    get:
+      tags:
+        - Discount Codes
+      operationId: getDiscountCode
+      summary: Check a discount code
+      description: >-
+        Checks that a discount code exists, hasn't been used yet, is still
+        valid, and is for the given kind of service, and returns its terms.
+        With `teamID`, this needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "<discount-code>"
+        - name: serviceType
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/DiscountServiceType"
+      responses:
+        "200":
+          description: The discount code's terms.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                  code:
+                    type: string
+                  discountPercentage:
+                    type: number
+                  maxUsageAmount:
+                    type: number
+                    description: The most the code can discount in total.
+                  validUntil:
+                    type: string
+                    format: date-time
+                    description: Last moment the code can be applied.
+                  timespan:
+                    type: integer
+                    description: How many days the discount lasts once applied.
+                  serviceType:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+              example:
+                _id: "000000000000000000000090"
+                code: "<discount-code>"
+                discountPercentage: 20
+                maxUsageAmount: 500000
+                validUntil: "2026-06-01T00:00:00.000Z"
+                timespan: 30
+                serviceType: project
+                createdAt: "2026-01-01T08:00:00.000Z"
+        "400":
+          description: >-
+            The query or `teamID` is invalid, or the code is already active on
+            one of your services of this type (`another_active_discount_code`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: >-
+            The code doesn't exist, is used or has expired
+            (`discount_code_not_found`), or is for another kind of service
+            (`discount_code_service_mismatch`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Discount code not found
+                data:
+                  code: discount_code_not_found
+
+  /v1/discount-codes/apply:
+    post:
+      tags:
+        - Discount Codes
+      operationId: applyDiscountCode
+      summary: Apply a discount code
+      description: >-
+        Applies a discount code to one of your services. A code can be applied
+        to only one service, and a service can have only one active code. Once
+        applied, the discount lasts for the code's `timespan` in days. With
+        `teamID`, this needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - serviceType
+                - serviceID
+              properties:
+                code:
+                  type: string
+                serviceType:
+                  $ref: "#/components/schemas/DiscountServiceType"
+                serviceID:
+                  type: string
+                  pattern: "^[0-9a-fA-F]{24}$"
+                  description: The service's `_id`.
+            example:
+              code: "<discount-code>"
+              serviceType: project
+              serviceID: "000000000000000000000050"
+      responses:
+        "200":
+          description: The code was applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: Discount code applied successfully on project with ID 000000000000000000000050
+        "400":
+          description: >-
+            The body or `teamID` is invalid, or the code can't be applied:
+            `discount_code_expired`, `discount_code_amount_limit_reached`,
+            `discount_code_already_applied`,
+            `discount_code_already_applied_to_another_service`,
+            `another_active_discount_code` or `discount_code_not_applicable`
+            (the code is only for services created after it).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Discount code has expired
+                data:
+                  code: discount_code_expired
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: >-
+            The code doesn't exist (`discount_code_not_found`), is for another
+            kind of service (`discount_code_service_mismatch`), or the service
+            doesn't exist: `project_not_found`, `database_not_found`,
+            `bucket_not_found`, `mail_server_not_found`, `vm_not_found` or
+            `ai_not_found`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Project not found
+                data:
+                  code: project_not_found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "Send your API token as `Authorization: Bearer <api-token>`."
+  parameters:
+    TeamID:
+      name: teamID
+      in: query
+      required: false
+      description: >-
+        Run the request in the context of a team you belong to, instead of
+        your personal account.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000002"
+    PaymentID:
+      name: paymentID
+      in: path
+      required: true
+      description: The payment's `_id` from `GET /v1/payments`.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Page number, starting at 1.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Count:
+      name: count
+      in: query
+      required: false
+      description: Items per page.
+      schema:
+        type: integer
+        minimum: 1
+        default: 10
+  responses:
+    Unauthorized:
+      description: The API token is missing, invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            error: Unauthorized.
+    InvalidTeamID:
+      description: "`teamID` isn't a valid ID."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: Invalid team ID.
+            data: null
+    ValidationOrTeamIDError:
+      description: A parameter or the body is invalid (`message` says which), or `teamID` isn't a valid ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            validation:
+              summary: Invalid parameter
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: '"count" must be greater than or equal to 1'
+            invalidTeamID:
+              summary: Invalid team ID
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: Invalid team ID.
+                data: null
+    TeamNotFound:
+      description: You sent a `teamID` for a team you aren't a member of.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: Team not found
+            data:
+              code: team_not_found
+    TeamForbidden:
+      description: >-
+        With `teamID`: you aren't a member of the team (`team_not_found`), or
+        your role doesn't have the required permission (`no_permission`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            teamNotFound:
+              summary: Not a team member
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: Team not found
+                data:
+                  code: team_not_found
+            noPermission:
+              summary: Missing permission
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: You do not have permission to access this resource.
+                data:
+                  code: no_permission
+  schemas:
+    Error:
+      type: object
+      description: Standard error body.
+      properties:
+        statusCode:
+          type: integer
+        error:
+          type: string
+          description: HTTP status text.
+        message:
+          type: string
+          description: What went wrong.
+        data:
+          type: object
+          nullable: true
+          description: Extra details. When present, `code` is a stable, machine-readable error code.
+          properties:
+            code:
+              type: string
+    AuthError:
+      type: object
+      description: Error body returned when the API token is rejected.
+      properties:
+        error:
+          type: string
+    ObjectID:
+      type: string
+      pattern: "^[0-9a-fA-F]{24}$"
+      description: 24-character hexadecimal ID.
+    BillingDetails:
+      type: object
+      properties:
+        balance:
+          type: number
+          description: Current balance.
+        accountType:
+          type: string
+          enum:
+            - REAL_PERSON
+            - LEGAL_PERSON
+        contactInfo:
+          type: object
+          description: Saved billing contact details (see `POST /v1/contact-info`).
+        contactInfoSavedAt:
+          type: string
+          format: date-time
+        minCreditAmount:
+          type: number
+          description: Balance threshold for low-credit notifications.
+        isManualMinCredit:
+          type: boolean
+          description: Whether the low-credit threshold was set manually.
+        minCreditLastNotifiedAt:
+          type: string
+          format: date-time
+          description: When a low-credit notification was last sent.
+    CostTotals:
+      type: object
+      properties:
+        totalHourlyPrice:
+          type: number
+        totalMonthlyPrice:
+          type: number
+    Payment:
+      type: object
+      properties:
+        _id:
+          type: string
+        amount:
+          type: number
+        status:
+          type: string
+          enum:
+            - SUCCEED
+            - FAILED
+        gateway:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Display name of the payment gateway.
+        invoiceNumber:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        actor:
+          type: object
+          description: The person who made the payment, for team payments.
+          properties:
+            fullname:
+              type: string
+            email:
+              type: string
+        paymentVersion:
+          type: integer
+          description: >-
+            `2` for payments with a receipt (`GET .../billing-receipt`), `1`
+            for older payments with an invoice (`GET .../invoice`).
+        hasInvoice:
+          type: boolean
+          description: Whether an invoice is available from `GET /v1/payments/{paymentID}/invoice`.
+        invoiceType:
+          type: integer
+          nullable: true
+          description: >-
+            `1` if the payment was made with an economic code on file, `2` if
+            not, or `null` if no contact details were recorded.
+        traceNumber:
+          type: string
+          description: The gateway's reference number for the payment.
+    BillingInvoiceSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+        user:
+          type: string
+        accountType:
+          type: string
+          enum:
+            - REAL_PERSON
+            - LEGAL_PERSON
+        totalAmount:
+          type: number
+        totalTaxAmount:
+          type: number
+        jalaliDateAt:
+          type: string
+          description: >-
+            Solar Hijri date (`YYYY-MM-DD`) of the first day of the month the
+            invoice was issued. It covers the previous month.
+        invoiceNumber:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    BillingInvoice:
+      allOf:
+        - $ref: "#/components/schemas/BillingInvoiceSummary"
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: Product code of the line item.
+                  name:
+                    type: string
+                  quantity:
+                    type: number
+                  unit:
+                    type: string
+                  taxPercentage:
+                    type: number
+                  pricePerUnit:
+                    type: number
+                  taxPricePerUnit:
+                    type: number
+            vendorInfo:
+              type: object
+              description: Seller details.
+            customerInfo:
+              type: object
+              description: Your billing contact details when the invoice was issued.
+    Subscription:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+          enum:
+            - subscription
+        userID:
+          type: string
+        subscriptionPlanID:
+          type: string
+          enum:
+            - free
+            - standard
+            - enterprise
+        subscriptionPlanExpiration:
+          type: string
+          format: date-time
+        subscriptionPlanReservation:
+          type: string
+          format: date-time
+          description: Only on a scheduled plan change; when it starts.
+        subscriptionDurationType:
+          type: string
+          enum:
+            - monthly
+            - yearly
+        maxTechnicalTicketsPerMonth:
+          description: Monthly technical ticket allowance, or `infinite`.
+          oneOf:
+            - type: integer
+            - type: string
+              enum:
+                - infinite
+        technicalTicketsCount:
+          type: integer
+          description: Only on the current plan. Technical support tickets opened in the current period.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DiscountServiceType:
+      type: string
+      enum:
+        - project
+        - database
+        - mailServer
+        - bucket
+        - vm
+        - ai
+    DiscountCode:
+      type: object
+      description: >-
+        Exactly one of `projects`, `databases`, `mailServers`, `buckets`,
+        `vms` or `ais` lists a service once the code is applied.
+      properties:
+        _id:
+          type: string
+        code:
+          type: string
+        discountPercentage:
+          type: number
+        maxUsageAmount:
+          type: number
+          description: The most the code can discount in total.
+        currentUsageAmount:
+          type: number
+          description: How much the code has discounted so far.
+        validUntil:
+          type: string
+          format: date-time
+          description: Last moment the code can be applied.
+        expiresAt:
+          type: string
+          format: date-time
+          description: When the discount ends, once applied.
+        timespan:
+          type: integer
+          description: How many days the discount lasts once applied.
+        serviceType:
+          type: string
+        applicability:
+          type: string
+          description: "`new` if the code only applies to services created after it."
+          enum:
+            - new
+            - current
+            - all
+        projects:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              project_id:
+                type: string
+        databases:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              hostname:
+                type: string
+        mailServers:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              domain:
+                type: string
+        buckets:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        vms:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        ais:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

@@ -1,0 +1,1673 @@
+openapi: 3.0.1
+info:
+  title: Support & Notifications
+  version: 1.0.0
+  description: |
+    Open and follow support tickets, read your notifications, and choose
+    where notifications are delivered (SMS, email or Telegram).
+
+    With `teamID`, these endpoints work on the team's tickets, notifications
+    and channels. The description of each endpoint says which permission it
+    needs in the team.
+servers:
+  - url: https://api.liara.ir
+security:
+  - bearerAuth: []
+tags:
+  - name: Tickets
+    description: Open, reply to and close support tickets.
+  - name: Attachments
+    description: Upload files to attach to tickets, and download them.
+  - name: Notifications
+    description: Read notifications and set the low-credit alert threshold.
+  - name: Notification Channels
+    description: Choose which notifications are sent by SMS, email or Telegram.
+paths:
+  /v1/tickets:
+    get:
+      tags:
+        - Tickets
+      operationId: listTickets
+      summary: List tickets
+      description: >-
+        Lists your tickets, most recently updated first. By default only
+        tickets updated in the last 14 days are returned; send `status=ALL` to
+        get all of them.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: status
+          in: query
+          required: false
+          description: Send `ALL` to include tickets not updated in the last 14 days.
+          schema:
+            type: string
+            enum:
+              - ALL
+        - name: page
+          in: query
+          required: false
+          description: Page number, starting at 1. Use it together with `count`.
+          schema:
+            type: integer
+            minimum: 1
+        - name: count
+          in: query
+          required: false
+          description: Tickets per page. Without it, all matching tickets are returned.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Your tickets.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TicketSummary"
+                  allTicketsCount:
+                    type: integer
+                    description: Total number of matching tickets.
+              example:
+                tickets:
+                  - _id: "000000000000000000000100"
+                    shortID: 12345
+                    subject: مشکل در استقرار برنامه
+                    status: ANSWERED
+                    pendingBy: false
+                    category: TECHNICAL
+                    user:
+                      _id: "000000000000000000000001"
+                      fullname: نام نمونه
+                      email: you@example.com
+                      phone: "09120000000"
+                    subscriptionPlan:
+                      _id: "000000000000000000000003"
+                      subscriptionPlanID: standard
+                    created_at: "2026-01-01T08:00:00.000Z"
+                    updated_at: "2026-01-01T09:00:00.000Z"
+                allTicketsCount: 1
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+    post:
+      tags:
+        - Tickets
+      operationId: createTicket
+      summary: Open a ticket
+      description: >-
+        Opens a support ticket with a first message. Upload any files first
+        with `POST /v1/attachments` and pass their IDs in `attachments`.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subject
+                - body
+                - category
+                - codeReview
+              properties:
+                subject:
+                  type: string
+                  description: At most 9 words.
+                body:
+                  type: string
+                  description: The first message.
+                category:
+                  $ref: "#/components/schemas/TicketCategory"
+                codeReview:
+                  type: boolean
+                  description: Whether support may look at your code to help.
+                attachments:
+                  type: array
+                  maxItems: 3
+                  description: Attachment IDs from `POST /v1/attachments`.
+                  items:
+                    type: string
+                projects:
+                  type: array
+                  description: IDs (`_id`) of the apps the ticket is about.
+                  items:
+                    type: string
+                databases:
+                  type: array
+                  description: IDs of the databases the ticket is about.
+                  items:
+                    type: string
+                domains:
+                  type: array
+                  description: IDs of the domains the ticket is about.
+                  items:
+                    type: string
+                buckets:
+                  type: array
+                  description: IDs of the object storage buckets the ticket is about.
+                  items:
+                    type: string
+                zones:
+                  type: array
+                  description: IDs of the DNS zones the ticket is about.
+                  items:
+                    type: string
+                mailServers:
+                  type: array
+                  description: IDs of the mail servers the ticket is about.
+                  items:
+                    type: string
+                vms:
+                  type: array
+                  description: IDs of the virtual machines the ticket is about.
+                  items:
+                    type: string
+                ais:
+                  type: array
+                  description: IDs of the AI workspaces the ticket is about.
+                  items:
+                    type: string
+            example:
+              subject: مشکل در استقرار برنامه
+              body: هنگام استقرار برنامه با خطا مواجه می‌شوم.
+              category: TECHNICAL
+              codeReview: false
+              projects:
+                - "000000000000000000000050"
+              attachments:
+                - "000000000000000000000110"
+      responses:
+        "200":
+          description: >-
+            The ticket was opened. The response can include additional fields
+            not listed here.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+              example:
+                _id: "000000000000000000000100"
+                shortID: 12345
+                subject: مشکل در استقرار برنامه
+                status: OPEN
+                category: TECHNICAL
+                codeReview: false
+                user: "000000000000000000000001"
+                projects:
+                  - "000000000000000000000050"
+                databases: []
+                domains: []
+                buckets: []
+                zones: []
+                mailServers: []
+                vms: []
+                ais: []
+                subscriptionPlan: "000000000000000000000003"
+                created_at: "2026-01-01T08:00:00.000Z"
+                updated_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          description: The body or `teamID` is invalid, or the subject is longer than 9 words (`subject_too_long`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Subject is too long.
+                data:
+                  code: subject_too_long
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "429":
+          description: Too many tickets in a short time (`too_many_tickets_per_day` or `too_many_tickets_per_week`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/tickets/{ticketID}:
+    get:
+      tags:
+        - Tickets
+      operationId: getTicket
+      summary: Get a ticket
+      description: Returns a ticket with all its messages, newest first.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TicketID"
+      responses:
+        "200":
+          description: The ticket and its messages.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket:
+                    allOf:
+                      - $ref: "#/components/schemas/TicketSummary"
+                      - type: object
+                        properties:
+                          codeReview:
+                            type: boolean
+                          user:
+                            type: string
+                            description: ID of the account that owns the ticket.
+                          feedback:
+                            type: array
+                            description: Your rating of the ticket, if you gave one.
+                            items:
+                              type: object
+                              properties:
+                                score:
+                                  type: integer
+                                comment:
+                                  type: string
+                  ownerID:
+                    type: string
+                    nullable: true
+                    description: Always `null`.
+                  comments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Comment"
+              example:
+                ticket:
+                  _id: "000000000000000000000100"
+                  shortID: 12345
+                  subject: مشکل در استقرار برنامه
+                  status: ANSWERED
+                  pendingBy: false
+                  category: TECHNICAL
+                  codeReview: false
+                  user: "000000000000000000000001"
+                  subscriptionPlan:
+                    _id: "000000000000000000000003"
+                    subscriptionPlanID: standard
+                  feedback: []
+                  created_at: "2026-01-01T08:00:00.000Z"
+                  updated_at: "2026-01-01T09:00:00.000Z"
+                ownerID: null
+                comments:
+                  - _id: "000000000000000000000121"
+                    body: سلام، لطفاً لاگ‌های برنامه را بررسی کنید.
+                    user:
+                      fullname: پشتیبان
+                      avatar: https://example.com/avatar.png
+                    attachments: []
+                    created_at: "2026-01-01T09:00:00.000Z"
+                  - _id: "000000000000000000000120"
+                    body: هنگام استقرار برنامه با خطا مواجه می‌شوم.
+                    user:
+                      fullname: نام نمونه
+                      email: you@example.com
+                      avatar: https://example.com/avatar.png
+                    attachments:
+                      - _id: "000000000000000000000110"
+                        name: screenshot.png
+                        key: "<attachment-key>"
+                        size: 20480
+                    created_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "404":
+          $ref: "#/components/responses/TicketNotFound"
+
+  /v1/comments/{ticketID}:
+    post:
+      tags:
+        - Tickets
+      operationId: replyToTicket
+      summary: Reply to a ticket
+      description: >-
+        Adds a message to one of your tickets. A closed ticket is reopened, and
+        an answered ticket goes back to `OPEN`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TicketID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - body
+              properties:
+                body:
+                  type: string
+                attachments:
+                  type: array
+                  maxItems: 3
+                  description: Attachment IDs from `POST /v1/attachments`.
+                  items:
+                    type: string
+            example:
+              body: لاگ‌ها را پیوست کردم.
+              attachments:
+                - "000000000000000000000111"
+      responses:
+        "201":
+          description: The message was added. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "404":
+          $ref: "#/components/responses/TicketNotFound"
+
+  /v1/tickets/{ticketID}/close:
+    post:
+      tags:
+        - Tickets
+      operationId: closeTicket
+      summary: Close a ticket
+      description: Closes one of your tickets. Replying to it later reopens it.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TicketID"
+      responses:
+        "200":
+          description: The ticket was closed. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "404":
+          $ref: "#/components/responses/TicketNotFound"
+
+  /v1/tickets/{ticketID}/feedback:
+    post:
+      tags:
+        - Tickets
+      operationId: rateTicket
+      summary: Rate a ticket
+      description: Rates the support you got on a ticket. Each ticket can be rated once.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/TicketID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - score
+              properties:
+                score:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                comment:
+                  type: string
+            example:
+              score: 5
+              comment: ممنون از راهنمایی.
+      responses:
+        "200":
+          description: The rating was saved. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "404":
+          $ref: "#/components/responses/TicketNotFound"
+        "409":
+          description: The ticket was already rated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Feedback for this ticket already exists.
+                data: null
+
+  /v1/departments:
+    get:
+      tags:
+        - Tickets
+      operationId: listDepartments
+      summary: List support departments
+      description: >-
+        Lists the support departments. The response can include additional
+        fields not listed here.
+      responses:
+        "200":
+          description: Support departments.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  departments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        name:
+                          type: string
+                        title:
+                          type: string
+                        body:
+                          type: string
+                          description: Description of the department.
+                        icon:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+              example:
+                departments:
+                  - _id: "000000000000000000000130"
+                    name: technical
+                    title: پشتیبانی فنی
+                    body: سوالات فنی درباره سرویس‌ها
+                    icon: "<icon>"
+                    created_at: "2026-01-01T08:00:00.000Z"
+                    updated_at: "2026-01-01T08:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/attachments:
+    post:
+      tags:
+        - Attachments
+      operationId: uploadAttachments
+      summary: Upload attachments
+      description: >-
+        Uploads up to 3 files, each up to 5 MB, to attach to a ticket or a
+        reply. Returns their IDs; pass them in `attachments` when you open a
+        ticket or reply.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: array
+                  description: The files. Send each one as a `file` field.
+                  maxItems: 3
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "200":
+          description: The files were uploaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachments:
+                    type: array
+                    description: IDs of the uploaded files, in order.
+                    items:
+                      type: string
+              example:
+                attachments:
+                  - "000000000000000000000110"
+        "400":
+          description: More than 3 files, files sent under another field name, or an invalid `teamID`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "413":
+          description: A file is larger than 5 MB.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/attachments/download:
+    post:
+      tags:
+        - Attachments
+      operationId: getAttachmentDownloadLink
+      summary: Get an attachment download link
+      description: >-
+        Returns a temporary download link for an attachment. Use the
+        attachment's `key` from `GET /v1/tickets/{ticketID}`. The link is valid
+        for 12 hours.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - key
+              properties:
+                key:
+                  type: string
+            example:
+              key: "<attachment-key>"
+      responses:
+        "200":
+          description: The download link.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+              example:
+                url: https://files.example.com/<attachment-key>?signature=<signature>
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "404":
+          description: No attachment with this key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Not Found
+                data: null
+
+  /v1/notifications:
+    get:
+      tags:
+        - Notifications
+      operationId: listNotifications
+      summary: List notifications
+      description: >-
+        Lists all your notifications, newest first. With `teamID`, it lists
+        the team's notifications.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: unread
+          in: query
+          required: false
+          description: Send any value to list only unread notifications.
+          schema:
+            type: string
+          example: "true"
+      responses:
+        "200":
+          description: Your notifications.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Notification"
+              example:
+                notifications:
+                  - _id: "000000000000000000000140"
+                    type: LowCredit
+                    data: {}
+                    canMarkAsRead: true
+                    read_at: null
+                    created_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /v1/notifications/read-all:
+    post:
+      tags:
+        - Notifications
+      operationId: markAllNotificationsRead
+      summary: Mark all notifications as read
+      description: >-
+        Marks all your personal notifications as read, except those with
+        `canMarkAsRead: false`.
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/notifications/{notificationID}/read:
+    post:
+      tags:
+        - Notifications
+      operationId: markNotificationRead
+      summary: Mark a notification as read
+      description: >-
+        Marks one of your personal notifications as read. Notifications with
+        `canMarkAsRead: false` stay unread. The request succeeds even if the
+        notification doesn't exist.
+      parameters:
+        - name: notificationID
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/notifications/set-min-credit:
+    post:
+      tags:
+        - Notifications
+      operationId: setLowCreditThreshold
+      summary: Set the low-credit alert threshold
+      description: >-
+        Sets the balance below which you get low-credit notifications, or
+        resets it to the default (20,000 Toman). With `teamID`, it applies to
+        the team and needs the `billing.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - isManual
+              properties:
+                isManual:
+                  type: boolean
+                  description: "`true` to set `amount`, `false` to go back to the default."
+                amount:
+                  type: number
+                  minimum: 1000
+                  maximum: 5000000
+                  description: Threshold in Toman. Required when `isManual` is `true`; not allowed otherwise.
+            examples:
+              custom:
+                summary: Set a custom threshold
+                value:
+                  isManual: true
+                  amount: 100000
+              default:
+                summary: Use the default threshold
+                value:
+                  isManual: false
+      responses:
+        "200":
+          description: The threshold was saved.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: success
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/channels:
+    get:
+      tags:
+        - Notification Channels
+      operationId: listChannels
+      summary: List notification channels
+      description: >-
+        Lists your notification channels, newest first. With `teamID`, this
+        needs the `team.operate` or `team.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: Your channels.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  channels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Channel"
+              example:
+                channels:
+                  - _id: "000000000000000000000150"
+                    type: email
+                    metaData:
+                      email: you@example.com
+                    interestedNotifications:
+                      - LowCredit
+                      - TicketCommentCreated
+                    isActive: true
+                    created_at: "2026-01-01T08:00:00.000Z"
+                    updated_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+    post:
+      tags:
+        - Notification Channels
+      operationId: createChannel
+      summary: Add a notification channel
+      description: >-
+        Adds a channel that receives the notification types you choose.
+
+
+        - **SMS or email:** first send a code with
+          `POST /v1/channels/send-phone-token` or
+          `POST /v1/channels/send-email-token`, then send it here as
+          `metaData.token` (SMS codes are valid for 2 minutes, email codes for
+          3).
+
+        - **Telegram:** send your numeric Telegram chat ID as
+          `metaData.chatID`.
+
+
+        Your subscription plan limits how many channels of each type you can
+        have. Your account must be verified. With `teamID`, this needs the
+        `team.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - interestedNotifications
+                - metaData
+              properties:
+                type:
+                  $ref: "#/components/schemas/ChannelType"
+                interestedNotifications:
+                  type: array
+                  minItems: 1
+                  description: >-
+                    Notification types to send to this channel. For `sms`, use
+                    values from `SMSNotificationType`; for `email` and
+                    `telegram`, values from `EmailNotificationType`.
+                  items:
+                    type: string
+                metaData:
+                  oneOf:
+                    - $ref: "#/components/schemas/SMSChannelMetaData"
+                    - $ref: "#/components/schemas/EmailChannelMetaData"
+                    - $ref: "#/components/schemas/TelegramChannelMetaData"
+            examples:
+              sms:
+                summary: SMS channel
+                value:
+                  type: sms
+                  interestedNotifications:
+                    - LowCredit
+                    - ServicesHaveBeenFrozen
+                  metaData:
+                    phone: "09120000000"
+                    token: "123456"
+              email:
+                summary: Email channel
+                value:
+                  type: email
+                  interestedNotifications:
+                    - SSLRenewFailed
+                    - DiskBackupFailed
+                  metaData:
+                    email: ops@example.com
+                    token: "123456"
+              telegram:
+                summary: Telegram channel
+                value:
+                  type: telegram
+                  interestedNotifications:
+                    - LowCredit
+                  metaData:
+                    chatID: "100000000"
+      responses:
+        "201":
+          description: The channel was added. The response body is empty.
+        "400":
+          description: >-
+            The body or `teamID` is invalid, or you've reached the maximum
+            number of channels of this type for your plan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: You have reached your maximum number of allowed channels.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The verification code is wrong or has expired, the notification
+            type isn't available for SMS, your account isn't verified
+            (`account_verification_required`), or, with `teamID`, you aren't a
+            member (`team_not_found`) or lack `team.manage` (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Invalid token.
+                data: null
+
+  /v1/channels/{channelID}:
+    get:
+      tags:
+        - Notification Channels
+      operationId: getChannel
+      summary: Get a notification channel
+      description: >-
+        Returns one of your notification channels. With `teamID`, this needs
+        the `team.operate` or `team.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ChannelID"
+      responses:
+        "200":
+          description: The channel.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  channel:
+                    $ref: "#/components/schemas/Channel"
+              example:
+                channel:
+                  _id: "000000000000000000000150"
+                  type: sms
+                  metaData:
+                    phone: "09120000000"
+                  interestedNotifications:
+                    - LowCredit
+                  isActive: true
+                  created_at: "2026-01-01T08:00:00.000Z"
+                  updated_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: No channel with this ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Not Found
+                data: null
+    put:
+      tags:
+        - Notification Channels
+      operationId: updateChannel
+      summary: Change a channel's notifications
+      description: >-
+        Replaces the notification types sent to a channel. `type` must match
+        the channel's type. Your account must be verified. With `teamID`, this
+        needs the `team.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ChannelID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - interestedNotifications
+              properties:
+                type:
+                  $ref: "#/components/schemas/ChannelType"
+                interestedNotifications:
+                  type: array
+                  minItems: 1
+                  description: >-
+                    The new list of notification types. For `sms`, use values
+                    from `SMSNotificationType`; for `email` and `telegram`,
+                    values from `EmailNotificationType`.
+                  items:
+                    type: string
+            example:
+              type: email
+              interestedNotifications:
+                - LowCredit
+                - TicketCreated
+                - TicketCommentCreated
+      responses:
+        "200":
+          description: The channel was updated. The response body is empty.
+        "400":
+          description: The body, the channel ID or `teamID` is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Request param is not valid.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Your account isn't verified (`account_verification_required`), or,
+            with `teamID`, you aren't a member (`team_not_found`) or lack
+            `team.manage` (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: No active channel with this ID and type.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Channel not found.
+                data: null
+    delete:
+      tags:
+        - Notification Channels
+      operationId: deleteChannel
+      summary: Delete a notification channel
+      description: >-
+        Deletes one of your notification channels. The request succeeds even
+        if the channel doesn't exist. With `teamID`, this needs the
+        `team.manage` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ChannelID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/channels/send-phone-token:
+    post:
+      tags:
+        - Notification Channels
+      operationId: sendChannelPhoneCode
+      summary: Send an SMS channel verification code
+      description: >-
+        Sends a 6-digit code by SMS to confirm a phone number for a new SMS
+        channel. Use it within 2 minutes as `metaData.token` in
+        `POST /v1/channels`. Your account must be verified. With `teamID`,
+        this needs the `team.manage` permission.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+              properties:
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+            example:
+              phone: "09120000000"
+      responses:
+        "200":
+          description: The code was sent. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/VerificationOrTeamForbidden"
+        "409":
+          $ref: "#/components/responses/ChannelExists"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/channels/send-email-token:
+    post:
+      tags:
+        - Notification Channels
+      operationId: sendChannelEmailCode
+      summary: Send an email channel verification code
+      description: >-
+        Emails a 6-digit code to confirm an address for a new email channel.
+        Use it within 3 minutes as `metaData.token` in `POST /v1/channels`.
+        Your account must be verified. With `teamID`, this needs the
+        `team.manage` permission.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+            example:
+              email: ops@example.com
+      responses:
+        "200":
+          description: The code was sent. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/VerificationOrTeamForbidden"
+        "409":
+          $ref: "#/components/responses/ChannelExists"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "Send your API token as `Authorization: Bearer <api-token>`."
+  parameters:
+    TeamID:
+      name: teamID
+      in: query
+      required: false
+      description: >-
+        Run the request in the context of a team you belong to, instead of
+        your personal account.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000002"
+    TicketID:
+      name: ticketID
+      in: path
+      required: true
+      description: The ticket's `_id`.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+    ChannelID:
+      name: channelID
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+  responses:
+    Unauthorized:
+      description: The API token is missing, invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            error: Unauthorized.
+    TooManyRequests:
+      description: Too many requests. Wait and try again later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 429
+            error: Too Many Requests
+            message: Too Many Requests
+            data: null
+    InvalidTeamID:
+      description: "`teamID` isn't a valid ID."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: Invalid team ID.
+            data: null
+    InvalidID:
+      description: An ID in the path, or `teamID`, isn't valid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: Invalid id
+    ValidationOrTeamIDError:
+      description: The body or a parameter is invalid (`message` says which), or `teamID` isn't a valid ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            validation:
+              summary: Invalid body
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: '"body" is required'
+            invalidTeamID:
+              summary: Invalid team ID
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: Invalid team ID.
+                data: null
+    TeamNotFound:
+      description: You sent a `teamID` for a team you aren't a member of.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: Team not found
+            data:
+              code: team_not_found
+    TeamForbidden:
+      description: >-
+        With `teamID`: you aren't a member of the team (`team_not_found`), or
+        your role doesn't have the required permission (`no_permission`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            teamNotFound:
+              summary: Not a team member
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: Team not found
+                data:
+                  code: team_not_found
+            noPermission:
+              summary: Missing permission
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: You do not have permission to access this resource.
+                data:
+                  code: no_permission
+    VerificationOrTeamForbidden:
+      description: >-
+        Your account isn't verified (`account_verification_required`), or,
+        with `teamID`, you aren't a member (`team_not_found`) or lack
+        `team.manage` (`no_permission`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: You must verify your account, first.
+            data:
+              code: account_verification_required
+    TicketNotFound:
+      description: No ticket with this ID on your account.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Not Found
+            data: null
+    ChannelExists:
+      description: You already have a channel for this address.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 409
+            error: Conflict
+            message: Conflict
+            data: null
+  schemas:
+    Error:
+      type: object
+      description: Standard error body.
+      properties:
+        statusCode:
+          type: integer
+        error:
+          type: string
+          description: HTTP status text.
+        message:
+          type: string
+          description: What went wrong.
+        data:
+          type: object
+          nullable: true
+          description: Extra details. When present, `code` is a stable, machine-readable error code.
+          properties:
+            code:
+              type: string
+    AuthError:
+      type: object
+      description: Error body returned when the API token is rejected.
+      properties:
+        error:
+          type: string
+    ObjectID:
+      type: string
+      pattern: "^[0-9a-fA-F]{24}$"
+      description: 24-character hexadecimal ID.
+    PhoneNumber:
+      type: string
+      pattern: "^09\\d{9}$"
+      description: Iranian mobile number in the form `09XXXXXXXXX`.
+    TicketCategory:
+      type: string
+      enum:
+        - TECHNICAL
+        - BILLING
+        - MIGRATION
+        - REPORT
+        - FEEDBACK
+    TicketStatus:
+      type: string
+      description: >-
+        `OPEN`: waiting for support. `ANSWERED`: support replied. `PENDING`:
+        support is working on it. `UPGRADE_REQUIRED`: support says it needs a
+        plan upgrade. `CLOSED`: closed.
+      enum:
+        - OPEN
+        - ANSWERED
+        - PENDING
+        - UPGRADE_REQUIRED
+        - CLOSED
+    TicketSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+        shortID:
+          type: integer
+          description: Short ticket number shown to people.
+        subject:
+          type: string
+        status:
+          $ref: "#/components/schemas/TicketStatus"
+        pendingBy:
+          type: boolean
+          description: Whether the ticket is marked as being worked on.
+        category:
+          $ref: "#/components/schemas/TicketCategory"
+        user:
+          type: object
+          description: The account that owns the ticket.
+          properties:
+            _id:
+              type: string
+            fullname:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+            teamName:
+              type: string
+            teamColor:
+              type: string
+        actor:
+          type: object
+          description: For team tickets, the person who opened it.
+          properties:
+            fullname:
+              type: string
+            email:
+              type: string
+            avatar:
+              type: string
+              format: uri
+        subscriptionPlan:
+          type: object
+          description: The subscription plan the account had when the ticket was opened.
+          properties:
+            _id:
+              type: string
+            subscriptionPlanID:
+              type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Ticket:
+      type: object
+      properties:
+        _id:
+          type: string
+        shortID:
+          type: integer
+        subject:
+          type: string
+        status:
+          $ref: "#/components/schemas/TicketStatus"
+        category:
+          $ref: "#/components/schemas/TicketCategory"
+        codeReview:
+          type: boolean
+        user:
+          type: string
+          description: ID of the account that owns the ticket.
+        actor:
+          type: string
+          description: For team tickets, ID of the person who opened it.
+        projects:
+          type: array
+          items:
+            type: string
+        databases:
+          type: array
+          items:
+            type: string
+        domains:
+          type: array
+          items:
+            type: string
+        buckets:
+          type: array
+          items:
+            type: string
+        zones:
+          type: array
+          items:
+            type: string
+        mailServers:
+          type: array
+          items:
+            type: string
+        vms:
+          type: array
+          items:
+            type: string
+        ais:
+          type: array
+          items:
+            type: string
+        subscriptionPlan:
+          type: string
+          description: ID of the account's subscription plan when the ticket was opened.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Comment:
+      type: object
+      description: A message on a ticket.
+      properties:
+        _id:
+          type: string
+        body:
+          type: string
+        user:
+          type: object
+          description: Who wrote the message. For support replies, `email` is omitted.
+          properties:
+            fullname:
+              type: string
+            email:
+              type: string
+            avatar:
+              type: string
+              format: uri
+            teamName:
+              type: string
+            teamColor:
+              type: string
+        actor:
+          type: object
+          description: For team tickets, the person who wrote the message.
+          properties:
+            fullname:
+              type: string
+            email:
+              type: string
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+                description: Original file name.
+              key:
+                type: string
+                description: Use it with `POST /v1/attachments/download`.
+              size:
+                type: integer
+                description: Size in bytes.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+          description: Notification type, for example `LowCredit` or `TicketCommentCreated`.
+        data:
+          type: object
+          description: Details of the notification. The fields depend on `type`.
+        canMarkAsRead:
+          type: boolean
+          description: "`false` for notifications that stay until you act on them."
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    ChannelType:
+      type: string
+      enum:
+        - sms
+        - email
+        - telegram
+    SMSNotificationType:
+      type: string
+      description: Notification types an SMS channel can receive.
+      enum:
+        - AccountLogin
+        - LowCredit
+        - ServicesHaveBeenFrozen
+        - TicketCreated
+        - TicketCommentCreated
+        - MailserverLowCredit
+        - SubscriptionRenewalFailed
+        - ReserveSubscriptionFailed
+        - FreezeFreeVM
+        - MailServerMaxUsage
+    EmailNotificationType:
+      type: string
+      description: Notification types an email or Telegram channel can receive.
+      enum:
+        - AccountLogin
+        - LowCredit
+        - ServicesHaveBeenFrozen
+        - DomainActivated
+        - DiskBackupFailed
+        - DatabaseDumpFailed
+        - TicketCreated
+        - TicketCommentCreated
+        - SSLProvisioned
+        - SSLRenewFailed
+        - MailserverLowCredit
+        - UnusedFreeServicesNotice
+        - SubscriptionRenewalFailed
+        - ReserveSubscriptionFailed
+        - FreezeFreeVM
+        - MailServerMaxUsage
+    SMSChannelMetaData:
+      type: object
+      title: SMS
+      required:
+        - phone
+        - token
+      properties:
+        phone:
+          $ref: "#/components/schemas/PhoneNumber"
+        token:
+          type: string
+          description: Code from `POST /v1/channels/send-phone-token`.
+    EmailChannelMetaData:
+      type: object
+      title: Email
+      required:
+        - email
+        - token
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+          description: Code from `POST /v1/channels/send-email-token`.
+    TelegramChannelMetaData:
+      type: object
+      title: Telegram
+      required:
+        - chatID
+      properties:
+        chatID:
+          type: string
+          pattern: "^\\d+$"
+          description: Your numeric Telegram chat ID.
+    Channel:
+      type: object
+      properties:
+        _id:
+          type: string
+        type:
+          $ref: "#/components/schemas/ChannelType"
+        metaData:
+          type: object
+          description: "Where notifications go: `phone`, `email` or `chatID`, depending on `type`."
+          properties:
+            phone:
+              type: string
+            email:
+              type: string
+            chatID:
+              type: string
+        interestedNotifications:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        lastUsedAt:
+          type: string
+          format: date-time
+          description: When a notification was last sent to this channel.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

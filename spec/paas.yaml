@@ -1,456 +1,497 @@
 openapi: 3.0.1
 info:
-  title: PaaS
-  description: |-
-    Manage your apps using our API
-
-    [wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>](
-    wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>)
-
-    Parameters:
-    - `token`: Your api token in liara
-    - `cmd`: By default /bin/bash
-    - `project_id`: The id of your project in liara
-    - `teamID`: To access services in a team
-
-    This `WebSocket` endpoint allows `real-time`
-    communication with the projects service hosted
-    at `Liara` You can use `WebSocket protocols`
-    to send and receive data, enabling efficient and
-    low-latency interactions with the projects
-  termsOfService: '#'
-  contact:
-    email: info@liara.ir
+  title: Apps & Deployments
   version: 1.0.0
-externalDocs:
-  description: Find out more about PaaS
-  url: http://liara.ir
+  description: |
+    Create apps, deploy them, change their plans and settings, and read
+    their logs, metrics and events.
+
+    ## Identifying an app
+
+    Most endpoints identify an app by its **name** (`project_id`, for
+    example `my-app`). Some use its **ID** instead (`projectID`, the 24-character
+    `_id` returned when you create or list apps). Each endpoint says which one
+    it expects.
+
+    ## Deploying
+
+    1. Upload your source code as a `.tar.gz` or `.zip` archive with
+       `POST /v2/projects/{project_id}/sources`. You get a `sourceID`.
+    2. Create a release with `POST /v2/projects/{project_id}/releases`, passing
+       the `sourceID`. For `docker` apps you can pass a ready-made `image`
+       instead.
+    3. Follow the build with `GET /v2/releases/{releaseID}/build-logs` and
+       check the release `state` with `GET /v1/releases/{releaseID}` until it's
+       `READY` (or `FAILED`, `CANCELED`, `TIMEDOUT` or `UNHEALTHY`).
+
+    ## Interactive shell (WebSocket)
+
+    Open a shell in a running app over WebSocket:
+
+    ```text
+    wss://api.liara.ir/v1/exec?token=<api-token>&project_id=<app-name>&cmd=<command>
+    ```
+
+    - `token`: your API token.
+    - `project_id`: the app's name.
+    - `cmd`: the command to run, for example `/bin/bash`. URL-encode it.
+    - `teamID` (optional): the team that owns the app. You need the `operate`
+      or `manage` permission on the app.
+
+    Everything you send is passed to the command's input, and its output is
+    sent back to you. If the app has never been deployed successfully, you get
+    the message `Service does not exist yet. You should have at least one
+    successful release.` and the connection closes. The handshake fails with
+    `401` for a missing or invalid token, `400` if `project_id` or `cmd` is
+    missing or `teamID` is invalid, `403` without access to the team or app,
+    and `404` if the app doesn't exist.
+
+    ## Team permissions
+
+    With `teamID`, each endpoint needs one of the project permissions it lists
+    (`view`, `deploy`, `operate` or `manage`). A permission from your role or
+    a resource permission on that app both count.
 servers:
-- url: https://api.iran.liara.ir
+  - url: https://api.liara.ir
 security:
-- jwt: []
+  - bearerAuth: []
 tags:
   - name: Apps
-    description: Everything about your Apps
-  - name: Deploy
-    description: Deploy endpoints
+    description: Create, list, inspect and delete apps.
+  - name: Configuration
+    description: Environment variables, port, DNS servers, plans and scaling.
   - name: Settings
-    description: Settings of your app
-  - name: Disks
-    description: Disks of your app
-  - name: Domains
-    description: Domains of your app
-  - name: Reports
-    description: Reports of your app
+    description: Read-only filesystem, default subdomain, zero-downtime deployment and fixed outbound IP.
+  - name: Deployments
+    description: Upload source code, create releases, follow builds and roll back.
+  - name: Logs, Metrics & Events
+    description: Runtime logs, resource usage and lifecycle events.
+  - name: Networks
+    description: Private networks that apps and databases are created in.
 paths:
   /v1/projects:
     get:
       tags:
-      - Apps
-      summary: Get details of all projects
-      description: get all details of all projects that user owns
-      operationId: getApps
+        - Apps
+      operationId: listApps
+      summary: List apps
+      description: >-
+        Lists your apps, newest first. With `teamID`, it lists the team's apps
+        you have access to.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: isManagedWordpress
+          in: query
+          required: false
+          description: Send `true` to list only managed WordPress sites instead of regular apps.
+          schema:
+            type: string
+            enum:
+              - "true"
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: Your apps.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Projects'
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AppSummary"
+              example:
+                projects:
+                  - _id: "000000000000000000000050"
+                    project_id: my-app
+                    type: node
+                    scale: 1
+                    planID: small-g2
+                    bundlePlanID: standard
+                    status: ACTIVE
+                    network:
+                      _id: "000000000000000000000160"
+                      name: my-network
+                    isDeployed: true
+                    created_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
     post:
       tags:
-      - Apps
-      summary: Create a app
-      description: create app that user owns
+        - Apps
       operationId: createApp
+      summary: Create an app
+      description: >-
+        Creates an app in one of your networks. New apps get a few default
+        environment variables for their platform. The app's name is also its
+        default subdomain (`<name>.liara.run`) and must be unique across Liara.
+
+
+        Your balance must be high enough to cover your services, including
+        the new app. Your account must be verified. With `teamID`,
+        your role needs the `project.create` permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Create-app'
-        required: true
+              type: object
+              required:
+                - name
+                - planID
+                - platform
+                - network
+                - bundlePlanID
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 50
+                  pattern: "^[a-z0-9][a-z0-9\\-]+[a-z0-9]$"
+                  description: Lowercase letters, digits and hyphens; can't start or end with a hyphen.
+                planID:
+                  $ref: "#/components/schemas/AppPlanID"
+                bundlePlanID:
+                  $ref: "#/components/schemas/BundlePlanID"
+                platform:
+                  $ref: "#/components/schemas/Platform"
+                network:
+                  type: string
+                  pattern: "^[0-9a-fA-F]{24}$"
+                  description: ID of one of your networks (see `GET /v1/networks`).
+                readOnlyRootFilesystem:
+                  type: boolean
+                  description: >-
+                    Make the app's filesystem read-only, except for its disks.
+                    Defaults to `false` for `docker` and `next` apps and `true`
+                    for the others.
+                isOneClickApp:
+                  type: boolean
+                  default: false
+                  description: Create the app for a one-click app. Its platform is set to `docker`.
+            example:
+              name: my-app
+              planID: small-g2
+              bundlePlanID: standard
+              platform: node
+              network: "000000000000000000000160"
       responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-      x-codegen-request-body-name: create app
-  '/v1/projects/{name}':
+        "200":
+          description: The app was created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projectID:
+                    type: string
+                    description: The new app's ID.
+              example:
+                projectID: "000000000000000000000050"
+        "400":
+          description: >-
+            The body or `teamID` is invalid; `network` is missing
+            (`network_is_required`); `planID` isn't one of the plans listed
+            here (`g1_plan_unavailable`); or the bundle plan isn't available
+            for this plan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: network_is_required
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/NotEnoughBalance"
+        "403":
+          description: >-
+            Your account isn't verified (`account_verification_required`), or,
+            with `teamID`, you aren't a member (`team_not_found`) or your role
+            lacks `project.create` (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: The network doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Network not found
+                data: null
+        "409":
+          description: The name is taken or reserved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Project exists.
+                data: null
+        "429":
+          description: Your balance is too low to cover your services with the new app.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/projects/{project_id}/check-availability:
     get:
       tags:
-      - Apps
-      summary: Get details of a project
-      description: get all details of all project that user owns
-      operationId: getAppByName
+        - Apps
+      operationId: checkAppNameAvailability
+      summary: Check if an app name is available
+      description: Checks whether a name can be used for a new app.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
+        - name: project_id
+          in: path
+          required: true
+          description: The name to check.
+          schema:
+            type: string
+          example: my-app
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: The name is available. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "409":
+          description: The name is taken or reserved.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProjectAllDetails'
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Project exists.
+                data: null
+
+  /v1/projects/{project_id}:
+    get:
+      tags:
+        - Apps
+      operationId: getApp
+      summary: Get an app
+      description: >-
+        Returns an app's details, including its environment variables and
+        settings. Team permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      responses:
+        "200":
+          description: The app.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: "#/components/schemas/App"
+              example:
+                project:
+                  _id: "000000000000000000000050"
+                  project_id: my-app
+                  type: node
+                  scale: 1
+                  planID: small-g2
+                  bundlePlanID: standard
+                  status: ACTIVE
+                  envs:
+                    - key: NODE_ENV
+                      value: production
+                  fixedIPStatus: DISABLED
+                  defaultSubdomain: true
+                  zeroDowntime: true
+                  readOnlyRootFilesystem: true
+                  dns: []
+                  network:
+                    _id: "000000000000000000000160"
+                    name: my-network
+                  hourlyPrice: 100
+                  bundleHourlyPrice: 50
+                  isDeployed: true
+                  reservedDiskSpace: 1
+                  created_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
     delete:
       tags:
-      - Apps
-      summary: Delete a app
-      description: delete app that user owns
-      operationId: deleteAppByName
+        - Apps
+      operationId: deleteApp
+      summary: Delete an app
+      description: "Deletes an app. Team permission: `manage`."
       parameters:
-      - name: name
-        in: path
-        description: The name of the app to delete
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
       responses:
-        200:
-          description: Your request has been submitted.
-          content: {}
-        204:
-          description: App deleted.
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/actions/scale':
+        "200":
+          description: The app is being deleted. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+
+  /v1/projects/{projectID}/unfreeze:
     post:
       tags:
-      - Apps
-      summary: Turn on or off a app
-      description: turn on or off a app that user owns
-      operationId: turnApp
+        - Apps
+      operationId: unfreezeApp
+      summary: Unfreeze an app
+      description: >-
+        Reactivates an app that was frozen, for example because the balance ran
+        out. Your balance must be high enough to cover the app. Team
+        permission: `operate` or `manage`.
       parameters:
-      - name: name
-        in: path
-        description: The name of the app to turn on or off
-        required: true
-        schema:
-          type: string
-      requestBody:
-        description: Return 1 to turn on or 0 to turn off
-        content:
-          application/json:
-            schema:
-              required:
-              - scale
-              type: object
-              properties:
-                scale:
-                  type: number
-        required: true
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
       responses:
-        200:
-          description: Your request has been submitted.
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-      x-codegen-request-body-name: scale
-  '/v1/projects/{name}/actions/restart':
-    post:
-      tags:
-      - Apps
-      summary: To restart a app
-      description: to restart app that user owns
-      operationId: restartApp
-      parameters:
-      - name: name
-        in: path
-        description: The name of the app to restart
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Your request has been submitted.
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v2/projects/{name}/sources':
-    post:
-      tags:
-      - Deploy
-      summary: Deploy sources code
-      description: deploy sources code that user owns
-      operationId: sourcesDeploy
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app for deploy
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-              - file
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: The .gz file to deploy
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: 
+        "200":
+          description: The app was unfrozen. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/NotEnoughBalance"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: No frozen app with this ID.
+          content:
             application/json:
               schema:
-                type: object
-                properties:
-                  sourceID:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v2/projects/{name}/releases':
-    post:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Project not found.
+                data: null
+
+  /v1/projects/{projectID}/npm-audit-report:
+    get:
       tags:
-      - Deploy
-      summary: Deploy releases
-      description: deploy releases that user owns
-      operationId: releasesDeploy
+        - Apps
+      operationId: getNpmAuditReport
+      summary: Get the npm audit report
+      description: >-
+        Returns the `npm audit` report from the app's latest build. A report
+        exists only for `node` apps deployed with `platformConfig.npmAudit` set
+        to `true`. Team permission: `deploy`, `operate` or `manage`.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app for deploy
-        required: true
-        schema:
-          type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Deploy-releases'
-        required: true
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
       responses:
-        200:
-          description: Successful operation
-          content: 
-            application/json:
-              schema:
-                type: object
-                properties:
-                  releaseID:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-      x-codegen-request-body-name: deploy releases
-  '/v1/projects/{id}/zero-downtime/{status}':
-    post:
-      tags:
-      - Settings
-      summary: Zero downtime
-      description: zero downtime that user owns
-      operationId: zeroDowntime
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: status
-        in: path
-        description: disable or enable
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-  '/v1/projects/{id}/default-subdomain/{status}':
-    post:
-      tags:
-      - Settings
-      summary: Default subdomain
-      description: default subdomain that user owns
-      operationId: defaultSubdomain
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: status
-        in: path
-        description: disable or enable
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-  '/v1/projects/{id}/fixed-ip/{status}':
-    post:
-      tags:
-      - Settings
-      summary: IP static
-      description: ip static that user owns
-      operationId: ipStatic
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: status
-        in: path
-        description: disable or enable
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
+        "200":
+          description: The report, as produced by `npm audit --json`.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  IP:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-  '/v1/projects/{id}/read-only/{status}':
-    post:
-      tags:
-      - Settings
-      summary: Read only
-      description: read only that user owns
-      operationId: readOnly
-      parameters:
-      - name: id
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: status
-        in: path
-        description: disable or enable
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        409:
-          description: Conflict
-          content: {}
+                  report:
+                    type: object
+              example:
+                report:
+                  auditReportVersion: 2
+                  vulnerabilities: {}
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The app doesn't exist or is frozen, or there's no report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Report not found.
+                data: null
+
   /v1/projects/update-envs:
     post:
       tags:
-      - Settings
-      summary: Update envs
-      description: update envs that user owns
+        - Configuration
       operationId: updateEnvs
+      summary: Set environment variables
+      description: >-
+        Replaces all of an app's environment variables with the list you send.
+        If a key appears more than once, the last value wins. If the app has a
+        successful release, it's redeployed with the new variables. Team
+        permission: `operate` or `manage`.
+
+
+        Errors from this endpoint use the body `{"message": "..."}` instead of
+        the standard error body.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Update-envs'
-        required: true
+              type: object
+              required:
+                - project
+                - variables
+              properties:
+                project:
+                  type: string
+                  description: The app's name.
+                variables:
+                  type: array
+                  maxItems: 200
+                  items:
+                    $ref: "#/components/schemas/EnvVar"
+            example:
+              project: my-app
+              variables:
+                - key: NODE_ENV
+                  value: production
+                - key: API_URL
+                  value: https://api.example.com
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: The variables were saved. The app has no successful release, so nothing was redeployed. The response body is empty.
+        "201":
+          description: The variables were saved and the app is being redeployed.
           content:
             application/json:
               schema:
@@ -458,579 +499,1271 @@ paths:
                 properties:
                   message:
                     type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-      x-codegen-request-body-name: update envs
-  '/v1/projects/{name}/resize':
+              example:
+                message: success
+        "400":
+          description: >-
+            `project` or `variables` is missing or invalid, there are more than
+            200 variables, or the app doesn't exist or is frozen.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+              example:
+                message: project doesn't exists.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/projects/update-port:
     post:
       tags:
-      - Apps
-      summary: Change plan
-      description: create app that user owns
-      operationId: changePlan
+        - Configuration
+      operationId: updatePort
+      summary: Change the app's port
+      description: >-
+        Redeploys the app's latest successful release with a new port. If the
+        app has no successful release, nothing changes. Team permission:
+        `operate` or `manage`.
+
+
+        Errors from this endpoint use the body `{"message": "..."}` instead of
+        the standard error body.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
       requestBody:
-        description: The plan of your app
+        required: true
         content:
           application/json:
             schema:
-              required:
-              - planID
               type: object
+              required:
+                - project
+                - port
+              properties:
+                project:
+                  type: string
+                  description: The app's name.
+                port:
+                  type: integer
+                  minimum: 1
+                  description: The port your app listens on.
+            example:
+              project: my-app
+              port: 8080
+      responses:
+        "200":
+          description: The app has no successful release; nothing changed. The response body is empty.
+        "201":
+          description: The app is being redeployed with the new port.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: success
+        "400":
+          description: "`project` or `port` is missing or invalid, or the app doesn't exist or is frozen."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+              example:
+                message: port should be a number and is required.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/projects/update-dns:
+    post:
+      tags:
+        - Configuration
+      operationId: setDNSServers
+      summary: Set custom DNS servers
+      description: >-
+        Sets up to 4 DNS servers for the app to use. Send an empty list to go
+        back to the defaults. Your bundle plan must support custom DNS. Team
+        permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectID
+              properties:
+                projectID:
+                  type: string
+                  description: The app's ID.
+                dns:
+                  type: array
+                  maxItems: 4
+                  description: IPv4 or IPv6 addresses.
+                  items:
+                    type: string
+            example:
+              projectID: "000000000000000000000050"
+              dns:
+                - 1.1.1.1
+                - 8.8.8.8
+      responses:
+        "201":
+          description: The DNS servers were saved. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "428":
+          description: Your bundle plan doesn't support custom DNS servers.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: This plan does not support setDNS.
+                data: null
+
+  /v1/projects/{project_id}/resize:
+    post:
+      tags:
+        - Configuration
+      operationId: changeAppPlan
+      summary: Change the app's plan
+      description: >-
+        Moves the app to another plan. If the app has been deployed, the new
+        plan must have enough storage for the app's disks, and your balance
+        must be high enough for the new plan. Team permission: `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - planID
               properties:
                 planID:
-                  type: string
-        required: true
+                  $ref: "#/components/schemas/AppPlanID"
+            example:
+              planID: medium-g2
       responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-      x-codegen-request-body-name: plan
-  '/v1/projects/{name}/disks/{dname}/ftp':  
+        "200":
+          description: The plan was changed. The response body is empty.
+        "400":
+          description: The body or `teamID` is invalid, or the plan can't be used for this app (`g2_plan_unavailable`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/NotEnoughBalance"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The app doesn't exist or is frozen.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Project not found.
+                data: null
+        "409":
+          description: The new plan doesn't have enough storage for the app's disks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: The new plan does not have sufficient storage space for your disks.
+                data: null
+
+  /v1/projects/{project_id}/resize-bundle-plan:
     post:
       tags:
-      - Disks
-      summary: Create ftp
-      description: create ftp that user owns
-      operationId: createFtp
+        - Configuration
+      operationId: changeAppBundlePlan
+      summary: Change the app's bundle plan
+      description: >-
+        Moves the app to another bundle plan. The bundle plan sets limits and
+        features such as backups, log retention, deployments per day, domains,
+        disks and FTP accounts, zero-downtime deployment and rollback. Moving
+        to a bundle plan with lower limits fails if the app uses more than it
+        allows. You can't move to a cheaper bundle plan soon after moving to a
+        more expensive one. Team permission: `manage`.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: dname
-        in: path
-        description: The name of your disk
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
       requestBody:
-        description: The plan of your app
+        required: true
         content:
           application/json:
             schema:
-              required:
-              - username
-              - readOnly
               type: object
+              required:
+                - bundlePlanID
               properties:
-                username:
-                  type: string
-                readOnly:
-                  type: boolean
-        required: true
+                bundlePlanID:
+                  $ref: "#/components/schemas/BundlePlanID"
+            example:
+              bundlePlanID: pro
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: The bundle plan was changed. The response body is empty.
+        "400":
+          description: The body or `teamID` is invalid, or the bundle plan isn't available for the app's plan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: This bundle plan is not available for this plan.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "428":
+          description: >-
+            The app uses more than the new bundle plan allows, or you upgraded
+            recently: `downgrade_limit`, `disk_limit`,
+            `domain_limit`, `ftp_account_limit`, `dns_limit` or
+            `read_only_limit`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: You cannot resize to a plan that allows less than 3 disks.
+                data:
+                  code: disk_limit
+
+  /v1/projects/{project_id}/actions/scale:
+    post:
+      tags:
+        - Configuration
+      operationId: scaleApp
+      summary: Turn an app on or off
+      description: >-
+        Turns the app off (`scale: 0`) or on (`scale: 1`). Team permission:
+        `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - scale
+              properties:
+                scale:
+                  type: integer
+                  enum:
+                    - 0
+                    - 1
+            example:
+              scale: 0
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The app is on a free plan (`PLAN_UPGRADE_REQUIRED`), or, with
+            `teamID`, you aren't a member (`team_not_found`) or lack the
+            permission (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Free plans are no longer available. Upgrade to a paid plan to continue.
+                data:
+                  code: PLAN_UPGRADE_REQUIRED
+        "404":
+          description: The app doesn't exist, or is frozen or suspended.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/projects/{project_id}/actions/restart:
+    post:
+      tags:
+        - Configuration
+      operationId: restartApp
+      summary: Restart an app
+      description: "Restarts a running app. Team permission: `manage`."
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      responses:
+        "200":
+          description: The app is restarting. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The app doesn't exist, is turned off, or is frozen.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Project not found.
+                data: null
+
+  /v1/projects/{projectID}/read-only/enable:
+    post:
+      tags:
+        - Settings
+      operationId: enableReadOnly
+      summary: Make the filesystem read-only
+      description: >-
+        Makes the app's filesystem read-only, except for its disks. Your bundle
+        plan must support this setting. Team permission: `operate` or
+        `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "409":
+          description: The filesystem is already read-only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Read-Only Filesystem is already enabled.
+                data: null
+        "428":
+          $ref: "#/components/responses/ReadOnlyNotAvailable"
+
+  /v1/projects/{projectID}/read-only/disable:
+    post:
+      tags:
+        - Settings
+      operationId: disableReadOnly
+      summary: Make the filesystem writable
+      description: >-
+        Makes the app's whole filesystem writable. Your bundle plan must
+        support this setting. Team permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "409":
+          description: The filesystem is already writable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Read-Only Filesystem is already disabled.
+                data: null
+        "428":
+          $ref: "#/components/responses/ReadOnlyNotAvailable"
+
+  /v1/projects/{projectID}/default-subdomain/enable:
+    post:
+      tags:
+        - Settings
+      operationId: enableDefaultSubdomain
+      summary: Turn on the default subdomain
+      description: >-
+        Makes the app reachable at `<app-name>.liara.run`. Team permission:
+        `operate` or `manage`.
+
+
+        The default subdomain expires one week after the app's first
+        successful deployment. It's then turned off,
+        `defaultSubdomainExpired` becomes `true`, and it can't be turned back
+        on. Connect a custom domain to keep the app reachable.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          description: "`teamID` is invalid, or the default subdomain has expired."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Default subdomain has expired for this project.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+
+  /v1/projects/{projectID}/default-subdomain/disable:
+    post:
+      tags:
+        - Settings
+      operationId: disableDefaultSubdomain
+      summary: Turn off the default subdomain
+      description: >-
+        Stops serving the app at `<app-name>.liara.run`. Team permission:
+        `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+
+  /v1/projects/{projectID}/zero-downtime/enable:
+    post:
+      tags:
+        - Settings
+      operationId: enableZeroDowntime
+      summary: Turn on zero-downtime deployment
+      description: >-
+        Keeps the current release running until a new one is ready. Your bundle
+        plan must support zero-downtime deployment. Team permission: `operate`
+        or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "428":
+          $ref: "#/components/responses/ZeroDowntimeNotAvailable"
+
+  /v1/projects/{projectID}/zero-downtime/disable:
+    post:
+      tags:
+        - Settings
+      operationId: disableZeroDowntime
+      summary: Turn off zero-downtime deployment
+      description: >-
+        Turns off zero-downtime deployment. Your bundle plan must support
+        zero-downtime deployment. Team permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "428":
+          $ref: "#/components/responses/ZeroDowntimeNotAvailable"
+
+  /v1/projects/{projectID}/fixed-ip/enable:
+    post:
+      tags:
+        - Settings
+      operationId: enableFixedIP
+      summary: Turn on a fixed outbound IP
+      description: >-
+        Gives the app's outgoing traffic a fixed IP address, so you can allow it
+        in other services' firewalls. Team permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  username:
+                  IP:
                     type: string
-                  password:
+                    description: The app's outbound IP address.
+              example:
+                IP: 203.0.113.10
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "409":
+          description: A fixed IP is already on.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Fixed IP is already enabled.
+                data: null
+
+  /v1/projects/{projectID}/fixed-ip/disable:
+    post:
+      tags:
+        - Settings
+      operationId: disableFixedIP
+      summary: Turn off the fixed outbound IP
+      description: "Turns off the app's fixed outbound IP. Team permission: `operate` or `manage`."
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "409":
+          description: The fixed IP is already off.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Fixed IP is already disabled.
+                data: null
+
+  /v2/projects/{project_id}/sources:
+    post:
+      tags:
+        - Deployments
+      operationId: uploadSource
+      summary: Upload source code
+      description: >-
+        Uploads your source code as a single `.tar.gz` or `.zip` archive, to
+        deploy with `POST /v2/projects/{project_id}/releases`. The request must
+        include a `Content-Length` header. The maximum size depends on your
+        bundle plan. Team permission: `deploy`, `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The archive (`application/gzip` or `application/zip`).
+      responses:
+        "200":
+          description: The source was uploaded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sourceID:
                     type: string
-                  host:
+                    description: Pass it as `sourceID` when creating a release.
+              example:
+                sourceID: 00000000-0000-0000-0000-000000000000.tar.gz
+        "400":
+          description: >-
+            The request isn't `multipart/form-data`, the file isn't a gzip or
+            zip archive, more than one file was sent, `teamID` is invalid, or
+            the app is frozen (`frozen_project`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: "Invalid file type. Allowed types: gzip, zip"
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The app doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: project_not_found
+                data: null
+        "413":
+          description: The archive is larger than your bundle plan allows, or `Content-Length` is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 413
+                error: Request Entity Too Large
+                message: Max source size is 256 MB
+                data: null
+
+  /v2/projects/{project_id}/releases:
+    post:
+      tags:
+        - Deployments
+      operationId: createRelease
+      summary: Deploy a release
+      description: >-
+        Starts a new release of the app, from an uploaded `sourceID` or, for
+        `docker` apps, from an `image`. Send exactly one of them. Releases that
+        are still building or deploying are cancelled. Source releases are
+        built first; image releases are deployed directly.
+
+
+        **Limit:** the number of deployments per day depends on your bundle
+        plan. Team permission: `deploy`, `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRelease"
+            examples:
+              source:
+                summary: Deploy uploaded source code
+                value:
+                  type: node
+                  port: 3000
+                  sourceID: 00000000-0000-0000-0000-000000000000.tar.gz
+                  message: Fix login page
+                  platformConfig:
+                    version: "22"
+                  disks:
+                    - name: uploads
+                      mountTo: uploads
+              image:
+                summary: Deploy a Docker image
+                value:
+                  type: docker
+                  port: 80
+                  image: nginx:1.27
+      responses:
+        "201":
+          description: The release was created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  releaseID:
                     type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-      x-codegen-request-body-name: create ftp
+              example:
+                releaseID: "000000000000000000000170"
+        "400":
+          description: >-
+            The body or `teamID` is invalid. For example: both or neither of
+            `sourceID` and `image` were sent, a disk doesn't exist, a disk is
+            mounted on `/`, a `docker` app uses a relative mount path, the app
+            is frozen (`frozen_project`), or the image couldn't be found or
+            declares volumes that have no disk mounted on them.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Please only use one of the sourceID or image fields. Not both.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The app doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: project_not_found
+                data: null
+        "428":
+          description: >-
+            You've reached today's deployment limit
+            (`max_deployment_count_in_day`), or your bundle plan doesn't allow
+            the `germany` build location (`germany_builder_not_allowed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: Max deployment count in day.
+                data:
+                  code: max_deployment_count_in_day
+
+  /v1/projects/{project_id}/releases:
     get:
       tags:
-      - Disks
-      summary: Get ftps
-      description: get ftps that user owns
-      operationId: getFtps
+        - Deployments
+      operationId: listReleases
+      summary: List releases
+      description: >-
+        Lists the app's releases, newest first by default. Team permission: any
+        project permission.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: dname
-        in: path
-        description: The name of your disk
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - name: page
+          in: query
+          required: false
+          description: Page number, starting at 1.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: count
+          in: query
+          required: false
+          description: Releases per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - DESC
+              - ASC
+            default: DESC
+        - name: state
+          in: query
+          required: false
+          description: Send `PENDING` to list only releases waiting to be built.
+          schema:
+            type: string
+            enum:
+              - PENDING
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: >-
+            The app's releases. The response can include additional fields not
+            listed here.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  accesses:
+                  total:
+                    type: integer
+                    description: Total number of releases.
+                  currentRelease:
+                    type: string
+                    nullable: true
+                    description: ID of the release that's running now.
+                  readyReleasesCount:
+                    type: integer
+                  platform:
+                    $ref: "#/components/schemas/Platform"
+                  releases:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Release"
+              example:
+                total: 1
+                currentRelease: "000000000000000000000170"
+                readyReleasesCount: 1
+                platform: node
+                releases:
+                  - _id: "000000000000000000000170"
+                    tag: v1
+                    type: DEPLOY
+                    state: READY
+                    projectType: node
+                    port: 3000
+                    message: Fix login page
+                    client: "<client-name>"
+                    buildLocation: iran
+                    sourceAvailable: true
+                    platformConfig:
+                      version: "22"
+                    disks: []
+                    createdAt: "2026-01-01T08:00:00.000Z"
+                    finishedAt: "2026-01-01T08:03:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+
+  /v1/projects/{project_id}/releases/current:
+    get:
+      tags:
+        - Deployments
+      operationId: getCurrentRelease
+      summary: Get the running release
+      description: >-
+        Returns the release that's running now, or `null` if there is none.
+        Team permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      responses:
+        "200":
+          description: >-
+            The running release. The response can include additional fields not
+            listed here.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentRelease:
+                    allOf:
+                      - $ref: "#/components/schemas/Release"
+                    nullable: true
+              example:
+                currentRelease:
+                  _id: "000000000000000000000170"
+                  type: DEPLOY
+                  state: READY
+                  projectType: node
+                  port: 3000
+                  message: Fix login page
+                  createdAt: "2026-01-01T08:00:00.000Z"
+                  finishedAt: "2026-01-01T08:03:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+
+  /v1/releases/{releaseID}:
+    get:
+      tags:
+        - Deployments
+      operationId: getRelease
+      summary: Get a release
+      description: >-
+        Returns a release's state. Use it to follow a deployment until it
+        finishes. Team permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ReleaseID"
+      responses:
+        "200":
+          description: The release.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  release:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      type:
+                        $ref: "#/components/schemas/ReleaseType"
+                      state:
+                        $ref: "#/components/schemas/ReleaseState"
+                      failReason:
+                        type: string
+                      projectType:
+                        $ref: "#/components/schemas/Platform"
+                      disks:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/DiskMount"
+                      createdAt:
+                        type: string
+                        format: date-time
+                  queue:
+                    type: integer
+                    description: Only for `PENDING` releases. How many releases are waiting to be built before this one.
+                  platformConfig:
+                    type: object
+                    description: The platform settings the release was built with.
+              example:
+                release:
+                  _id: "000000000000000000000170"
+                  type: DEPLOY
+                  state: PENDING
+                  projectType: node
+                  disks: []
+                  createdAt: "2026-01-01T08:00:00.000Z"
+                queue: 2
+                platformConfig:
+                  version: "22"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/ReleaseNotFound"
+
+  /v2/releases/{releaseID}/build-logs:
+    get:
+      tags:
+        - Deployments
+      operationId: getBuildLogs
+      summary: Get build logs
+      description: >-
+        Returns up to 20 lines of a release's build output, with the release's
+        current state. To follow a build, call it repeatedly with `since` set
+        to the `createdAt` of the last line you received. Team permission: any
+        project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ReleaseID"
+        - name: since
+          in: query
+          required: false
+          description: Only return lines written after this time (ISO 8601).
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Build output.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  release:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      state:
+                        $ref: "#/components/schemas/ReleaseState"
+                      failReason:
+                        type: string
+                  buildOutput:
                     type: array
                     items:
                       type: object
                       properties:
                         _id:
                           type: string
-                        disk:
+                        line:
                           type: string
-                        username:
+                        stream:
                           type: string
-                        password:
+                          enum:
+                            - STDOUT
+                            - STDERR
+                        releaseID:
                           type: string
-                        readOnly:
-                          type: boolean
                         createdAt:
                           type: string
                           format: date-time
-                        __v:
-                          type: integer
-                  host:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{id}/disks':
-    get:
+              example:
+                release:
+                  _id: "000000000000000000000170"
+                  state: BUILDING
+                buildOutput:
+                  - _id: "000000000000000000000180"
+                    line: Installing dependencies...
+                    stream: STDOUT
+                    releaseID: "000000000000000000000170"
+                    createdAt: "2026-01-01T08:00:05.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/ReleaseNotFound"
+
+  /v2/releases/{releaseID}/cancel:
+    post:
       tags:
-      - Disks
-      summary: Get disks
-      description: get disks that user owns
-      operationId: getDisks
+        - Deployments
+      operationId: cancelRelease
+      summary: Cancel a build
+      description: >-
+        Cancels a release that's still waiting or building. Nothing happens if
+        it's already past that stage. Team permission: `deploy`, `operate` or
+        `manage`.
       parameters:
-      - name: id
-        in: path
-        description: The id of your app
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ReleaseID"
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: Done. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+
+  /v1/releases/{releaseID}/rollback:
+    post:
+      tags:
+        - Deployments
+      operationId: rollbackRelease
+      summary: Roll back to a release
+      description: >-
+        Redeploys an earlier successful release from the last 6 months, with
+        the environment variables it had. The app must be active and your bundle
+        plan must support rollback. Team permission: `deploy`, `operate` or
+        `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ReleaseID"
+      responses:
+        "200":
+          description: The rollback started. The response body is empty.
+        "400":
+          description: "`teamID` is invalid, or the release isn't a successful deployment."
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Get-disks'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{id}/disks/{name}/backups':
-    get:
-      tags:
-      - Disks
-      summary: Get backups disk
-      description: get backups disk that user owns
-      operationId: getBackups
-      parameters:
-      - name: id
-        in: path
-        description: The id of your app
-        required: true
-        schema:
-          type: string
-      - name: name
-        in: path
-        description: The name of your disk
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The app isn't active, or, with `teamID`, you aren't a member
+            (`team_not_found`) or lack the permission (`no_permission`).
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Get-disk-backup'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: The project must be active.
+                data: null
+        "404":
+          description: No release with this ID from the last 6 months.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: The release is already running.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: You can not rollback to the current active release.
+                data: null
+        "428":
+          description: Your bundle plan doesn't support rollback.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: The project does not support rollback.
+                data:
+                  code: rollback_not_supported
+
+  /v2/releases/{releaseID}/source:
     post:
       tags:
-      - Disks
-      summary: Create backup disk
-      description: create backup disk that user owns
-      operationId: createBackup
+        - Deployments
+      operationId: getReleaseSourceLink
+      summary: Get a release's source code link
+      description: >-
+        Returns a temporary link to download the source archive a release was
+        built from. The link is valid for 1 hour. Team permission: any project
+        permission.
       parameters:
-      - name: id
-        in: path
-        description: The id of your app
-        required: true
-        schema:
-          type: string
-      - name: name
-        in: path
-        description: The name of your disk
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/ReleaseID"
       responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{id}/disks/{dname}/backups/{bname}/download':
-    post:
-      tags:
-      - Disks
-      summary: Download backup disk
-      description: download backup disk that user owns
-      operationId: downloadBackup
-      parameters:
-      - name: id
-        in: path
-        description: The id of your app
-        required: true
-        schema:
-          type: string
-      - name: dname
-        in: path
-        description: The name of your disk
-        required: true
-        schema:
-          type: string
-      - name: bname
-        in: path
-        description: The name of your backup
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
+        "200":
+          description: The download link.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  link:
+                  url:
                     type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/disks/{dname}/resize':
-    post:
-      tags:
-      - Disks
-      summary: Resize disk
-      description: resize disk that user owns
-      operationId: resizeDisk
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: dname
-        in: path
-        description: The name of your disk
-        required: true
-        schema:
-          type: string
-      requestBody:
-        description: The size of your disk
-        content:
-          application/json:
-            schema:
-              required:
-              - size
-              type: object
-              properties:
-                size:
-                  type: string
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-      x-codegen-request-body-name: resize disk
-  '/v1/projects/{name}/disks':
-    post:
-      tags:
-      - Disks
-      summary: Create a disk
-      description: create a disk that user owns
-      operationId: createDisk
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      requestBody:
-        description: The disk of your app
-        content:
-          application/json:
-            schema:
-              required:
-              - name
-              - size
-              type: object
-              properties:
-                name:
-                  type: string
-                size:
-                  type: string
-        required: true
-      responses:
-        201:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-      x-codegen-request-body-name: disk
-  '/v1/projects/{id}/disks/{name}':
-    delete:
-      tags:
-      - Disks
-      summary: Delete a disk
-      description: delete a disk that user owns
-      operationId: deleteDisk
-      parameters:
-      - name: id
-        in: path
-        description: The id of your app
-        required: true
-        schema:
-          type: string
-      - name: name
-        in: path
-        description: The name of your disk of app
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-  '/v1/ftp/{fname}':
-    delete:
-      tags:
-      - Disks
-      summary: Delete a ftp
-      description: delete a ftp that user owns
-      operationId: deleteFtp
-      parameters:
-      - name: fname
-        in: path
-        description: The name of your ftp
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-  '/v1/domains/{id}/check':
-    get:
-      tags:
-      - Domains
-      summary: Check a domain
-      description: check a domain that user owns
-      operationId: checkDomain
-      parameters:
-      - name: id
-        in: path
-        description: The id of your domain
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
+                    format: uri
+              example:
+                url: https://files.example.com/<source>?signature=<signature>
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The release doesn't exist or has no source code.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CheckDomain'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Domain does not exists.
-          content: {}
-  '/v1/projects/{name}/logs':
+                $ref: "#/components/schemas/Error"
+
+  /v2/projects/{project_id}/logs:
     get:
       tags:
-      - Apps
-      summary: Get logs of app
-      description: get logs of app that user owns
-      operationId: getAppLogs
+        - Logs, Metrics & Events
+      operationId: getLogs
+      summary: Get app logs
+      description: >-
+        Returns up to 100 lines of the app's output, newest first by default.
+        How far back you can read depends on your bundle plan's log retention.
+        To page through logs, move `start` or `end` past the last line you
+        received. Team permission: any project permission.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: Show logs since timestamp
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Logs'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/events':
-    get:
-      tags:
-        - Apps
-      summary: Get events of the app
-      description: get events of the app owned by user
-      operationId: getAppEvents
-      parameters:
-        - name: name
-          in: path
-          description: The name of the app
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - $ref: "#/components/parameters/LogStart"
+        - $ref: "#/components/parameters/LogEnd"
+        - $ref: "#/components/parameters/LogDirection"
+        - $ref: "#/components/parameters/AppletId"
+        - $ref: "#/components/parameters/ReleaseIdFilter"
         - name: search
           in: query
-          description: Show events based on search query
           required: false
+          description: Only return lines containing this text. At least 3 characters.
           schema:
             type: string
-        - name: start
+            minLength: 3
+        - name: last_lines
           in: query
-          description: start timestamp
-          example: 1704028315
           required: false
+          description: Send `true` to get the newest lines from your whole retention period, ignoring `start` and `direction`.
           schema:
-            type: number
-        - name: end
-          in: query
-          description: end timestamp
-          example: 1704028315
-          required: false
-          schema:
-            type: number
+            type: boolean
+            default: false
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: Log lines, grouped by instance and release.
           content:
             application/json:
               schema:
-                required:
-                  - data
                 type: object
                 properties:
                   data:
@@ -1039,997 +1772,1145 @@ paths:
                       type: object
                       properties:
                         metaData:
-                          type: object
+                          $ref: "#/components/schemas/LogStreamMetaData"
                         values:
                           type: array
+                          description: "`[timestamp, line]` pairs. The timestamp is in nanoseconds since the Unix epoch, as a string."
                           items:
                             type: array
                             items:
                               type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/applets':
+              example:
+                data:
+                  - metaData:
+                      appletId: "<instance-id>"
+                      releaseId: "000000000000000000000170"
+                    values:
+                      - - "1767254400000000000"
+                        - Server listening on port 3000
+        "204":
+          description: The app has no releases yet, so there are no logs.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "409":
+          $ref: "#/components/responses/AppletAndReleaseConflict"
+        "428":
+          $ref: "#/components/responses/InvalidLogRange"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+
+  /v2/projects/{project_id}/logs/chart:
     get:
       tags:
-      - Apps
-      summary: Get applets of app
-      description: get applets of app that user owns
-      operationId: getAppApplets
+        - Logs, Metrics & Events
+      operationId: getLogsChart
+      summary: Get log volume over time
+      description: >-
+        Returns how many log lines the app wrote in each 5-minute window. Team
+        permission: any project permission.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - $ref: "#/components/parameters/LogStart"
+        - $ref: "#/components/parameters/LogEnd"
+        - $ref: "#/components/parameters/AppletId"
+        - $ref: "#/components/parameters/ReleaseIdFilter"
       responses:
-        200:
-          description: Successful operation
+        "200":
+          description: Log counts, grouped by instance and release.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Applets'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/releases':
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        metaData:
+                          $ref: "#/components/schemas/LogStreamMetaData"
+                        values:
+                          type: array
+                          description: "`[timestamp, count]` pairs. The timestamp is in Unix seconds; the count is a string."
+                          items:
+                            type: array
+                            items: {}
+              example:
+                data:
+                  - metaData:
+                      appletId: "<instance-id>"
+                      releaseId: "000000000000000000000170"
+                    values:
+                      - - 1767254400
+                        - "42"
+        "204":
+          description: The app has no releases yet, so there are no logs.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "409":
+          $ref: "#/components/responses/AppletAndReleaseConflict"
+        "428":
+          $ref: "#/components/responses/InvalidLogRange"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+
+  /v1/projects/{project_id}/metrics/summary:
     get:
       tags:
-      - Apps
-      summary: Get releases of app
-      description: get releases of app that user owns
-      operationId: getAppReleases
+        - Logs, Metrics & Events
+      operationId: getMetricsSummary
+      summary: Get current resource usage
+      description: >-
+        Returns the app's current CPU and memory usage per instance, and the
+        usage of each of its disks. Team permission: any project permission.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: page
-        in: query
-        description: The page of your releases
-        required: true
-        schema:
-          type: number
-          default: 1.0
-      - name: count
-        in: query
-        description: The count of your releases
-        required: true
-        schema:
-          type: number
-          default: 10.0
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
       responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Releases'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/metrics/summary':
-    get:
-      tags:
-      - Reports
-      summary: Get summary reports of app
-      description: get summary reports of app that user owns
-      operationId: getAppSummaryReports
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
+        "200":
+          description: Current usage.
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   cpuUsage:
-                    type: array 
+                    type: array
+                    description: CPU usage as a fraction of the app's CPU limit (for example `0.25`).
                     items:
-                      type: object
-                      properties:
-                        value:
-                          type: array
-                          items:
-                            oneOf:
-                              - type: number
-                              - type: string
-                        applet:
-                          type: string
+                      $ref: "#/components/schemas/InstantMetric"
                   memoryUsage:
-                    type: array 
+                    type: array
+                    description: Memory usage in bytes.
                     items:
-                      type: object
-                      properties:
-                        value:
-                          type: array
-                          items:
-                            oneOf:
-                              - type: number
-                              - type: string
-                        applet:
-                          type: string
+                      $ref: "#/components/schemas/InstantMetric"
                   disksUsage:
                     type: array
                     items:
                       type: object
                       properties:
-                        size:
-                          type: string
-                        usage:
-                          type: string
-                        reportedAt:
-                          type: string
                         name:
                           type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/metrics/cpu':
+                          description: The disk's name.
+                        size:
+                          type: string
+                          description: The disk's size.
+                        usage:
+                          type: string
+                          description: Used space, in percent.
+                        reportedAt:
+                          type: number
+                          description: When the usage was measured, in Unix seconds.
+              example:
+                cpuUsage:
+                  - value:
+                      - 1767254400
+                      - "0.12"
+                    applet: "<instance-id>"
+                memoryUsage:
+                  - value:
+                      - 1767254400
+                      - "157286400"
+                    applet: "<instance-id>"
+                disksUsage:
+                  - name: uploads
+                    size: "1"
+                    usage: "23.5"
+                    reportedAt: 1767254400
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+
+  /v1/projects/{project_id}/metrics/{stat}:
     get:
       tags:
-      - Reports
-      summary: Get cpu reports of app
-      description: get cpu reports of app that user owns
-      operationId: getAppCpuReports
+        - Logs, Metrics & Events
+      operationId: getMetrics
+      summary: Get resource usage over time
+      description: >-
+        Returns one resource metric over time, per instance. The longer the
+        range, the further apart the data points. How far back you can go
+        depends on your bundle plan. Team permission: any
+        project permission.
       parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your cpu reports
-        required: true
-        schema:
-          type: number
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - name: stat
+          in: path
+          required: true
+          description: >-
+            `cpu`: fraction of the app's CPU limit. `memory`: bytes.
+            `network-receive` and `network-transmit`: bytes per second.
+          schema:
+            type: string
+            enum:
+              - cpu
+              - memory
+              - network-receive
+              - network-transmit
+        - name: since
+          in: query
+          required: true
+          description: Start of the range, in Unix seconds.
+          schema:
+            type: integer
+          example: 1767168000
       responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/metrics/memory':
-    get:
-      tags:
-      - Reports
-      summary: Get memory reports of app
-      description: get memory reports of app that user owns
-      operationId: getAppMemoryReports
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your memory reports
-        required: true
-        schema:
-          type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/metrics/network-receive':
-    get:
-      tags:
-      - Reports
-      summary: Get network-receive reports of app
-      description: get network-receive reports of app that user owns
-      operationId: getAppNetworkReceiveReports
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your network-receive reports
-        required: true
-        schema:
-          type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  '/v1/projects/{name}/metrics/network-transmit':
-    get:
-      tags:
-      - Reports
-      summary: Get network-transmit reports of app
-      description: get network-transmit reports of app that user owns
-      operationId: getNetworkTransmitReports
-      parameters:
-      - name: name
-        in: path
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      - name: since
-        in: query
-        description: The since of your network-transmit reports
-        required: true
-        schema:
-          type: number
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Reports'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-  /v1/domains:
-    get:
-      tags:
-      - Domains
-      summary: Get all domains
-      description: get all domains that user owns
-      operationId: getAppDomains
-      parameters:
-      - name: project
-        in: query
-        description: The name of your app
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Domains'
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-    post:
-      tags:
-      - Domains
-      summary: Create a domain
-      description: create a domain that user owns
-      operationId: createAppDomain
-      requestBody:
-        description: The domain of your app
-        content:
-          application/json:
-            schema:
-              required:
-              - name
-              - project
-              - type
-              type: object
-              properties:
-                name:
-                  type: string
-                project:
-                  type: string
-                type:
-                  type: string
-                  default: PROJECT
-        required: true
-      responses:
-        201:
-          description: Successful operation
+        "200":
+          description: The metric over time.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  domain:
+                  end:
+                    type: integer
+                    description: End of the range (now), in Unix seconds.
+                  result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        applet:
+                          type: string
+                          description: The instance the values belong to.
+                        values:
+                          type: array
+                          description: "`[timestamp, value]` pairs. The timestamp is in Unix seconds; the value is a string."
+                          items:
+                            type: array
+                            items: {}
+              example:
+                end: 1767254400
+                result:
+                  - applet: "<instance-id>"
+                    values:
+                      - - 1767254370
+                        - "0.11"
+                      - - 1767254400
+                        - "0.12"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "428":
+          description: "`since` is further back than your bundle plan allows."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: The maximum allowed value for since is 30 days.
+                data: null
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+
+  /v1/projects/{project_id}/events:
+    get:
+      tags:
+        - Logs, Metrics & Events
+      operationId: getAppEvents
+      summary: Get app events
+      description: >-
+        Returns up to 12 lifecycle events of the app's instances, such as
+        started, stopped, restarted or out of memory. You can read events
+        from the last 7 days. Team permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - name: start
+          in: query
+          required: false
+          description: Start of the range, in Unix seconds. Defaults to 1 day ago; values older than 7 days are moved to 7 days ago.
+          schema:
+            type: integer
+        - $ref: "#/components/parameters/LogEnd"
+        - $ref: "#/components/parameters/LogDirection"
+        - name: search
+          in: query
+          required: false
+          description: Only return events containing this text. At least 3 characters.
+          schema:
+            type: string
+            minLength: 3
+      responses:
+        "200":
+          description: >-
+            Events. Each event can include additional fields not listed here.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: ID of the instance the event is about.
+                        action:
+                          type: string
+                          description: >-
+                            What happened, for example `start`, `stop`,
+                            `restart` or `oom`.
+                        time:
+                          type: string
+                          description: When it happened, in Unix seconds.
+                        release:
+                          type: string
+                          description: ID of the release the instance belongs to.
+                        tag:
+                          type: string
+                          description: The release's tag, for example `v3`.
+              example:
+                data:
+                  - id: "<instance-id>"
+                    action: start
+                    time: "1767254400"
+                    release: "000000000000000000000170"
+                    tag: v1
+        "204":
+          description: The app has no successful releases yet, so there are no events.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "503":
+          $ref: "#/components/responses/TemporarilyUnavailable"
+
+  /v1/networks:
+    get:
+      tags:
+        - Networks
+      operationId: listNetworks
+      summary: List networks
+      description: >-
+        Lists your private networks, newest first, with how many apps and
+        databases are in each. With `teamID`, it lists the team's networks.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: Your networks.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  networks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        name:
+                          type: string
+                        projectCount:
+                          type: integer
+                          description: Number of apps in the network.
+                        databaseCount:
+                          type: integer
+                        createdAt:
+                          type: string
+                          format: date-time
+              example:
+                networks:
+                  - _id: "000000000000000000000160"
+                    name: my-network
+                    projectCount: 2
+                    databaseCount: 1
+                    createdAt: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+    post:
+      tags:
+        - Networks
+      operationId: createNetwork
+      summary: Create a network
+      description: >-
+        Creates a private network. Apps and databases in the same network can
+        reach each other privately. The number of networks per account is
+        limited. Your account must be verified.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - networkName
+              properties:
+                networkName:
+                  type: string
+                  minLength: 3
+                  pattern: "^[a-z0-9][a-z0-9\\-]+[a-z0-9]$"
+                  description: Lowercase letters, digits and hyphens; can't start or end with a hyphen.
+            example:
+              networkName: my-network
+      responses:
+        "201":
+          description: The network was created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  network:
                     type: object
                     properties:
                       _id:
                         type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App does not exists.
-          content: {}
-        409:
-          description: Conflict
-          content: {}
-      x-codegen-request-body-name: domain
-  /v1/domains/set-project:
-    post:
-      tags:
-      - Domains
-      summary: Set a domain for project
-      description: set a domain for project that user owns
-      operationId: setAppDomain
-      requestBody:
-        description: The domain of your app
-        content:
-          application/json:
-            schema:
-              required:
-              - domainID
-              - projectID
-              type: object
-              properties:
-                domainID:
-                  type: string
-                projectID:
-                  type: string
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: App or domain does not exists.
-          content: {}
-      x-codegen-request-body-name: domain
-  '/v1/domains/{id}/set-redirect':
-    post:
-      tags:
-      - Domains
-      summary: Redirect a domain
-      description: redirect a domain that user owns
-      operationId: redirectDomain
-      parameters:
-      - name: id
-        in: path
-        description: The id of your domain
-        required: true
-        schema:
-          type: string
-      requestBody:
-        description: The domain of your app
-        content:
-          application/json:
-            schema:
-              required:
-              - redirectStatus
-              - redirectTo
-              type: object
-              properties:
-                redirectStatus:
-                  type: number
-                  description: 302 or 301
-                redirectTo:
-                  type: string
-        required: true
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Domain does not exists.
-          content: {}
-      x-codegen-request-body-name: domain
-  '/v1/domains/{id}/ssl/disable':
-    post:
-      tags:
-      - Domains
-      summary: Disable ssl
-      description: disable ssl that user owns
-      operationId: disableSsl
-      parameters:
-      - name: id
-        in: path
-        description: The id of your domain
-        required: true
-        schema:
-          type: string
-      responses:
-        204:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Domain does not exists.
-          content: {}
-  /v1/domains/provision-ssl-certs:
-    post:
-      tags:
-      - Domains
-      summary: Enable ssl
-      description: enable ssl that user owns
-      operationId: enableSsl
-      requestBody:
-        description: The domain of your app
-        content:
-          application/json:
-            schema:
-              required:
-              - domain
-              type: object
-              properties:
-                domain:
-                  type: string
-        required: true
-      responses:
-        200:
-          description: Successful operation
+              example:
+                network:
+                  _id: "000000000000000000000160"
+        "400":
+          description: The body or `teamID` is invalid, or you've reached the maximum number of networks.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Domain does not exists.
-          content: {}
-      x-codegen-request-body-name: domain
-  '/v1/domains/{id}':
-    delete:
-      tags:
-      - Domains
-      summary: Delete a domain
-      description: delete a domain that user owns
-      operationId: deleteDomain
-      parameters:
-      - name: id
-        in: path
-        description: The id of your domain
-        required: true
-        schema:
-          type: string
-      responses:
-        200:
-          description: Successful operation
-          content: {}
-        400:
-          description: Bad request
-          content: {}
-        401:
-          description: Missing authentication
-          content: {}
-        404:
-          description: Domain does not exists.
-          content: {}
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Max number of networks reached.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Your account isn't verified (`account_verification_required`), or,
+            with `teamID`, you aren't a member of the team (`team_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: You already have a network with this name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: A network with this name already exists.
+                data: null
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "Send your API token as `Authorization: Bearer <api-token>`."
+  parameters:
+    TeamID:
+      name: teamID
+      in: query
+      required: false
+      description: >-
+        Run the request in the context of a team you belong to, instead of
+        your personal account.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000002"
+    AppName:
+      name: project_id
+      in: path
+      required: true
+      description: The app's name.
+      schema:
+        type: string
+      example: my-app
+    AppID:
+      name: projectID
+      in: path
+      required: true
+      description: The app's ID (`_id`).
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000050"
+    ReleaseID:
+      name: releaseID
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000170"
+    LogStart:
+      name: start
+      in: query
+      required: false
+      description: >-
+        Start of the range, in Unix seconds. It can't be further back than
+        your bundle plan's log retention. If omitted, the last hour is used.
+      schema:
+        type: integer
+    LogEnd:
+      name: end
+      in: query
+      required: false
+      description: End of the range, in Unix seconds. Defaults to now. Must be after `start`.
+      schema:
+        type: integer
+    LogDirection:
+      name: direction
+      in: query
+      required: false
+      description: "`backward` returns the newest entries first, `forward` the oldest first."
+      schema:
+        type: string
+        enum:
+          - backward
+          - forward
+        default: backward
+    AppletId:
+      name: appletId
+      in: query
+      required: false
+      description: Only include one instance of the app (an `appletId` from a previous response). Can't be combined with `releaseId`.
+      schema:
+        type: string
+    ReleaseIdFilter:
+      name: releaseId
+      in: query
+      required: false
+      description: Only include one release. Can't be combined with `appletId`.
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: The API token is missing, invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            error: Unauthorized.
+    InvalidTeamID:
+      description: "`teamID` isn't a valid ID."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: Invalid team ID.
+            data: null
+    ValidationOrTeamIDError:
+      description: The body or a parameter is invalid (`message` says which), or `teamID` isn't a valid ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            validation:
+              summary: Invalid parameter
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: '"since" is required'
+            invalidTeamID:
+              summary: Invalid team ID
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: Invalid team ID.
+                data: null
+    TeamNotFound:
+      description: You sent a `teamID` for a team you aren't a member of.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: Team not found
+            data:
+              code: team_not_found
+    TeamForbidden:
+      description: >-
+        With `teamID`: you aren't a member of the team (`team_not_found`), or
+        you don't have the required permission on this app (`no_permission`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            teamNotFound:
+              summary: Not a team member
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: Team not found
+                data:
+                  code: team_not_found
+            noPermission:
+              summary: Missing permission
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: You do not have permission to access this resource.
+                data:
+                  code: no_permission
+    AppNotFound:
+      description: The app doesn't exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Not Found
+            data: null
+    ReleaseNotFound:
+      description: The release doesn't exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Not Found
+            data: null
+    NotEnoughBalance:
+      description: Your balance is too low.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 402
+            error: Payment Required
+            message: Not enough balance.
+            data: null
+    ReadOnlyNotAvailable:
+      description: Your bundle plan doesn't support changing this setting.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 428
+            error: Precondition Required
+            message: Read-Only Filesystem is not available for this plan.
+            data: null
+    ZeroDowntimeNotAvailable:
+      description: Your bundle plan doesn't support zero-downtime deployment.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 428
+            error: Precondition Required
+            message: This plan does not support zero downtime
+            data: null
+    AppletAndReleaseConflict:
+      description: You sent both `appletId` and `releaseId`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 409
+            error: Conflict
+            message: You can only specify appletId or releaseId
+            data: null
+    InvalidLogRange:
+      description: "`start` is further back than your bundle plan's log retention, or `end` isn't after `start`."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 428
+            error: Precondition Required
+            message: '"start" must be at most 30 days ago'
+            data: null
+    TemporarilyUnavailable:
+      description: The data is temporarily unavailable. Try again later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 503
+            error: Service Unavailable
+            message: Service Unavailable
+            data: null
   schemas:
-    Create-app:
+    Error:
+      type: object
+      description: Standard error body.
+      properties:
+        statusCode:
+          type: integer
+        error:
+          type: string
+          description: HTTP status text.
+        message:
+          type: string
+          description: What went wrong.
+        data:
+          type: object
+          nullable: true
+          description: Extra details. When present, `code` is a stable, machine-readable error code.
+          properties:
+            code:
+              type: string
+    MessageError:
+      type: object
+      description: Error body used by a few endpoints instead of the standard one.
+      properties:
+        message:
+          type: string
+    AuthError:
+      type: object
+      description: Error body returned when the API token is rejected.
+      properties:
+        error:
+          type: string
+    ObjectID:
+      type: string
+      pattern: "^[0-9a-fA-F]{24}$"
+      description: 24-character hexadecimal ID.
+    Platform:
+      type: string
+      description: The app's platform.
+      enum:
+        - node
+        - next
+        - react
+        - vue
+        - angular
+        - static
+        - laravel
+        - php
+        - django
+        - flask
+        - python
+        - netcore
+        - dotnet
+        - go
+        - docker
+    AppPlanID:
+      type: string
+      description: The app's resource plan. See Liara's pricing page for what each plan includes.
+      enum:
+        - small-g2
+        - medium-g2
+        - standard-base-g2
+        - standard-plus-g2
+        - pro-g2
+        - pro-plus-g2
+        - pro-max-g2
+    BundlePlanID:
+      type: string
+      description: >-
+        The app's bundle plan, which sets limits and features such as backups,
+        log retention, deployments per day, domains, disks, zero-downtime
+        deployment and rollback.
+      enum:
+        - basic
+        - standard
+        - pro
+    AppStatus:
+      type: string
+      description: >-
+        `ACTIVE`: running normally. `FROZEN`: stopped, for example because the
+        balance ran out. `UNFREEZING`: being reactivated. `CRASH_LOOP`: keeps
+        crashing on start. `SUSPENDED`: suspended by Liara.
+      enum:
+        - ACTIVE
+        - FROZEN
+        - UNFREEZING
+        - CRASH_LOOP
+        - SUSPENDED
+    EnvVar:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    AppSummary:
       type: object
       properties:
-        name:
+        _id:
           type: string
-          description: The name of app that you want to create
+          description: The app's ID.
+        project_id:
+          type: string
+          description: The app's name.
+        type:
+          $ref: "#/components/schemas/Platform"
+        scale:
+          type: integer
+          description: "`1` if the app is on, `0` if it's off."
         planID:
           type: string
-          description: The plan of app that you want to create
-        platform:
+        bundlePlanID:
           type: string
-          description: The platform of app that you want to create
-        readOnlyRootFilesystem:
-          type: boolean
-          description: For filesystem
-        network: 
-          type: string
-          description: For project
-    ProjectAllDetails:
-      type: object
-      properties:
-        project:
+        status:
+          $ref: "#/components/schemas/AppStatus"
+        network:
           type: object
           properties:
             _id:
-              type: string
-              description: The id of project
-            project_id:
-              type: string
-              description: The name of project
-            type:
-              type: string
-              description: The platform of project
-            status:
-              type: string
-              description: The status of project
-            defaultSubdomain:
-              type: boolean
-              description: The defaultSubdomain status of project
-            readOnlyRootFilesystem:
-              type: boolean
-              description: The readOnlyRootFilesystem of project
-            zeroDowntime:
-              type: boolean
-              description: The zeroDowntime status of project
-            scale:
-              type: number
-              description: The being on of project
-            envs:
-              type: array
-              description: The envs of project
-              items:
-                type: object
-                properties:
-                  key:
-                    type: string
-                  value:
-                    type: string
-                  encrypted:
-                    type: boolean
-                  _id:
-                    type: string
-            planID:
-              type: string
-              description: The plan of project
-            fixedIPStatus:
-              type: string
-              description: The fixedIPStatus of project
-            created_at:
-              type: string
-              description: The time to create of project
-            node:
-              type: object
-              properties:
-                _id:
-                  type: string
-                IP:
-                  type: string
-              description: The node of project
-            hourlyPrice:
-              type: number
-              description: The hourlyPrice of project
-            isDeployed:
-              type: boolean
-              description: The deployment status of project
-            reservedDiskSpace:
-              type: number
-              description: The count reservedDiskSpace of project
-    Projects:
-      type: object
-      properties:
-        projects:
-          type: array
-          items:
-            type: object
-            properties:
-              _id:
-                type: string
-                description: The id of project
-              project_id:
-                type: string
-                description: The name of project
-              type:
-                type: string
-                description: The platform of project
-              status:
-                type: string
-                description: The status of project
-              scale:
-                type: number
-                description: The being on of project
-              planID:
-                type: string
-                description: The plan of project
-              created_at:
-                type: string
-                description: The time to create the project
-              isDeployed:
-                type: boolean
-                description: The project deployment status
-    Logs: 
-      type: array
-      items:
-        type: object
-        properties:
-            type:
-              type: string
-            datetime: 
-              type: string
-            message:
-              type: string
-    Deploy-releases:
-      type: object
-      properties:
-        sourceID:
-          type: string
-          description: The id of Deployed sources
-        port:
-          type: number
-          description: The port of your app
-        type:
-          type: string
-          description: The platform of your app
-    Update-envs:
-      type: object
-      properties:
-        project:
-          type: string
-          description: The name of your app for update envs
-        variables:
-          type: array
-          description: The envs for update
-          items:
-            type: object
-            properties:
-              key:
-                type: string
-                description: The name of your env
-              value:
-                type: string
-                description: The value of your env
-    Domains:
-      type: object
-      properties:
-        domains:
-          type: array
-          items:
-            type: object
-            properties:
-              _id:
-                type: string
-                description: The id of domain
-              name:
-                type: string
-                description: The name of domain
-              type:
-                type: string
-                description: The type of domain
-              project:
-                type: object
-                properties:
-                  _id:
-                    type: string
-                    description: The id of project
-                  project_id:
-                    type: string
-                    description: The name of project
-                description: The type of domain
-              status:
-                type: string
-                description: The status of domain
-              certificatesStatus:
-                type: string
-                description: The certificatesStatus of domain
-              redirectTo:
-                type: string
-                description: The redirectTo of domain
-              redirectStatus:
-                type: number
-                description: The redirectStatus of domain
-              created_at:
-                type: string
-                description: The created_at of domain
-              CNameRecord:
-                type: string
-                description: The CNameRecord of domain
-    Applets:
-      type: object
-      properties:
-        applets:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-                description: The id of applet
-              name:
-                type: string
-                description: The name of applet
-              timestamp:
-                type: string
-                description: The timestamp of applet
-              state:
-                type: string
-                description: The state of applet
-              reason:
-                type: string
-                description: The reason of applet
-              release:
-                type: object
-                properties:
-                  releaseID:
-                    type: string
-                    description: The releaseID of release
-                  tag:
-                    type: string
-                    description: The tag of release
-                description: The release of applet
-    Releases:
-      type: object
-      properties:
-        total:
-          type: number
-          description: The total of releases
-        currentRelease:
-          type: string
-          description: The currentRelease of releases
-        readyReleasesCount:
-          type: number
-          description: The total of releases
-        releases:
-          type: array
-          description: The total of releases
-          items:
-            type: object
-            properties:
-              _id:
-                type: string
-                description: The id of release
-              type:
-                type: string
-                description: The type of release
-              imageName:
-                type: string
-                description: The imageName of release
-              projectType:
-                type: string
-                description: The projectType of release
-              state:
-                type: string
-                description: The state of release
-              port:
-                type: number
-                description: The port of release
-              gitInfo:
-                type: object
-                properties: 
-                  branch:
-                    type: string
-                    nullable: true
-                  message:
-                    type: string
-                    nullable: true
-                  commit:
-                    type: string
-                    nullable: true
-                  committedAt:
-                    type: string
-                    format: date-time
-                    nullable: true
-                  remote:
-                    type: string
-                    nullable: true
-                  author:
-                    type: object
-                    properties:
-                      email:
-                        type: string
-                        nullable: true
-                      name:
-                        type: string
-                        nullable: true
-                  tags:
-                    type: array
-                    items:
-                      type: string
-              client:
-                type: string
-                description: The client of release
-              finishedAt:
-                type: string
-                description: The finishedAt of release
-              createdAt:
-                type: string
-                description: The createdAt of release
-              tag:
-                type: string
-                description: The tag of release
-              sourceAvailable:
-                type: boolean
-                description: The sourceAvailable of release
-        platform:
-          type: string
-    Get-disks:
-      type: object
-      properties:
-        disks:
-          type: array
-          items:
-            properties:
-              _id:
-                type: string
-              name:
-                type: string
-              size:
-                type: integer
-              updatedAt:
-                type: string
-              createdAt:
-                type: string
-        mounts:
-          type: array
-          items:
-            properties:
-              name:
-                type: string
-              mountedTo:
-                type: string
-    Get-disk-backup:
-      type: object
-      properties:
-        backups:
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-              lastModified:
-                type: string
-              etag:
-                type: string
-              size:
-                type: number
-    Reports:
-      type: object
-      properties:
-        end:
-          type: number
-        result:
-          type: array
-          items:
-            type: object
-            properties:
-              values:
-                type: array
-                items:
-                  type: array
-                  items:
-                    oneOf:
-                      - type: number
-                      - type: string
-              applet:
-                type: string
-    CheckDomain:
-      type: object
-      properties:
-        domain:
-          type: object
-          properties:
-            _id:
-              type: string
-            user:
               type: string
             name:
               type: string
-            type:
+        isDeployed:
+          type: boolean
+          description: Whether the app has ever been deployed.
+        created_at:
+          type: string
+          format: date-time
+    App:
+      allOf:
+        - $ref: "#/components/schemas/AppSummary"
+        - type: object
+          properties:
+            envs:
+              type: array
+              items:
+                $ref: "#/components/schemas/EnvVar"
+            readOnlyRootFilesystem:
+              type: boolean
+            defaultSubdomain:
+              type: boolean
+              description: Whether the app is reachable at `<name>.liara.run`.
+            defaultSubdomainExpired:
+              type: boolean
+              description: Whether the default subdomain has expired and can no longer be turned on.
+            zeroDowntime:
+              type: boolean
+            fixedIPStatus:
               type: string
-            project:
+              enum:
+                - ACTIVE
+                - DISABLED
+            outboundIp:
+              type: string
+              description: The fixed outbound IP, when `fixedIPStatus` is `ACTIVE`.
+            dns:
+              type: array
+              description: Custom DNS servers.
+              items:
+                type: string
+            hourlyPrice:
+              type: number
+              description: Hourly cost of the app's plan.
+            bundleHourlyPrice:
+              type: number
+              description: Hourly cost of the app's bundle plan.
+            reservedDiskSpace:
+              type: number
+              description: Total size of the app's disks, in GB.
+    DiskMount:
+      type: object
+      required:
+        - name
+        - mountTo
+      properties:
+        name:
+          type: string
+          description: Name of one of the app's disks.
+        mountTo:
+          type: string
+          description: >-
+            Where to mount it. Relative paths are relative to your app's root
+            directory; `docker` apps must use absolute paths. Can't be `/`.
+    CreateRelease:
+      type: object
+      required:
+        - type
+        - port
+      properties:
+        type:
+          $ref: "#/components/schemas/Platform"
+        port:
+          type: integer
+          minimum: 1
+          description: >-
+            The port your app listens on. For `static`, `react`, `vue`,
+            `angular`, `laravel`, `php`, `django` and `flask` it's always `80`,
+            and for `next` always `3000`, whatever you send.
+        sourceID:
+          type: string
+          description: From `POST /v2/projects/{project_id}/sources`.
+        image:
+          type: string
+          description: Only for `docker` apps. A container image to deploy instead of source code.
+        envs:
+          type: object
+          additionalProperties:
+            type: string
+          description: If not empty, replaces all of the app's environment variables.
+        args:
+          type: array
+          description: Arguments to start the app with.
+          items:
+            type: string
+        cron:
+          type: array
+          description: >-
+            Scheduled jobs, each a cron schedule followed by a command. Only
+            for `next`, `laravel`, `php`, `python`, `django`, `flask` and `go`.
+          items:
+            type: string
+        disks:
+          type: array
+          maxItems: 8
+          items:
+            $ref: "#/components/schemas/DiskMount"
+        healthCheck:
+          type: object
+          description: Command that checks whether the app is healthy. Times are in milliseconds.
+          properties:
+            command:
+              type: array
+              items:
+                type: string
+            interval:
+              type: integer
+              minimum: 30
+              default: 1000
+            timeout:
+              type: integer
+              minimum: 1
+              maximum: 10000
+              default: 1000
+            retries:
+              type: integer
+              minimum: 0
+              maximum: 10
+              default: 3
+            startPeriod:
+              type: integer
+              minimum: 0
+              maximum: 3000
+              default: 500
+        message:
+          type: string
+          maxLength: 50
+          description: A note about the release. Longer text is cut off.
+        gitInfo:
+          type: object
+          description: Information about the commit being deployed, shown with the release.
+          properties:
+            branch:
+              type: string
+            commit:
+              type: string
+            message:
+              type: string
+            committedAt:
+              type: string
+            remote:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+            author:
               type: object
               properties:
-                _id:
+                name:
                   type: string
-                project_id:
+                email:
                   type: string
-            status:
+        platformConfig:
+          type: object
+          description: |
+            Platform-specific build settings. The allowed fields depend on `type`:
+
+            | Platform | Fields |
+            |----------|--------|
+            | `node` | `version` (`8`, `10`, `11`, `12`, `14`, `16`, `18`, `20`, `22`, `24` or `latest`), `npmAudit`, `npmCiFallback`, `timezone`, `mirror` |
+            | `next` | `nodeVersion` (`20`, `22`, `24`), `modifyConfig`, `npmCiFallback`, `mirror` |
+            | `react`, `angular` | `mirror`, `sourceMap` |
+            | `vue` | `mirror` |
+            | `laravel` | `phpVersion` (`7.2`–`8.4`, `legacy` or `old-release 8.2`), `timezone`, `npmMirror`, `composerMirror`, `routeCache`, `configCache`, `buildAssets`, `ssr`, `modifyImagickPolicy`, `installDevDependencies`, `reverb`, `reverbPath`, `modifyHtaccess` |
+            | `php` | `version` (`7.2`–`8.4`), `timezone`, `composerMirror` |
+            | `django` | `pythonVersion` (`3.7`–`3.13`), `nodeVersion` (`14`, `16`, `18`, `20`), `timezone`, `settingsFile`, `modifySettings`, `collectStatic`, `compileMessages`, `geospatial`, `pipTimeout`, `mirror` |
+            | `flask` | `pythonVersion` (`3.7`–`3.13`), `nodeVersion` (`14`, `16`, `18`, `20`), `appModule`, `timezone`, `mirror` |
+            | `python` | `version` (`3.8`–`3.13`), `timezone`, `mirror` |
+            | `netcore`, `dotnet` | `version` (`2.1`, `2.2`, `3.0`, `3.1`, `5.0`, `6.0`, `7.0`, `8.0`, `9.0` or `10.0`), `timezone`, `finalDllName`, `csprojectFile` |
+            | `go` | `version` (`1.21`–`1.25`), `cgoEnabled`, `mainFile`, `timezone` |
+
+            `mirror` (and `npmMirror` / `composerMirror`) download packages
+            through Liara's package mirrors.
+        build:
+          type: object
+          properties:
+            args:
+              type: object
+              description: Build arguments.
+              additionalProperties:
+                type: string
+            cache:
+              type: boolean
+              default: true
+              description: Reuse cached layers from earlier builds.
+            location:
               type: string
-            certificatesStatus:
+              description: >-
+                Where to build. If omitted, a default is chosen for the app's
+                platform. Your bundle plan must allow `germany`.
+              enum:
+                - iran
+                - germany
+            dockerfile:
               type: string
-            redirectTo:
+              default: Dockerfile
+              description: Path of the Dockerfile, for `docker` apps.
+    ReleaseType:
+      type: string
+      description: >-
+        `DEPLOY`: a normal deployment. `ENV_UPDATE`: a redeploy after
+        environment variables changed. `ROLLBACK`: a rollback you started.
+        `AUTO_ROLLBACK`: a rollback started automatically.
+      enum:
+        - DEPLOY
+        - ENV_UPDATE
+        - ROLLBACK
+        - AUTO_ROLLBACK
+    ReleaseState:
+      type: string
+      enum:
+        - PENDING
+        - BUILDING
+        - DEPLOYING
+        - READY
+        - CANCELED
+        - FAILED
+        - TIMEDOUT
+        - UNHEALTHY
+    Release:
+      type: object
+      properties:
+        _id:
+          type: string
+        tag:
+          type: string
+          description: The release's number, for example `v3`.
+        type:
+          $ref: "#/components/schemas/ReleaseType"
+        state:
+          $ref: "#/components/schemas/ReleaseState"
+        failReason:
+          type: string
+          description: Why the release failed, if it did.
+        projectType:
+          $ref: "#/components/schemas/Platform"
+        port:
+          type: integer
+        message:
+          type: string
+        gitInfo:
+          type: object
+        client:
+          type: string
+          description: The tool that created the release.
+        rollbackedTo:
+          type: object
+          description: For rollbacks, the release that was restored.
+          properties:
+            tag:
               type: string
-            redirectStatus:
-              type: number
-            updated_at:
-              type: string
-            punycodeName:
-              type: string
-            verificationCode:
-              type: string
-            created_at:
-              type: string
-            __v:
-              type: number
-            CNameRecord:
-              type: string
-            issuedAt:
-              type: string
-  securitySchemes:
-    jwt:
-      type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
-      name: Authorization
-      in: header
+        buildLocation:
+          type: string
+          enum:
+            - iran
+            - germany
+        buildTimeout:
+          type: integer
+          description: Maximum build time, in minutes.
+        maxImageLayerSize:
+          type: integer
+        sourceAvailable:
+          type: boolean
+          description: Whether the source code can still be downloaded with `POST /v2/releases/{releaseID}/source`.
+        queue:
+          type: integer
+          description: Only for `PENDING` releases. How many releases are waiting to be built before this one.
+        platformConfig:
+          type: object
+          description: The platform settings the release was built with.
+        disks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiskMount"
+        createdAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+    LogStreamMetaData:
+      type: object
+      properties:
+        appletId:
+          type: string
+          description: The instance that wrote the lines.
+        releaseId:
+          type: string
+          description: The release the instance belongs to.
+    InstantMetric:
+      type: object
+      properties:
+        applet:
+          type: string
+          description: The instance the value belongs to.
+        value:
+          type: array
+          description: "`[timestamp, value]`. The timestamp is in Unix seconds; the value is a string."
+          items: {}

@@ -1,0 +1,1193 @@
+openapi: 3.0.1
+info:
+  title: Git Integration & One-Click Apps
+  version: 1.0.0
+  description: |
+    Connect your GitHub account, link a repository to an app so it deploys
+    automatically, and browse the one-click app catalog.
+
+    ## Connecting GitHub
+
+    Git integration has two parts:
+
+    1. **Your GitHub account.** Connect it with
+       `GET /v1/git-provider-integration/github` (sign in on GitHub) and
+       `POST /v1/git-provider-integration/github`.
+    2. **The Liara GitHub app,** installed on your GitHub account or
+       organization to give access to repositories. Get the installation link
+       with `GET /v1/git-repository-integration/github/connect`.
+
+    Then link a repository to an app with
+    `POST /v1/projects/{projectID}/git-repository-integration/github`. To see
+    what's connected, use `GET /v1/me/git-integrations` (in Authentication &
+    Account).
+
+    `github` is currently the only supported `provider`. Git connections
+    belong to you, not to a team. With `teamID`, the app-level endpoints use
+    your own GitHub connection on the team's app.
+servers:
+  - url: https://api.liara.ir
+security:
+  - bearerAuth: []
+tags:
+  - name: GitHub Account
+    description: Connect and disconnect your GitHub account.
+  - name: Repositories
+    description: Install the GitHub app, and list repositories, branches and organizations.
+  - name: App Repository
+    description: Link a repository to an app and deploy from it.
+  - name: One-Click Apps
+    description: Browse ready-to-deploy apps.
+paths:
+  /v1/git-provider-integration/{provider}:
+    get:
+      tags:
+        - GitHub Account
+      operationId: startGitHubConnection
+      summary: Start connecting your GitHub account
+      description: >-
+        Returns a GitHub sign-in link. Send the user there; after they
+        approve, GitHub redirects to `callback_url` with a `code`. Finish with
+        `POST /v1/git-provider-integration/{provider}` within 1 minute, using
+        the returned `githubOAuthCSRFToken`.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - name: callback_url
+          in: query
+          required: true
+          description: Where GitHub sends the user back to after sign-in.
+          schema:
+            type: string
+            format: uri
+      responses:
+        "200":
+          description: The sign-in link.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+                    description: GitHub sign-in link.
+                  githubOAuthCSRFToken:
+                    type: string
+                    description: Pass it to `POST /v1/git-provider-integration/{provider}`. Valid for 1 minute.
+              example:
+                url: https://github.com/login/oauth/authorize?client_id=<client-id>&redirect_uri=<callback-url>
+                githubOAuthCSRFToken: "<csrf-token>"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/UnknownProvider"
+        "409":
+          description: You already have a GitHub account connected.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Git provider integration already exists.
+                data:
+                  code: git_provider_integration_already_exists
+    post:
+      tags:
+        - GitHub Account
+      operationId: finishGitHubConnection
+      summary: Finish connecting your GitHub account
+      description: >-
+        Connects the GitHub account the user signed in with, using the `code`
+        GitHub sent to your callback URL. The response can include additional
+        fields not listed here.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - callback_url
+                - githubOAuthCSRFToken
+              properties:
+                code:
+                  type: string
+                  description: The `code` GitHub added to your callback URL.
+                callback_url:
+                  type: string
+                  format: uri
+                  description: The same `callback_url` you used to start.
+                githubOAuthCSRFToken:
+                  type: string
+                  description: From `GET /v1/git-provider-integration/{provider}`.
+            example:
+              code: "<github-code>"
+              callback_url: https://example.com/github/callback
+              githubOAuthCSRFToken: "<csrf-token>"
+      responses:
+        "200":
+          description: Your GitHub account is connected.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                    format: email
+                  fullname:
+                    type: string
+                  avatar:
+                    type: string
+                    format: uri
+              example:
+                email: you@example.com
+                fullname: نام نمونه
+                avatar: https://example.com/avatar.png
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          description: >-
+            Your API token is invalid, or `githubOAuthCSRFToken` is missing,
+            invalid, expired or belongs to someone else.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 401
+                error: Unauthorized
+                message: Authorization failed.
+                data: null
+        "404":
+          $ref: "#/components/responses/UnknownProvider"
+        "409":
+          description: This GitHub account is already connected to a Liara account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Git provider integration already exists.
+                data:
+                  code: git_provider_integration_already_exists
+    delete:
+      tags:
+        - GitHub Account
+      operationId: disconnectGitHub
+      summary: Disconnect your GitHub account
+      description: >-
+        Disconnects your GitHub account, removes the Liara GitHub app from your
+        personal GitHub account, and unlinks repositories from your apps.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          description: Disconnected. The response body is empty.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/ProviderIntegrationNotFound"
+
+  /v1/git-integration/{provider}/sync:
+    post:
+      tags:
+        - GitHub Account
+      operationId: syncGitHubAccount
+      summary: Refresh GitHub account details
+      description: >-
+        Refreshes your connected GitHub account's details (such as username,
+        avatar and email) in the background. It does nothing if they were
+        refreshed in the last minute or the connection isn't working.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          description: Refresh requested. The response body is empty.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/UnknownProvider"
+
+  /v1/git-provider-integration/{provider}/organizations:
+    get:
+      tags:
+        - Repositories
+      operationId: listGitHubOrganizations
+      summary: List your GitHub organizations
+      description: >-
+        Lists the GitHub organizations your connected account belongs to, as
+        returned by GitHub. The Liara GitHub app must be installed on your
+        personal GitHub account.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 15
+            default: 10
+      responses:
+        "200":
+          description: Organizations, in GitHub's format.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    login:
+                      type: string
+                    id:
+                      type: integer
+                    avatar_url:
+                      type: string
+                      format: uri
+              example:
+                - login: my-org
+                  id: 2000000
+                  avatar_url: https://example.com/org-avatar.png
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The Liara GitHub app isn't installed on your personal GitHub account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Git repository integration not found.
+                data:
+                  code: git_repository_integration_not_found
+        "404":
+          $ref: "#/components/responses/ProviderIntegrationNotFound"
+
+  /v1/git-repository-integration/{provider}/connect:
+    get:
+      tags:
+        - Repositories
+      operationId: getGitHubAppInstallLink
+      summary: Get the GitHub app installation link
+      description: >-
+        Returns, as plain text, the link to install the Liara GitHub app on
+        your GitHub account or an organization.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - name: callback_url
+          in: query
+          required: false
+          description: Added to the link as `callback_url`.
+          schema:
+            type: string
+            format: uri
+      responses:
+        "200":
+          description: The installation link.
+          content:
+            text/html:
+              schema:
+                type: string
+              example: https://github.com/apps/<app-name>/installations/select_target?callback_url=https://example.com/github/installed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/ProviderIntegrationNotFound"
+
+  /v1/git-repository-integration/{provider}/repositories:
+    get:
+      tags:
+        - Repositories
+      operationId: listRepositories
+      summary: List repositories
+      description: >-
+        Lists the repositories the Liara GitHub app can access on your
+        personal GitHub account, or on an organization with `organizationID`.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - $ref: "#/components/parameters/OrganizationID"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 15
+      responses:
+        "200":
+          description: Repositories. If GitHub can't be reached, the list is empty.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  repositories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        metaData:
+                          $ref: "#/components/schemas/RepositoryInfo"
+              example:
+                total: 1
+                repositories:
+                  - metaData:
+                      id: 300000000
+                      node_id: "<node-id>"
+                      name: my-repo
+                      full_name: your-github-username/my-repo
+                      private: true
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/NotOrganizationMember"
+        "404":
+          $ref: "#/components/responses/IntegrationNotFound"
+
+  /v1/git-repository-integration/{provider}/show-repository-branches:
+    get:
+      tags:
+        - Repositories
+      operationId: listBranches
+      summary: List a repository's branches
+      description: Lists a repository's branch names.
+      parameters:
+        - $ref: "#/components/parameters/Provider"
+        - name: repositoryFullname
+          in: query
+          required: true
+          description: The repository as `owner/name`.
+          schema:
+            type: string
+          example: your-github-username/my-repo
+        - $ref: "#/components/parameters/OrganizationID"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 15
+      responses:
+        "200":
+          description: Branch names.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                - main
+                - develop
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/NotOrganizationMember"
+        "404":
+          description: >-
+            Your GitHub account isn't connected
+            (`git_provider_integration_not_found`), the GitHub app isn't
+            installed (`repository_integration_not_found`), or the repository
+            or its branches can't be found (`branches_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Branches not found.
+                data:
+                  code: branches_not_found
+
+  /v1/projects/{projectID}/git-repository-integration/{provider}:
+    get:
+      tags:
+        - App Repository
+      operationId: getAppRepository
+      summary: Get the app's linked repository
+      description: >-
+        Returns the repository linked to an app and its deploy settings. Team
+        permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          description: The linked repository.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectedRepository"
+              example:
+                _id: "000000000000000000000190"
+                project: "000000000000000000000050"
+                providerIntegration: "000000000000000000000004"
+                repositoryIntegration: "000000000000000000000005"
+                metaData:
+                  id: 300000000
+                  node_id: "<node-id>"
+                  name: my-repo
+                  full_name: your-github-username/my-repo
+                  private: true
+                settings:
+                  branches:
+                    - main
+                  checkSuite: false
+                  autoDeploy: true
+                createdAt: "2026-01-01T08:00:00.000Z"
+                updatedAt: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The app doesn't exist (`project_not_found`) or has no linked repository (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Repository not found.
+                data:
+                  code: repository_not_found
+    post:
+      tags:
+        - App Repository
+      operationId: linkRepository
+      summary: Link a repository to an app
+      description: >-
+        Links a repository to an app. With `autoDeploy`, new commits on the
+        chosen branch are deployed automatically; with `checkSuite`, deploys
+        wait for the commit's checks on GitHub to finish. An app can have only
+        one linked repository. Team permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - repositoryFullname
+                - settings
+              properties:
+                repositoryFullname:
+                  type: string
+                  description: The repository as `owner/name`.
+                organizationID:
+                  type: integer
+                  description: GitHub ID of the organization that owns the repository, if any.
+                settings:
+                  $ref: "#/components/schemas/RepositorySettings"
+            example:
+              repositoryFullname: your-github-username/my-repo
+              settings:
+                branches:
+                  - main
+                autoDeploy: true
+                checkSuite: false
+      responses:
+        "201":
+          description: The repository was linked. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            You aren't a member of the organization on GitHub
+            (`organization_member_check_error`), or, with `teamID`, you aren't
+            a member of the team (`team_not_found`) or lack the permission
+            (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: >-
+            The app doesn't exist (`project_not_found`), your GitHub account
+            isn't connected (`git_provider_integration_not_found`), the GitHub
+            app isn't installed (`repository_integration_not_found`), or the
+            repository can't be found (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Repository not found.
+                data:
+                  code: repository_not_found
+        "409":
+          description: The app already has a linked repository.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Repository already connected.
+                data:
+                  code: repository_already_connected
+    put:
+      tags:
+        - App Repository
+      operationId: updateRepositorySettings
+      summary: Change deploy settings
+      description: Changes the branch and automatic deploy settings of an app's linked repository. Works on apps in your personal account.
+      parameters:
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/Provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - settings
+              properties:
+                settings:
+                  $ref: "#/components/schemas/RepositorySettings"
+            example:
+              settings:
+                branches:
+                  - develop
+                autoDeploy: false
+                checkSuite: false
+      responses:
+        "200":
+          description: The settings were saved. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: The app doesn't exist (`project_not_found`) or has no linked repository (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - App Repository
+      operationId: unlinkRepository
+      summary: Unlink the repository
+      description: "Removes the link between an app and its repository. Team permission: `operate` or `manage`."
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "200":
+          description: Unlinked. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: The app doesn't exist (`project_not_found`) or has no linked repository (`repository_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/projects/{projectID}/git-repository-integration/{provider}/manual-deploy:
+    post:
+      tags:
+        - App Repository
+      operationId: deployFromRepository
+      summary: Deploy the latest commit
+      description: >-
+        Deploys the latest commit on the linked repository's branch. Follow the
+        deployment with the release endpoints in Apps & Deployments. Works on
+        apps in your personal account.
+      parameters:
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/Provider"
+      responses:
+        "201":
+          description: The deployment started. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Your GitHub connection isn't working; reconnect it
+            (`check_info_failed`). Or you aren't a member of the organization
+            on GitHub (`organization_member_check_error`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Checking information failed.
+                data:
+                  code: check_info_failed
+        "404":
+          description: >-
+            The app doesn't exist (`project_not_found`), your GitHub account
+            isn't connected (`git_provider_integration_not_found`), or the
+            repository or branch can't be found
+            (`repository_or_branch_not_found`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Repository or branch not found.
+                data:
+                  code: repository_or_branch_not_found
+
+  /v1/projects/{project_id}/repository-deployment-failures/{connectedRepositoryID}/{repositoryDeploymentFailureID}:
+    get:
+      tags:
+        - App Repository
+      operationId: getRepositoryDeploymentFailure
+      summary: Get a failed automatic deployment
+      description: >-
+        Explains why an automatic deployment from a linked repository failed.
+        The IDs come from the failure link shown on the commit in GitHub. Team
+        permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: project_id
+          in: path
+          required: true
+          description: The app's name.
+          schema:
+            type: string
+          example: my-app
+        - name: connectedRepositoryID
+          in: path
+          required: true
+          description: The linked repository's `_id`.
+          schema:
+            $ref: "#/components/schemas/ObjectID"
+        - name: repositoryDeploymentFailureID
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ObjectID"
+      responses:
+        "200":
+          description: The failure.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    type: string
+                    description: The app's name.
+                  repository:
+                    type: string
+                    description: The repository as `owner/name`.
+                  message:
+                    type: string
+                    description: Why the deployment failed.
+                  gitInfo:
+                    type: object
+                    description: The commit that was being deployed.
+                  state:
+                    type: string
+                    enum:
+                      - failure
+                      - inactive
+              example:
+                project: my-app
+                repository: your-github-username/my-repo
+                message: An error occurred during deployment. please create a ticket in the liara.
+                gitInfo:
+                  branch: main
+                  commit: "<commit-sha>"
+                state: failure
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: >-
+            The app (`project_not_found`), linked repository
+            (`connected_repository_not_found`) or failure
+            (`repository_deployment_failure_not_found`) doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/one-click-apps:
+    get:
+      tags:
+        - One-Click Apps
+      operationId: listOneClickApps
+      summary: List one-click apps
+      description: Lists the one-click app catalog. No API token is needed.
+      security: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+        - name: name
+          in: query
+          required: false
+          description: Only list apps whose name contains this text.
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Only list apps in this category, for example `CMS` or `Database`.
+          schema:
+            type: string
+        - name: sortByDate
+          in: query
+          required: false
+          description: Newest first. Can't be combined with `sortByPopularity`.
+          schema:
+            type: boolean
+        - name: sortByPopularity
+          in: query
+          required: false
+          description: Most installed first. Can't be combined with `sortByDate`.
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: One-click apps.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  oneClickApps:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OneClickAppSummary"
+              example:
+                status: success
+                oneClickApps:
+                  - _id: "000000000000000000000200"
+                    name: ghost
+                    about: Publishing platform
+                    description: "<description>"
+                    categories:
+                      - CMS
+                    numberOfInstall: 120
+                    icon: https://example.com/ghost.png
+                    mediaItems: []
+                    createdAt: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /v1/one-click-apps/{oneClickAppName}:
+    get:
+      tags:
+        - One-Click Apps
+      operationId: getOneClickApp
+      summary: Get a one-click app
+      description: >-
+        Returns a one-click app, including `spec`, a YAML document describing
+        the apps it's made of and how to deploy them. No API token is needed.
+      security: []
+      parameters:
+        - name: oneClickAppName
+          in: path
+          required: true
+          schema:
+            type: string
+          example: ghost
+      responses:
+        "200":
+          description: The one-click app.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - success
+                  oneClickApp:
+                    allOf:
+                      - $ref: "#/components/schemas/OneClickAppSummary"
+                      - type: object
+                        properties:
+                          spec:
+                            type: string
+                            description: YAML describing the apps to deploy and their settings.
+                          githubOrg:
+                            type: string
+                            description: GitHub owner of the app's source.
+                          githubRepo:
+                            type: string
+                            description: GitHub repository of the app's source.
+                          updatedAt:
+                            type: string
+                            format: date-time
+                  metadata:
+                    type: object
+                    description: Currently always empty.
+              example:
+                status: success
+                oneClickApp:
+                  _id: "000000000000000000000200"
+                  name: ghost
+                  about: Publishing platform
+                  description: "<description>"
+                  categories:
+                    - CMS
+                  numberOfInstall: 120
+                  icon: https://example.com/ghost.png
+                  mediaItems: []
+                  spec: "apps:\n  - ..."
+                  createdAt: "2026-01-01T08:00:00.000Z"
+                  updatedAt: "2026-01-01T08:00:00.000Z"
+                metadata: {}
+        "404":
+          description: No one-click app with this name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Not Found
+                data: null
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "Send your API token as `Authorization: Bearer <api-token>`."
+  parameters:
+    Provider:
+      name: provider
+      in: path
+      required: true
+      description: The git provider.
+      schema:
+        type: string
+        enum:
+          - github
+    TeamID:
+      name: teamID
+      in: query
+      required: false
+      description: >-
+        Run the request in the context of a team you belong to, instead of
+        your personal account.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000002"
+    AppID:
+      name: projectID
+      in: path
+      required: true
+      description: The app's ID (`_id`).
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000050"
+    OrganizationID:
+      name: organizationID
+      in: query
+      required: false
+      description: GitHub ID of an organization. Omit it for your personal GitHub account.
+      schema:
+        type: integer
+  responses:
+    Unauthorized:
+      description: The API token is missing, invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            error: Unauthorized.
+    ValidationError:
+      description: The request is invalid. `message` says which field failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: '"repositoryFullname" is required'
+    ValidationOrTeamIDError:
+      description: The request is invalid (`message` says which field failed), or `teamID` isn't a valid ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: Invalid team ID.
+            data: null
+    TeamForbidden:
+      description: >-
+        With `teamID`: you aren't a member of the team (`team_not_found`), or
+        you don't have the required permission on this app (`no_permission`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: You do not have permission to access this resource.
+            data:
+              code: no_permission
+    UnknownProvider:
+      description: The provider isn't supported.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Not Found
+            data: null
+    ProviderIntegrationNotFound:
+      description: The provider isn't supported, or you haven't connected a GitHub account.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Git provider integration not found.
+            data:
+              code: git_provider_integration_not_found
+    IntegrationNotFound:
+      description: >-
+        You haven't connected a GitHub account
+        (`git_provider_integration_not_found`), or the Liara GitHub app isn't
+        installed on that account or organization
+        (`repository_integration_not_found`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Repository integration not found.
+            data:
+              code: repository_integration_not_found
+    NotOrganizationMember:
+      description: You aren't a member of the organization on GitHub.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: You are not a member of this organization.
+            data:
+              code: organization_member_check_error
+  schemas:
+    Error:
+      type: object
+      description: Standard error body.
+      properties:
+        statusCode:
+          type: integer
+        error:
+          type: string
+          description: HTTP status text.
+        message:
+          type: string
+          description: What went wrong.
+        data:
+          type: object
+          nullable: true
+          description: Extra details. When present, `code` is a stable, machine-readable error code.
+          properties:
+            code:
+              type: string
+    AuthError:
+      type: object
+      description: Error body returned when the API token is rejected.
+      properties:
+        error:
+          type: string
+    ObjectID:
+      type: string
+      pattern: "^[0-9a-fA-F]{24}$"
+      description: 24-character hexadecimal ID.
+    RepositoryInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: GitHub's repository ID.
+        node_id:
+          type: string
+        name:
+          type: string
+        full_name:
+          type: string
+          description: The repository as `owner/name`.
+        private:
+          type: boolean
+    RepositorySettings:
+      type: object
+      required:
+        - branches
+      properties:
+        branches:
+          type: array
+          maxItems: 1
+          description: The branch to deploy from (exactly one).
+          items:
+            type: string
+        autoDeploy:
+          type: boolean
+          default: true
+          description: Deploy new commits on the branch automatically.
+        checkSuite:
+          type: boolean
+          default: false
+          description: Wait for the commit's checks on GitHub to finish before deploying.
+    ConnectedRepository:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: The link's ID (`connectedRepositoryID`).
+        project:
+          type: string
+          description: The app's ID.
+        providerIntegration:
+          type: string
+          description: ID of the GitHub account connection used.
+        repositoryIntegration:
+          type: string
+          description: ID of the GitHub app installation used.
+        metaData:
+          $ref: "#/components/schemas/RepositoryInfo"
+        settings:
+          $ref: "#/components/schemas/RepositorySettings"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OneClickAppSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+          description: The app's name; use it in `GET /v1/one-click-apps/{oneClickAppName}`.
+        about:
+          type: string
+          description: Short summary.
+        description:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+        numberOfInstall:
+          type: integer
+          description: How many times it has been installed.
+        icon:
+          type: string
+        mediaItems:
+          type: array
+          description: Screenshot URLs.
+          items:
+            type: string
+        videoURL:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

@@ -5,72 +5,71 @@ description: Platform as a Service API for deploying and managing applications
 
 # PaaS API
 
-Liara's Platform as a Service (PaaS) API enables you to deploy, manage, and scale your applications without worrying about the underlying infrastructure. This comprehensive API provides full control over your applications' lifecycle.
+Liara's Platform as a Service (PaaS) API lets you create, deploy and run applications without managing servers.
 
 ## Overview
 
 The PaaS API allows you to:
 
-- **Create and manage applications** - Deploy new applications with your preferred platform and configuration
-- **Scale applications** - Adjust the number of instances running your application
-- **Manage deployments** - Deploy source code or Docker images with zero-downtime options
-- **Configure environment variables** - Securely manage your application's environment configuration
-- **Monitor performance** - Access CPU, memory, and network metrics
-- **Manage domains** - Configure custom domains with SSL certificates
-- **Handle disks** - Create and manage persistent storage for your applications
+- **Create and manage apps** - Create apps on your chosen platform, plan and network
+- **Deploy** - Upload source code and build it, or deploy a ready-made image for `docker` apps
+- **Configure apps** - Set environment variables, the port, DNS servers, plans and other settings
+- **Turn apps on and off** - Stop or start an app, or restart it
+- **Monitor** - Read logs, CPU, memory and network usage, and lifecycle events
+- **Manage domains** - Connect custom domains and SSL certificates
+- **Manage disks** - Create persistent disks, back them up and restore them
 
 ## Key Features
 
-### Application Management
+### Platforms
 
-Create applications with various platforms including Node.js, Python, Go, PHP, Ruby, .NET, and more. Each application can be configured with custom environment variables and resource plans.
+Apps can run on Node.js, Next.js, React, Vue, Angular, static sites, Laravel, PHP, Django, Flask, Python, .NET, Go, or any container image with the `docker` platform.
 
 ### Deployment Options
 
-- **Source Code Deployment**: Upload your source code as a compressed archive
-- **Docker Deployment**: Deploy using Docker images from registries
-- **Zero-Downtime Deployment**: Enable seamless updates without service interruption
-
-### Scaling
-
-Scale your applications up or down based on demand. Turn instances on or off programmatically to optimize resource usage and costs.
+- **Source code**: Upload a `.tar.gz` or `.zip` archive, then create a release from it
+- **Container image**: Deploy an existing image to a `docker` app
+- **Zero-downtime deployment**: Keep the current release running until the new one is ready
+- **Rollback**: Redeploy an earlier successful release
 
 ### Persistent Storage
 
-Attach disks to your applications for persistent data storage. Create backups and manage disk sizes through the API.
+Attach disks to your apps for data that must survive deployments. Back up disks, restore backups and resize disks through the API.
 
 ### Custom Domains
 
-Associate custom domains with your applications and provision SSL certificates automatically.
+Connect your own domains to your apps and get SSL certificates for them.
 
 ## Base URL
 
 ```
-https://api.iran.liara.ir
+https://api.liara.ir
 ```
 
-## WebSocket Support
+## Interactive Shell
 
-Connect to your application's console in real-time using WebSocket:
+Open a shell in a running app over WebSocket:
 
 ```
-wss://api.iran.liara.ir?token=<api-token>&cmd=/bin/bash&project_id=<project-id>
+wss://api.liara.ir/v1/exec?token=<api-token>&project_id=<app-name>&cmd=/bin/bash
 ```
+
+Add `teamID=<team-id>` for an app that belongs to a team. See the Apps & Deployments reference for details.
 
 ## Common Use Cases
 
-1. **CI/CD Integration**: Automate deployments from your CI/CD pipeline
-2. **Auto-scaling**: Implement custom scaling logic based on metrics
-3. **Multi-environment Management**: Manage development, staging, and production environments
-4. **Backup Automation**: Schedule and automate disk backups
+1. **CI/CD Integration**: Deploy automatically from your CI/CD pipeline
+2. **Scheduled on/off**: Turn non-production apps off outside working hours
+3. **Multi-environment Management**: Manage development, staging and production apps
+4. **Backup Automation**: Create disk backups on your own schedule
 
 ## Getting Started
 
 To start using the PaaS API, you'll need to:
 
-1. Obtain an API token from the Liara Console
-2. Create an application with your desired configuration
-3. Deploy your code or Docker image
+1. Get an API token from the Liara Console
+2. Create a network, then create an app in it
+3. Upload your source code and create a release
 4. Configure domains and environment variables as needed
 
 Explore the API endpoints below to learn more about each operation.

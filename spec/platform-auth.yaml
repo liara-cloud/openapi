@@ -1,0 +1,2324 @@
+openapi: 3.0.1
+info:
+  title: Authentication & Account
+  version: 1.0.0
+  description: >-
+    Log in, issue API tokens, change or reset your password, set up
+    two-factor authentication, verify your email address and phone number,
+    and manage your account profile and billing contact details.
+servers:
+  - url: https://api.liara.ir
+security:
+  - bearerAuth: []
+tags:
+  - name: Login
+    description: Exchange your credentials or a one-time code for an API token.
+  - name: Registration
+    description: Create a new account.
+  - name: Password
+    description: Change your password while logged in, or reset a forgotten one.
+  - name: API Tokens
+    description: Issue additional API tokens for your account.
+  - name: Account
+    description: Read and update your profile and billing contact details.
+  - name: Two-Factor Authentication
+    description: Set up and manage authenticator-app (TOTP) two-factor authentication.
+  - name: Verification
+    description: Verify, or change, your account's email address and phone number.
+paths:
+  /v1/login:
+    post:
+      tags:
+        - Login
+      operationId: login
+      summary: Log in with a password
+      description: >-
+        Exchanges your email address (or phone number) and password for an API
+        token. If two-factor authentication is enabled on your account, send
+        the second factor in the same request.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/ExpiresIn"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Send exactly one of `email` or `phone`.
+              required:
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Account email address. Required unless `phone` is sent.
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                password:
+                  type: string
+                  maxLength: 250
+                twoFAType:
+                  $ref: "#/components/schemas/TwoFAType"
+                totp:
+                  $ref: "#/components/schemas/TOTPCode"
+                recoveryCode:
+                  $ref: "#/components/schemas/RecoveryCode"
+            examples:
+              password:
+                summary: Email and password
+                value:
+                  email: you@example.com
+                  password: "<your-password>"
+              withAuthenticatorCode:
+                summary: With an authenticator-app code
+                value:
+                  email: you@example.com
+                  password: "<your-password>"
+                  twoFAType: totp
+                  totp: "123456"
+              withRecoveryCode:
+                summary: With a recovery code
+                value:
+                  phone: "09120000000"
+                  password: "<your-password>"
+                  twoFAType: recoveryCode
+                  recoveryCode: A1B2C3D4E5
+      responses:
+        "200":
+          description: Logged in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+              example:
+                api_token: "<api-token>"
+                fullname: نام نمونه
+                avatar: https://example.com/avatar.png
+        "400":
+          description: >-
+            The body is invalid, or two-factor authentication is enabled and
+            `twoFAType` is missing (`two_fa_type_required`), or `totp` isn't
+            numeric (`invalid_totp`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                twoFARequired:
+                  summary: Second factor required
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: twoFAType is required.
+                    data:
+                      code: two_fa_type_required
+                validation:
+                  summary: Invalid body
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: '"value" must contain at least one of [email, phone]'
+        "401":
+          description: The email address (or phone number) and password don't match an account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 401
+                error: Unauthorized
+                message: Authentication failed.
+                data: null
+        "403":
+          description: >-
+            The second factor is wrong (`two_fa_totp_invalid`,
+            `two_fa_recoveryCode_invalid`, `two_fa_validation_failed`), or the
+            account has been inactive for a long time and its password must
+            be reset first with `POST /v1/password/forgot`
+            (`inactive_account`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                wrongTotp:
+                  summary: Wrong authenticator code
+                  value:
+                    statusCode: 403
+                    error: Forbidden
+                    message: twoFA authentication failed, totp is invalid.
+                    data:
+                      code: two_fa_totp_invalid
+                inactiveAccount:
+                  summary: Inactive account
+                  value:
+                    statusCode: 403
+                    error: Forbidden
+                    message: Your account has been inactive. Please reset your password to log in again.
+                    data:
+                      code: inactive_account
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/login/send-otp-token:
+    post:
+      tags:
+        - Login
+      operationId: sendLoginCode
+      summary: Send a one-time login code
+      description: >-
+        Sends a 6-digit login code by SMS (when you send `phone`) or by email
+        (when you send `email`). The code is valid for 2 minutes. Exchange it
+        for an API token with `POST /v1/login/verify-otp-token`.
+
+
+        If a code was already sent in the last minute, no new code is sent
+        and the response body is empty.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailOrPhone"
+            examples:
+              phone:
+                summary: By SMS
+                value:
+                  phone: "09120000000"
+              email:
+                summary: By email
+                value:
+                  email: you@example.com
+      responses:
+        "200":
+          description: >-
+            A code was sent (`{"status": "success"}`), or a code was already
+            sent in the last minute (empty body).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusSuccess"
+              example:
+                status: success
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          description: No account uses this phone number or email address.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: The phone number not found.
+                data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/login/verify-otp-token:
+    post:
+      tags:
+        - Login
+      operationId: loginWithCode
+      summary: Log in with a one-time code
+      description: >-
+        Exchanges a login code from `POST /v1/login/send-otp-token` for an API
+        token that's valid for 30 days. Use the same `email` or `phone` the
+        code was sent to. If two-factor authentication is enabled on your
+        account, send the second factor in the same request.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Send exactly one of `email` or `phone`.
+              required:
+                - token
+              properties:
+                email:
+                  type: string
+                  format: email
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                token:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  description: The 6-digit login code.
+                twoFAType:
+                  $ref: "#/components/schemas/TwoFAType"
+                totp:
+                  $ref: "#/components/schemas/TOTPCode"
+                recoveryCode:
+                  $ref: "#/components/schemas/RecoveryCode"
+            example:
+              phone: "09120000000"
+              token: "123456"
+      responses:
+        "200":
+          description: Logged in.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/LoginResponse"
+                  - type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+              example:
+                email: you@example.com
+                api_token: "<api-token>"
+                fullname: نام نمونه
+                avatar: https://example.com/avatar.png
+        "400":
+          description: >-
+            The body is invalid, or two-factor authentication is enabled and
+            `twoFAType` is missing (`two_fa_type_required`), or `totp` isn't
+            numeric (`invalid_totp`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: No account matches, or the code is wrong or has expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 401
+                error: Unauthorized
+                message: Authentication failed.
+                data: null
+        "403":
+          description: >-
+            The second factor is wrong (`two_fa_totp_invalid`,
+            `two_fa_recoveryCode_invalid`, `two_fa_validation_failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/register:
+    post:
+      tags:
+        - Registration
+      operationId: register
+      summary: Create an account
+      description: >-
+        Creates a personal account and returns an API token for it. Before you
+        can create services or API tokens, finish verifying the account (see
+        the Verification endpoints and `isVerified` in `GET /v1/me`).
+
+
+        If an account with this email address already exists and `password`
+        matches it, you're logged in instead and get `200` with a token.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - fullname
+                - nationalCode
+                - phone
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  maxLength: 250
+                fullname:
+                  type: string
+                  maxLength: 100
+                  pattern: "^[\\u0600-\\u06FF\\s]+$"
+                  description: Persian letters and spaces only.
+                nationalCode:
+                  type: string
+                  pattern: "^\\d{10,12}$"
+                  description: 10 to 12 digits.
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+            example:
+              email: you@example.com
+              password: "<your-password>"
+              fullname: نام نمونه
+              nationalCode: "0000000000"
+              phone: "09120000000"
+      responses:
+        "201":
+          description: The account was created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_token:
+                    type: string
+                    description: "API token to send as `Authorization: Bearer <api-token>`."
+                  avatar:
+                    type: string
+                    format: uri
+              example:
+                api_token: "<api-token>"
+                avatar: https://example.com/avatar.png
+        "200":
+          description: An account with this email address and password already exists; you're logged in.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+              example:
+                api_token: "<api-token>"
+                fullname: نام نمونه
+                avatar: https://example.com/avatar.png
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          description: Accounts can't be registered with this email domain.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: The email domain example.com is not supported for registration.
+                data:
+                  code: unsupported_email_domain
+        "409":
+          description: The phone number is used by another account, or the email address is used by another account with a different password.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                phoneTaken:
+                  summary: Phone number in use
+                  value:
+                    statusCode: 409
+                    error: Conflict
+                    message: The phone has already been taken by someone else.
+                    data: null
+                emailTaken:
+                  summary: Email address in use
+                  value:
+                    statusCode: 409
+                    error: Conflict
+                    message: Email has aleady taken by someone else.
+                    data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/password/forgot:
+    post:
+      tags:
+        - Password
+      operationId: forgotPassword
+      summary: Request a password reset code
+      description: >-
+        Sends a 6-digit password reset code by email or SMS. Use it with
+        `POST /v1/password/reset`. Email codes are valid for 3 minutes, SMS
+        codes for 2 minutes.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailOrPhone"
+            example:
+              email: you@example.com
+      responses:
+        "200":
+          description: The code was sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusSuccess"
+              example:
+                status: success
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          description: No account uses this email address or phone number.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: User not found.
+                data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/password/reset:
+    post:
+      tags:
+        - Password
+      operationId: resetPassword
+      summary: Reset a forgotten password
+      description: >-
+        Sets a new password using the code from `POST /v1/password/forgot`.
+        Every API token issued before the reset stops working; log in again to
+        get a new one.
+
+
+        Too many wrong codes are rejected with `429`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Send exactly one of `email` or `phone`.
+              required:
+                - token
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                token:
+                  type: string
+                  description: The reset code you received.
+                password:
+                  type: string
+                  description: The new password.
+            example:
+              email: you@example.com
+              token: "123456"
+              password: "<new-password>"
+      responses:
+        "200":
+          description: The password was changed. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          description: The code is wrong or has expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Forbidden
+                data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/password/change:
+    post:
+      tags:
+        - Password
+      operationId: changePassword
+      summary: Change your password
+      description: >-
+        Changes the password of the logged-in account. Prove it's you either
+        with `currentPassword`, or with an `email` or `phone` of your account
+        that you verified within the last hour. Every API token issued before
+        the change stops working; use the token in the response from now on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: >-
+                Send `currentPassword`, or one of `email` or `phone` (not both).
+              required:
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                  maxLength: 250
+                newPassword:
+                  type: string
+                  maxLength: 250
+                email:
+                  type: string
+                  format: email
+                  description: >-
+                    Your account's email address. It must have been verified
+                    within the last hour.
+                phone:
+                  allOf:
+                    - $ref: "#/components/schemas/PhoneNumber"
+                  description: >-
+                    Your account's phone number. It must have been verified
+                    within the last hour.
+            examples:
+              currentPassword:
+                summary: With the current password
+                value:
+                  currentPassword: "<current-password>"
+                  newPassword: "<new-password>"
+              recentlyVerifiedEmail:
+                summary: With a recently verified email address
+                value:
+                  email: you@example.com
+                  newPassword: "<new-password>"
+      responses:
+        "200":
+          description: The password was changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+              example:
+                api_token: "<api-token>"
+        "400":
+          description: >-
+            The body is invalid, or neither `currentPassword` nor `email` /
+            `phone` was sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: The email address or phone number is required when currentPassword is not provided.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The current password is wrong, the email address or phone number
+            isn't yours, or it wasn't verified within the last hour.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                wrongPassword:
+                  summary: Wrong current password
+                  value:
+                    statusCode: 403
+                    error: Forbidden
+                    message: Current password is wrong.
+                    data: null
+                notRecentlyVerified:
+                  summary: Not verified recently
+                  value:
+                    statusCode: 403
+                    error: Forbidden
+                    message: You must verify the selected email address or phone number within the last hour.
+                    data: null
+
+  /v1/password/change/send-otp-token:
+    post:
+      tags:
+        - Password
+      operationId: sendPasswordChangeCode
+      summary: Send a password change code
+      description: >-
+        Sends a 6-digit code to your account's verified email address or phone
+        number, so you can change your password without the current one. Use
+        it with `POST /v1/password/change/verify-otp-token`. Email codes are
+        valid for 3 minutes, SMS codes for 2 minutes.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailOrPhone"
+            example:
+              phone: "09120000000"
+      responses:
+        "200":
+          description: The code was sent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusSuccess"
+              example:
+                status: success
+        "400":
+          description: The body is invalid, or it includes `token` or `newPassword`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The email address or phone number isn't yours, or it hasn't been
+            verified.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: The email address or phone number does not belong to the current user.
+                data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/password/change/verify-otp-token:
+    post:
+      tags:
+        - Password
+      operationId: changePasswordWithCode
+      summary: Change your password with a code
+      description: >-
+        Sets a new password using the code from
+        `POST /v1/password/change/send-otp-token`. Every API token issued
+        before the change stops working; use the token in the response from
+        now on.
+
+
+        Too many wrong codes are rejected with `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Send exactly one of `email` or `phone`.
+              required:
+                - token
+                - newPassword
+              properties:
+                email:
+                  type: string
+                  format: email
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                token:
+                  type: string
+                  description: The code you received.
+                newPassword:
+                  type: string
+                  maxLength: 250
+            example:
+              phone: "09120000000"
+              token: "123456"
+              newPassword: "<new-password>"
+      responses:
+        "200":
+          description: The password was changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+              example:
+                api_token: "<api-token>"
+        "400":
+          description: The body is invalid, or `token` or `newPassword` is missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: The token and newPassword are required.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The code is wrong or has expired, or the email address or phone
+            number isn't yours or hasn't been verified.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/api-token:
+    post:
+      tags:
+        - API Tokens
+      operationId: createApiToken
+      summary: Create an API token
+      description: >-
+        Issues a new API token for your account. Existing tokens keep working.
+        Tokens always belong to you, not to a team; to work with a team's
+        resources, add the `teamID` query parameter to each request. Your
+        account must be verified (see `isVerified` in `GET /v1/me`).
+      parameters:
+        - $ref: "#/components/parameters/ExpiresIn"
+      responses:
+        "201":
+          description: The token was created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+              example:
+                api_token: "<api-token>"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AccountVerificationRequired"
+
+  /v1/me:
+    get:
+      tags:
+        - Account
+      operationId: getCurrentUser
+      summary: Get the current user
+      description: >-
+        Returns your profile, verification status and billing contact
+        details, plus the database versions you can choose from. With
+        `teamID`, it also returns the team's profile and your role and
+        permissions in that team.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      responses:
+        "200":
+          description: The current user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+              example:
+                user:
+                  _id: "000000000000000000000001"
+                  fullname: نام نمونه
+                  nationalCode: "0000000000"
+                  email: you@example.com
+                  phone: "09120000000"
+                  avatar: https://example.com/avatar.png
+                  joined_at: "2026-01-01T08:00:00.000Z"
+                  hasPassword: true
+                  emailVerifiedAt: "2026-01-01T08:05:00.000Z"
+                  phoneVerifiedAt: "2026-01-01T08:06:00.000Z"
+                  isVerified: true
+                  isEmailChangeDeadline: false
+                  isPhoneChangeDeadline: false
+                  invoiceIssuingEnabled: true
+                  isTeam: false
+                  accountType: REAL_PERSON
+                  contactInfo: {}
+                  minCreditAmount: 20000
+                  isManualMinCredit: false
+                  hasSucceedPayment: true
+                databaseVersions:
+                  mysql:
+                    - label: "9.0"
+                      value: 9.0.1
+                    - label: "8.0"
+                      value: 8.0.30
+                defaultDatabaseVersions:
+                  mysql: 9.0.1
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /v1/me/subscription:
+    get:
+      tags:
+        - Account
+      operationId: getMySubscription
+      summary: Get your subscription
+      description: >-
+        Returns the current subscription plan of your personal account, with
+        the number of technical support tickets opened in the current period.
+        `currentSubscriptionPlan` is an empty object if the account has never
+        had a subscription.
+      responses:
+        "200":
+          description: Your subscription.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentSubscriptionPlan:
+                    $ref: "#/components/schemas/Subscription"
+              example:
+                currentSubscriptionPlan:
+                  _id: "000000000000000000000003"
+                  type: subscription
+                  userID: "000000000000000000000001"
+                  subscriptionPlanID: standard
+                  subscriptionPlanExpiration: "2026-02-01T08:00:00.000Z"
+                  maxTechnicalTicketsPerMonth: infinite
+                  subscriptionDurationType: monthly
+                  technicalTicketsCount: 2
+                  createdAt: "2026-01-01T08:00:00.000Z"
+                  updatedAt: "2026-01-01T08:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/me/git-integrations:
+    get:
+      tags:
+        - Account
+      operationId: getMyGitIntegrations
+      summary: List your git integrations
+      description: >-
+        Lists the git provider accounts (currently GitHub) connected to your
+        personal account, and the app installations on them that give access
+        to repositories.
+      responses:
+        "200":
+          description: Your git integrations.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gitProviderIntegrations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GitProviderIntegration"
+                  gitRepositoryIntegrations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GitRepositoryIntegration"
+              example:
+                gitProviderIntegrations:
+                  - _id: "000000000000000000000004"
+                    provider: github
+                    metaData:
+                      login: your-github-username
+                      id: 1000000
+                      avatar_url: https://example.com/avatar.png
+                      type: User
+                      email: you@example.com
+                    checkInfo: true
+                    lastCheckedInfoAt: "2026-01-01T08:00:00.000Z"
+                    createdAt: "2026-01-01T08:00:00.000Z"
+                    updatedAt: "2026-01-01T08:00:00.000Z"
+                gitRepositoryIntegrations:
+                  - _id: "000000000000000000000005"
+                    providerIntegration: "000000000000000000000004"
+                    metaData:
+                      account:
+                        login: your-github-username
+                        id: 1000000
+                        type: User
+                      repository_selection: selected
+                      app_slug: "<app-slug>"
+                      target_type: User
+                      permissions:
+                        contents: read
+                        metadata: read
+                      events:
+                        - push
+                    createdAt: "2026-01-01T08:00:00.000Z"
+                    updatedAt: "2026-01-01T08:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/me/two-fa:
+    get:
+      tags:
+        - Two-Factor Authentication
+      operationId: getTwoFAStatus
+      summary: Get two-factor authentication status
+      description: >-
+        Shows whether two-factor authentication is enabled on your account and
+        when a second factor was last verified.
+      responses:
+        "200":
+          description: Two-factor authentication status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  twoFA:
+                    type: boolean
+                    description: Whether two-factor authentication is enabled.
+                  lastTwoFAVerifiedAt:
+                    type: string
+                    format: date-time
+                    description: >-
+                      When a second factor was last verified. Omitted when
+                      two-factor authentication is disabled.
+              example:
+                twoFA: true
+                lastTwoFAVerifiedAt: "2026-01-01T08:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/save-fullname:
+    post:
+      tags:
+        - Account
+      operationId: saveFullname
+      summary: Set your full name
+      description: >-
+        Sets the full name on your account. The name must be written in
+        Persian letters.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fullname
+              properties:
+                fullname:
+                  type: string
+                  maxLength: 100
+                  pattern: "^[\\u0600-\\u06FF\\s]+$"
+                  description: Persian letters and spaces only.
+            example:
+              fullname: نام نمونه
+      responses:
+        "201":
+          description: The name was saved. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/contact-info:
+    post:
+      tags:
+        - Account
+      operationId: saveContactInfo
+      summary: Save billing contact details
+      description: >-
+        Saves the contact details used on your invoices, as a real person or
+        as a legal entity. With `teamID`, it saves the team's details; this
+        needs billing permission in the team.
+
+
+        Once a national code or registration code has been saved, or a payment
+        has succeeded on the account, `accountType`, `nationalCode`,
+        `economicCode` and `nationalIdentity` can no longer change. Later
+        requests must still send every required field, but only the names,
+        `registrationCode`, address fields, `phone` and `telephone` are
+        updated.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - accountType
+              properties:
+                accountType:
+                  type: string
+                  enum:
+                    - REAL_PERSON
+                    - LEGAL_PERSON
+                contactInfo:
+                  description: >-
+                    Fields for the chosen `accountType`. Every field is
+                    required and at most 250 characters.
+                  oneOf:
+                    - $ref: "#/components/schemas/RealPersonContactInfo"
+                    - $ref: "#/components/schemas/LegalPersonContactInfo"
+            examples:
+              realPerson:
+                summary: Real person
+                value:
+                  accountType: REAL_PERSON
+                  contactInfo:
+                    firstName: نام
+                    lastName: نام خانوادگی
+                    phone: "09120000000"
+                    nationalCode: "0000000000"
+                    economicCode: "000000000000"
+                    province: تهران
+                    city: تهران
+                    postalCode: "1234567890"
+                    address: نشانی نمونه
+              legalPerson:
+                summary: Legal entity
+                value:
+                  accountType: LEGAL_PERSON
+                  contactInfo:
+                    companyName: شرکت نمونه
+                    telephone: "02100000000"
+                    registrationCode: "000000"
+                    nationalIdentity: "00000000000"
+                    economicCode: "000000000000"
+                    province: تهران
+                    city: تهران
+                    postalCode: "1234567890"
+                    address: نشانی نمونه
+      responses:
+        "200":
+          description: The details were saved. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "409":
+          description: A payment has already succeeded on an account with no saved contact details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: You have already made a successful payment, so you cannot change your contact information.
+                data:
+                  code: contact_info_locked
+
+  /v1/invoice-issuing-entity:
+    post:
+      tags:
+        - Account
+      operationId: setInvoiceIssuing
+      summary: Turn invoice issuing on or off
+      description: >-
+        Controls whether monthly billing invoices are issued for the account.
+        Once set to `false`, it can't be turned back on. With `teamID`, it
+        applies to the team; this needs billing permission in the team.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - invoiceIssuingEntity
+              properties:
+                invoiceIssuingEntity:
+                  type: boolean
+                  description: "`true` to issue invoices, `false` to stop issuing them."
+            example:
+              invoiceIssuingEntity: false
+      responses:
+        "200":
+          description: The setting was saved. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Invoice issuing was already turned off and can't be changed
+            (`invoice_issuing_entity_locked`); or, with `teamID`, you aren't a
+            member of the team (`team_not_found`) or don't have billing
+            permission there (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                locked:
+                  summary: Invoice issuing locked
+                  value:
+                    statusCode: 403
+                    error: Forbidden
+                    message: You have already disabled invoice issuing, so you cannot change your invoice issuing entity.
+                    data:
+                      code: invoice_issuing_entity_locked
+                teamNotFound:
+                  summary: Not a team member
+                  value:
+                    statusCode: 403
+                    error: Forbidden
+                    message: Team not found
+                    data:
+                      code: team_not_found
+                noPermission:
+                  summary: Missing billing permission
+                  value:
+                    statusCode: 403
+                    error: Forbidden
+                    message: You do not have permission to access this resource.
+                    data:
+                      code: no_permission
+
+  /v1/two-fa/config:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: createTwoFAConfig
+      summary: Start two-factor authentication setup
+      description: >-
+        Generates a new authenticator secret and a QR code for it. Add it to an
+        authenticator app, then confirm with `POST /v1/two-fa`. Codes are
+        6 digits and change every 30 seconds.
+      responses:
+        "200":
+          description: A new secret was generated. Nothing is enabled yet.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secretCode:
+                    type: string
+                    description: Base32 secret to enter in an authenticator app.
+                  qrcode:
+                    type: string
+                    description: The same secret as a QR code, as a PNG `data:` URL.
+              example:
+                secretCode: "<base32-secret>"
+                qrcode: "data:image/png;base64,<image-data>"
+        "400":
+          description: Two-factor authentication is already enabled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: TwoFA is already enabled.
+                data:
+                  code: two_fa_already_enabled
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/two-fa:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: enableTwoFA
+      summary: Enable two-factor authentication
+      description: >-
+        Turns on two-factor authentication with the secret from
+        `POST /v1/two-fa/config` and a current code from your authenticator
+        app. Returns 8 single-use recovery codes; store them safely, they
+        aren't shown again. Your account must be verified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - secretCode
+                - token
+              properties:
+                secretCode:
+                  type: string
+                  description: The `secretCode` from `POST /v1/two-fa/config`.
+                token:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  description: Current 6-digit code from your authenticator app.
+            example:
+              secretCode: "<base32-secret>"
+              token: "123456"
+      responses:
+        "200":
+          description: Two-factor authentication is on.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodesResponse"
+              example:
+                recoveryCodes:
+                  - A1B2C3D4E5
+                  - F6A7B8C9D0
+                  - "..."
+        "400":
+          description: >-
+            The body is invalid, `token` isn't numeric (`invalid_token`), or
+            the code is wrong or two-factor authentication is already enabled
+            (`enable_two_fa_failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Enable TwoFA failed.
+                data:
+                  code: enable_two_fa_failed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AccountVerificationRequired"
+    delete:
+      tags:
+        - Two-Factor Authentication
+      operationId: disableTwoFA
+      summary: Disable two-factor authentication
+      description: Turns off two-factor authentication on your account.
+      responses:
+        "200":
+          description: Two-factor authentication is off. The response body is empty.
+        "400":
+          description: Two-factor authentication is already off.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: TwoFA is already disabled.
+                data:
+                  code: two_fa_already_disabled
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/two-fa/generate-new-recovery-codes:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: regenerateRecoveryCodes
+      summary: Replace recovery codes
+      description: >-
+        Generates 8 new single-use recovery codes. Your previous recovery codes
+        stop working.
+      responses:
+        "200":
+          description: The new recovery codes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecoveryCodesResponse"
+              example:
+                recoveryCodes:
+                  - A1B2C3D4E5
+                  - F6A7B8C9D0
+                  - "..."
+        "400":
+          description: Two-factor authentication isn't enabled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: TwoFA is not enabled.
+                data:
+                  code: two_fa_is_not_enabled
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/two-fa/verify:
+    post:
+      tags:
+        - Two-Factor Authentication
+      operationId: verifyTwoFA
+      summary: Verify a second factor
+      description: >-
+        Checks an authenticator code or a recovery code for your account and
+        records the verification time (`lastTwoFAVerifiedAt`). A recovery code
+        can only be used once. If two-factor authentication isn't enabled, the
+        request succeeds without checking anything.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - twoFAType
+              properties:
+                twoFAType:
+                  $ref: "#/components/schemas/TwoFAType"
+                totp:
+                  $ref: "#/components/schemas/TOTPCode"
+                recoveryCode:
+                  $ref: "#/components/schemas/RecoveryCode"
+            examples:
+              authenticatorCode:
+                summary: Authenticator-app code
+                value:
+                  twoFAType: totp
+                  totp: "123456"
+              recoveryCode:
+                summary: Recovery code
+                value:
+                  twoFAType: recoveryCode
+                  recoveryCode: A1B2C3D4E5
+      responses:
+        "200":
+          description: Verified. The response body is empty.
+        "400":
+          description: The body is invalid, or `totp` isn't numeric (`invalid_totp`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The code is wrong (`two_fa_totp_invalid`,
+            `two_fa_recoveryCode_invalid`, `two_fa_validation_failed`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: twoFA authentication failed, recoveryCode is invalid.
+                data:
+                  code: two_fa_recoveryCode_invalid
+
+  /v1/send-email-token:
+    post:
+      tags:
+        - Verification
+      operationId: sendEmailVerificationCode
+      summary: Send an email verification code
+      description: >-
+        Emails a 6-digit code to verify an address. Confirm it with
+        `POST /v1/verify-email` within 3 minutes.
+
+
+        - If your email isn't verified yet, you can send any address; once
+          verified, it becomes your account email.
+
+        - To change a verified email, first send and verify a code for your
+          **current** address. That opens a 5-minute window in which you send
+          and verify a code for the new address.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+            example:
+              email: you@example.com
+      responses:
+        "200":
+          description: The code was sent. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: >-
+            The address is used by another account; or you asked for a new
+            address outside the 5-minute change window; or you asked for your
+            current address again while the window is already open.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                inUse:
+                  summary: Address in use
+                  value:
+                    statusCode: 409
+                    error: Conflict
+                    message: This email is already in use.
+                    data: null
+                windowClosed:
+                  summary: Change window not open
+                  value:
+                    statusCode: 409
+                    error: Conflict
+                    message: You can't change your email address anymore.
+                    data: null
+                windowOpen:
+                  summary: Change window already open
+                  value:
+                    statusCode: 409
+                    error: Conflict
+                    message: You have already requested to unlock your current email.
+                    data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/verify-email:
+    post:
+      tags:
+        - Verification
+      operationId: verifyEmail
+      summary: Verify an email address
+      description: >-
+        Confirms a code from `POST /v1/send-email-token`. Verifying your current
+        address opens a 5-minute window to change it; verifying a new address
+        makes it your account email. A newly verified address may also be added
+        as an email notification channel.
+
+
+        Too many wrong codes are rejected with `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - token
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: The address the code was sent to.
+                token:
+                  type: string
+                  description: The 6-digit code.
+            example:
+              email: you@example.com
+              token: "123456"
+      responses:
+        "200":
+          description: The address was verified. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The code is wrong or has expired.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Invalid token.
+                data: null
+        "409":
+          description: >-
+            The new address was verified outside the 5-minute change window, or
+            the current address was verified again while the window is open.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/send-phone-token:
+    post:
+      tags:
+        - Verification
+      operationId: sendPhoneVerificationCode
+      summary: Send a phone verification code
+      description: >-
+        Starts verifying a phone number, together with your national code.
+        Confirm it with `POST /v1/save-info` within 2 minutes. The phone
+        number must be registered to the national code you send.
+
+
+        - **First verification:** send `phone` and `nationalCode`. A code is
+          sent by SMS.
+
+        - **Changing your phone:** first send your **current** `phone` without
+          `nationalCode` and confirm that code. That opens a 5-minute window in
+          which you send the new `phone` with `nationalCode`.
+
+        - **Changing only your national code:** send your current `phone` with
+          the new `nationalCode`. No code is sent (`requiresOtp: false`) and the
+          change is saved immediately.
+
+
+        This endpoint is rate limited. Too many requests return `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+              properties:
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                nationalCode:
+                  type: string
+                  pattern: "^\\d{10,12}$"
+                  description: 10 to 12 digits.
+            example:
+              phone: "09120000000"
+              nationalCode: "0000000000"
+      responses:
+        "200":
+          description: >-
+            `requiresOtp: true` means a code was sent; confirm it with
+            `POST /v1/save-info`. `requiresOtp: false` means the national code
+            was updated and nothing else is needed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requiresOtp:
+                    type: boolean
+              example:
+                requiresOtp: true
+        "400":
+          description: >-
+            The body is invalid, `nationalCode` is missing where it's required,
+            or the phone number isn't registered to this national code.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                notMatched:
+                  summary: Phone number and national code don't match
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: Phone number does not belong to this national code.
+                nationalCodeMissing:
+                  summary: National code missing
+                  value:
+                    statusCode: 400
+                    error: Bad Request
+                    message: National code is required.
+                    data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: You're changing your phone but haven't confirmed your current phone in the last 5 minutes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: You must verify your current phone first.
+                data: null
+        "409":
+          description: The phone number is used by another account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: The phone number is already taken.
+                data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "503":
+          description: >-
+            The phone number and national code check is temporarily
+            unavailable. Try again later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/save-info:
+    post:
+      tags:
+        - Verification
+      operationId: confirmPhone
+      summary: Confirm a phone verification code
+      description: >-
+        Confirms a code from `POST /v1/send-phone-token`.
+
+
+        - **First verification:** send `phone`, `nationalCode` and `token`.
+          Your phone and national code are saved and marked verified.
+
+        - **Confirming your current phone (before a change):** send your
+          current `phone` and `token`, without `nationalCode`. This opens a
+          5-minute window to change your phone.
+
+        - **Finishing a phone change:** send the new `phone`, `nationalCode`
+          and `token` within that window.
+
+
+        A newly verified number may also be added as an SMS notification
+        channel.
+
+
+        Too many wrong codes are rejected with `429`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+              properties:
+                phone:
+                  $ref: "#/components/schemas/PhoneNumber"
+                nationalCode:
+                  type: string
+                  pattern: "^\\d{10,12}$"
+                token:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  description: The 6-digit SMS code.
+            example:
+              phone: "09120000000"
+              nationalCode: "0000000000"
+              token: "123456"
+      responses:
+        "200":
+          description: Confirmed. The response body is empty.
+        "400":
+          description: The body is invalid, or `token` or `nationalCode` is missing where it's required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Token is required.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The code is wrong or has expired, or you're changing your phone
+            without having confirmed your current phone in the last 5 minutes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Invalid token.
+                data: null
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        Send your API token as `Authorization: Bearer <api-token>`. Tokens
+        expire (30 days by default) and stop working when you change or reset
+        your password.
+  parameters:
+    TeamID:
+      name: teamID
+      in: query
+      required: false
+      description: >-
+        Run the request in the context of a team you belong to, instead of
+        your personal account.
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{24}$"
+      example: "000000000000000000000002"
+    ExpiresIn:
+      name: expiresIn
+      in: query
+      required: false
+      description: How long the issued token stays valid.
+      schema:
+        type: string
+        enum:
+          - 1h
+          - 1d
+          - 7d
+          - 30d
+          - 180d
+          - 1y
+        default: 30d
+  responses:
+    Unauthorized:
+      description: The API token is missing, invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            error: Unauthorized.
+    ValidationError:
+      description: The request is invalid. `message` says which field failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: '"phone" with value "123" fails to match the required pattern: /^09\d{9}$/'
+    TooManyRequests:
+      description: Too many requests. Wait and try again later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 429
+            error: Too Many Requests
+            message: Too Many Requests
+            data: null
+    InvalidTeamID:
+      description: "`teamID` isn't a valid ID."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: Invalid team ID.
+            data: null
+    ValidationOrTeamIDError:
+      description: The body is invalid (`message` says which field failed), or `teamID` isn't a valid ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            validation:
+              summary: Invalid body
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: '"<field>" is required'
+            invalidTeamID:
+              summary: Invalid team ID
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: Invalid team ID.
+                data: null
+    TeamNotFound:
+      description: You sent a `teamID` for a team you aren't a member of.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: Team not found
+            data:
+              code: team_not_found
+    TeamForbidden:
+      description: >-
+        With `teamID`: you aren't a member of the team (`team_not_found`), or
+        you don't have billing permission there (`no_permission`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            teamNotFound:
+              summary: Not a team member
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: Team not found
+                data:
+                  code: team_not_found
+            noPermission:
+              summary: Missing billing permission
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: You do not have permission to access this resource.
+                data:
+                  code: no_permission
+    AccountVerificationRequired:
+      description: >-
+        Your account isn't verified yet. Set your full name and verify your
+        email address, phone number and national code first.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: You must verify your account, first.
+            data:
+              code: account_verification_required
+  schemas:
+    Error:
+      type: object
+      description: Standard error body.
+      properties:
+        statusCode:
+          type: integer
+        error:
+          type: string
+          description: HTTP status text.
+        message:
+          type: string
+          description: What went wrong.
+        data:
+          type: object
+          nullable: true
+          description: Extra details. When present, `code` is a stable, machine-readable error code.
+          properties:
+            code:
+              type: string
+    AuthError:
+      type: object
+      description: Error body returned when the API token is rejected.
+      properties:
+        error:
+          type: string
+    PhoneNumber:
+      type: string
+      pattern: "^09\\d{9}$"
+      description: Iranian mobile number in the form `09XXXXXXXXX`.
+      example: "09120000000"
+    EmailOrPhone:
+      type: object
+      description: Send exactly one of `email` or `phone`.
+      properties:
+        email:
+          type: string
+          format: email
+        phone:
+          $ref: "#/components/schemas/PhoneNumber"
+    TwoFAType:
+      type: string
+      description: >-
+        Which second factor you're sending. Required when two-factor
+        authentication is enabled on the account.
+      enum:
+        - totp
+        - recoveryCode
+    TOTPCode:
+      type: string
+      minLength: 6
+      maxLength: 6
+      description: 6-digit code from your authenticator app. Required when `twoFAType` is `totp`.
+    RecoveryCode:
+      type: string
+      minLength: 10
+      maxLength: 10
+      description: One of your 10-character recovery codes. Required when `twoFAType` is `recoveryCode`.
+    TokenResponse:
+      type: object
+      properties:
+        api_token:
+          type: string
+          description: "API token to send as `Authorization: Bearer <api-token>`."
+    LoginResponse:
+      type: object
+      properties:
+        api_token:
+          type: string
+          description: "API token to send as `Authorization: Bearer <api-token>`."
+        fullname:
+          type: string
+        avatar:
+          type: string
+          format: uri
+    StatusSuccess:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - success
+    RecoveryCodesResponse:
+      type: object
+      properties:
+        recoveryCodes:
+          type: array
+          description: 8 single-use recovery codes, 10 characters each.
+          items:
+            type: string
+    Subscription:
+      type: object
+      description: Empty object if the account has never had a subscription.
+      properties:
+        _id:
+          type: string
+        type:
+          type: string
+          enum:
+            - subscription
+        userID:
+          type: string
+        subscriptionPlanID:
+          type: string
+          enum:
+            - free
+            - standard
+            - enterprise
+        subscriptionPlanExpiration:
+          type: string
+          format: date-time
+        subscriptionDurationType:
+          type: string
+          enum:
+            - monthly
+            - yearly
+        maxTechnicalTicketsPerMonth:
+          description: Monthly technical ticket allowance, or `infinite`.
+          oneOf:
+            - type: integer
+            - type: string
+              enum:
+                - infinite
+        technicalTicketsCount:
+          type: integer
+          description: Technical support tickets opened in the current period.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GitProviderIntegration:
+      type: object
+      description: A git provider account connected to your Liara account.
+      properties:
+        _id:
+          type: string
+        provider:
+          type: string
+          enum:
+            - github
+        metaData:
+          type: object
+          description: Details of the connected account on the provider.
+          properties:
+            login:
+              type: string
+            id:
+              type: integer
+            avatar_url:
+              type: string
+              format: uri
+            type:
+              type: string
+              description: Account type on the provider, for example `User`.
+            email:
+              type: string
+              format: email
+              description: The account's primary verified email address on the provider.
+        checkInfo:
+          type: boolean
+          description: >-
+            `false` after a request to the provider failed for this connection
+            (for example, because access was revoked). Reconnect to restore it.
+        lastCheckedInfoAt:
+          type: string
+          format: date-time
+          description: When the account details were last refreshed from the provider.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    GitRepositoryIntegration:
+      type: object
+      description: An app installation on a connected git account that gives access to its repositories.
+      properties:
+        _id:
+          type: string
+        providerIntegration:
+          type: string
+          description: ID of the `GitProviderIntegration` it belongs to.
+        metaData:
+          type: object
+          properties:
+            account:
+              type: object
+              description: The user or organization the app is installed on.
+              properties:
+                login:
+                  type: string
+                id:
+                  type: integer
+                type:
+                  type: string
+            repository_selection:
+              type: string
+              description: "`all` repositories, or only `selected` ones."
+              enum:
+                - all
+                - selected
+            app_slug:
+              type: string
+            target_type:
+              type: string
+              description: "`User` or `Organization`."
+            permissions:
+              type: object
+              description: Repository permissions granted to the installation.
+              additionalProperties:
+                type: string
+            events:
+              type: array
+              description: Events the installation is subscribed to.
+              items:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RealPersonContactInfo:
+      type: object
+      title: Real person
+      required:
+        - firstName
+        - lastName
+        - phone
+        - nationalCode
+        - economicCode
+        - province
+        - city
+        - postalCode
+        - address
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        nationalCode:
+          type: string
+        economicCode:
+          type: string
+        province:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        address:
+          type: string
+    LegalPersonContactInfo:
+      type: object
+      title: Legal entity
+      required:
+        - companyName
+        - telephone
+        - registrationCode
+        - nationalIdentity
+        - economicCode
+        - province
+        - city
+        - postalCode
+        - address
+      properties:
+        companyName:
+          type: string
+        telephone:
+          type: string
+        registrationCode:
+          type: string
+        nationalIdentity:
+          type: string
+        economicCode:
+          type: string
+        province:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        address:
+          type: string
+    BillingContact:
+      type: object
+      properties:
+        balance:
+          type: number
+          description: Current account balance. Only returned for the team, and only if you have billing permission there.
+        accountType:
+          type: string
+          enum:
+            - REAL_PERSON
+            - LEGAL_PERSON
+        contactInfo:
+          type: object
+          description: Saved billing contact details (see `POST /v1/contact-info`).
+        contactInfoSavedAt:
+          type: string
+          format: date-time
+        minCreditAmount:
+          type: number
+          description: Balance threshold for low-credit notifications.
+        isManualMinCredit:
+          type: boolean
+          description: Whether the low-credit threshold was set manually.
+        minCreditLastNotifiedAt:
+          type: string
+          format: date-time
+          description: When a low-credit notification was last sent.
+    CurrentUser:
+      allOf:
+        - type: object
+          properties:
+            _id:
+              type: string
+            fullname:
+              type: string
+            nationalCode:
+              type: string
+            email:
+              type: string
+              format: email
+            phone:
+              type: string
+            avatar:
+              type: string
+              format: uri
+            joined_at:
+              type: string
+              format: date-time
+            hasPassword:
+              type: boolean
+              description: Whether a password is set on the account.
+            emailVerifiedAt:
+              type: string
+              format: date-time
+              nullable: true
+            phoneVerifiedAt:
+              type: string
+              format: date-time
+              nullable: true
+            isVerified:
+              type: boolean
+              description: >-
+                `true` once the full name, national code, email address and
+                phone number are all set and verified. Creating services and
+                API tokens requires this.
+            isEmailChangeDeadline:
+              type: boolean
+              description: "`true` while a 5-minute window to change the email address is open."
+            isPhoneChangeDeadline:
+              type: boolean
+              description: "`true` while a 5-minute window to change the phone number is open."
+            invoiceIssuingEnabled:
+              type: boolean
+            isTeam:
+              type: boolean
+            isTeamCreator:
+              type: boolean
+              description: Only with `teamID`. Whether you created the team.
+            hasSucceedPayment:
+              type: boolean
+              description: Whether any payment has succeeded on the account.
+            changedTeamCreatorAt:
+              type: string
+              format: date-time
+        - $ref: "#/components/schemas/BillingContact"
+    CurrentTeam:
+      allOf:
+        - type: object
+          properties:
+            _id:
+              type: string
+            teamName:
+              type: string
+            teamCreator:
+              type: string
+              description: User ID of the team's creator.
+            isTeam:
+              type: boolean
+            joined_at:
+              type: string
+              format: date-time
+            invoiceIssuingEnabled:
+              type: boolean
+            teamMemberRole:
+              type: object
+              description: Your role in the team.
+              properties:
+                name:
+                  type: string
+                permissions:
+                  type: array
+                  items:
+                    type: string
+            teamMemberPermissions:
+              type: array
+              description: Permissions assigned to you on specific resources in the team.
+              items:
+                type: object
+        - $ref: "#/components/schemas/BillingContact"
+    CurrentUserResponse:
+      type: object
+      description: The response can include additional fields not listed here.
+      properties:
+        user:
+          $ref: "#/components/schemas/CurrentUser"
+        team:
+          allOf:
+            - $ref: "#/components/schemas/CurrentTeam"
+          description: Only returned with `teamID`.
+        databaseVersions:
+          type: object
+          description: Database versions you can create, keyed by database type.
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              properties:
+                label:
+                  type: string
+                value:
+                  type: string
+        defaultDatabaseVersions:
+          type: object
+          description: The default version `value` for each database type.
+          additionalProperties:
+            type: string
