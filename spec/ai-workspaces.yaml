@@ -3,12 +3,12 @@ info:
   title: AI - Workspaces
   description: |-
     Manage AI workspaces. Workspaces are the primary organizational unit for AI resources.
-    Each workspace has a plan (base, standard, pro), a state (ACTIVE, FROZEN), and provider preferences.
+    Each workspace has a plan (base, standard, pro), a state (ACTIVE, FROZEN), and a routing preference.
 
     Parameters:
     - `teamID`: To access services in a team (query param or `x-teamid` header)
 
-    Authentication: JWT Bearer token sent via the `Authorization` header.
+    Authentication: your Liara API token, sent as `Authorization: Bearer <api-token>`.
   termsOfService: '#'
   contact:
     email: info@liara.ir
@@ -24,7 +24,7 @@ tags:
   - name: Workspaces
     description: Workspace CRUD operations
   - name: Workspace Actions
-    description: "Workspace actions (resize, unfreeze, provider preferences)"
+    description: "Workspace actions (resize, unfreeze, routing preference)"
   - name: Workspace Activity
     description: Usage activity and free token tracking
   - name: Model Limits
@@ -143,7 +143,7 @@ paths:
       tags:
         - Workspaces
       summary: Delete a workspace
-      description: Soft-deletes a workspace. The workspace will be marked as deleted but not permanently removed.
+      description: Deletes a workspace.
       operationId: deleteWorkspace
       parameters:
         - name: workspaceID
@@ -167,10 +167,10 @@ paths:
     patch:
       tags:
         - Workspace Actions
-      summary: Change provider preferences
+      summary: Change the routing preference
       description: |-
-        Changes the provider routing preference for a workspace.
-        This affects how requests are routed to AI providers.
+        Changes what the workspace's inference requests are optimized for:
+        `price` (lowest cost), `throughput` (highest throughput) or `latency` (lowest latency).
       operationId: changeProviderPreferences
       parameters:
         - name: workspaceID
@@ -472,7 +472,7 @@ components:
         preference:
           type: string
           enum: [price, throughput, latency]
-          description: Provider routing preference
+          description: What the workspace's requests are optimized for.
     ResizeWorkspaceRequest:
       type: object
       required:

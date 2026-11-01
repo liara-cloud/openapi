@@ -4,7 +4,7 @@ info:
   description: |-
     Public model catalog for browsing available AI models. No authentication required.
 
-    Browse, search, and filter models by provider, modality, pricing, context length, and more.
+    Browse, search, and filter models by vendor, modality, pricing, context length, and more.
   termsOfService: '#'
   contact:
     email: info@liara.ir
@@ -45,7 +45,7 @@ paths:
         - name: modelID
           in: path
           required: true
-          description: "The model ID (MongoDB ObjectID)"
+          description: The model's catalog ID (24 hexadecimal characters).
           schema:
             type: string
             pattern: '^[a-f0-9]{24}$'
@@ -71,7 +71,7 @@ paths:
       parameters:
         - name: search
           in: query
-          description: Search models by name (regex match)
+          description: Search models by name.
           schema:
             type: string
             maxLength: 100
@@ -122,7 +122,7 @@ paths:
             type: number
         - name: providers
           in: query
-          description: Filter by provider prefix (e.g. anthropic, openai)
+          description: Filter by model vendor, the first part of the model ID (for example `anthropic` or `openai`).
           schema:
             oneOf:
               - type: string
@@ -184,6 +184,7 @@ components:
           description: Total number of matching models
     AIModel:
       type: object
+      description: The response can include additional fields not listed here.
       properties:
         id:
           type: string
@@ -212,15 +213,9 @@ components:
               type: array
               items:
                 type: string
-            tokenizer:
-              type: string
-            instruct_type:
-              type: string
         pricing:
           type: object
           properties:
-            cost:
-              type: string
             prompt:
               type: string
               description: "Input price per token (USD string)"
@@ -245,15 +240,6 @@ components:
               type: string
             image_details:
               type: object
-        top_provider:
-          type: object
-          properties:
-            context_length:
-              type: integer
-            max_completion_tokens:
-              type: integer
-            is_moderated:
-              type: boolean
         supported_parameters:
           type: array
           items:
@@ -293,4 +279,4 @@ components:
           format: unix-timestamp
         provider:
           type: string
-          description: Provider name
+          description: The model's vendor, for example `openai`.

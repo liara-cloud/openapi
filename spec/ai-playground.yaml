@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: AI - Playground
   description: |-
-    Playground endpoints for testing AI inference with JWT authentication and RBAC/DAC authorization.
+    Playground endpoints for testing AI inference with your Liara API token and team permissions.
     These endpoints mirror the API key inference endpoints but require user-level permissions.
 
     Required permissions: `ai.operate` or `ai.manage`
@@ -11,7 +11,7 @@ info:
     - `workspaceID`: The ID of the workspace to use
     - `teamID`: To access services in a team (query param or `x-teamid` header)
 
-    Authentication: JWT Bearer token sent via the `Authorization` header.
+    Authentication: your Liara API token, sent as `Authorization: Bearer <api-token>`.
   termsOfService: '#'
   contact:
     email: info@liara.ir
@@ -69,7 +69,7 @@ paths:
           description: Payment required
           content: {}
         503:
-          description: "Service unavailable (feature disabled)"
+          description: Service temporarily unavailable.
           content: {}
       x-codegen-request-body-name: body
   /api/v1/{workspaceID}/playground/images/generations:
@@ -126,7 +126,7 @@ paths:
           description: Forbidden
           content: {}
         503:
-          description: "Service unavailable (feature disabled)"
+          description: Service temporarily unavailable.
           content: {}
       x-codegen-request-body-name: body
   /api/v1/{workspaceID}/playground/images/edits:
@@ -179,7 +179,7 @@ paths:
           description: Forbidden
           content: {}
         503:
-          description: "Service unavailable (feature disabled)"
+          description: Service temporarily unavailable.
           content: {}
       x-codegen-request-body-name: body
   /api/v1/{workspaceID}/playground/models:

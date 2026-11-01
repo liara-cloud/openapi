@@ -64,7 +64,7 @@ paths:
           description: Payment required - insufficient balance
           content: {}
         503:
-          description: "Service unavailable (feature disabled)"
+          description: Service temporarily unavailable.
           content: {}
       x-codegen-request-body-name: body
 components:

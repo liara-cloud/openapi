@@ -84,16 +84,6 @@ paths:
               schema:
                 type: string
 
-            X-Generation-Id:
-              description: Generation ID returned by the TTS provider, when available.
-              schema:
-                type: string
-
-            X-Provider-Request-Id:
-              description: Request ID returned by the TTS provider, when available.
-              schema:
-                type: string
-
             X-Usage-Estimated-Cost:
               description: Estimated cost of the TTS request.
               schema:
@@ -140,7 +130,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
         502:
-          description: TTS provider request failed.
+          description: The speech couldn't be generated. Try again later.
           content:
             application/json:
               schema:
@@ -228,12 +218,12 @@ components:
         provider:
           type: object
           description: |-
-            Optional provider-specific configuration.
+            Optional model-specific settings.
           properties:
             options:
               type: object
               description: |-
-                Provider-specific options passed to the selected TTS provider.
+                Model-specific options. Which options are accepted depends on the selected model.
               additionalProperties: true
 
 
@@ -242,7 +232,7 @@ components:
       description: |-
         Audio input reference used by supported TTS models.
 
-        The exact fields depend on the inputReferenceAudio Joi schema.
+        The accepted fields depend on the selected model.
       additionalProperties: true
 
 
@@ -251,7 +241,7 @@ components:
       description: |-
         Text input reference used by supported TTS models.
 
-        The exact fields depend on the inputReferenceText Joi schema.
+        The accepted fields depend on the selected model.
       additionalProperties: true
 
 

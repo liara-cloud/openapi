@@ -17,11 +17,11 @@ The AI API enables you to:
 * **Embeddings** - Generate vector embeddings for text search, clustering, and semantic analysis
 * **Audio Transcriptions** - Convert audio files into text using supported speech-to-text models
 * **Text to Speech** - Convert text into speech audio using supported AI models
-* **Workspaces** - Organize AI resources with plan-based billing and provider preferences
+* **Workspaces** - Organize AI resources with plan-based billing and routing preferences
 * **API Keys** - Manage authentication keys scoped to specific workspaces
-* **Model Catalog** - Browse and filter available AI models by provider, modality, and pricing
+* **Model Catalog** - Browse and filter available AI models by vendor, modality, and pricing
 * **Logs** - Track inference requests, usage, and costs per workspace
-* **Playground** - Test AI inference interactively with JWT authentication
+* **Playground** - Test AI inference interactively with your Liara API token
 
 ## Key Features
 
@@ -29,17 +29,17 @@ The AI API enables you to:
 
 All inference endpoints follow the OpenAI API format, making it easy to integrate with existing SDKs and tools. Simply point your OpenAI client to the Liara AI base URL with your workspace-specific path.
 
-### Multi-Provider Support
+### One API, Many Models
 
-Access models from multiple providers through a single API.
+Use models from many vendors through a single API.
 
-### Provider Preferences
+### Routing Preferences
 
-Control how requests are routed to providers:
+Choose what each workspace's requests are optimized for:
 
-* **Price** - Route to the lowest-cost provider
-* **Throughput** - Route to the highest-throughput provider
-* **Latency** - Route to the lowest-latency provider
+* **Price** - Lowest cost
+* **Throughput** - Highest throughput
+* **Latency** - Lowest latency
 
 ### Streaming
 
@@ -102,15 +102,15 @@ API key authentication is used for inference endpoints including:
 * Audio transcriptions
 * Text to speech
 
-### JWT Authentication
+### Account Token Authentication
 
-Management endpoints use your Liara account JWT:
+Management endpoints use your Liara account API token:
 
 ```text
-Authorization: Bearer <your-jwt-token>
+Authorization: Bearer <your-api-token>
 ```
 
-JWT authentication is used for management functionality such as:
+Account token authentication is used for management functionality such as:
 
 * Workspaces
 * API keys

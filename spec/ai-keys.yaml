@@ -8,7 +8,7 @@ info:
     Parameters:
     - `teamID`: To access services in a team (query param or `x-teamid` header)
 
-    Authentication: JWT Bearer token sent via the `Authorization` header.
+    Authentication: your Liara API token, sent as `Authorization: Bearer <api-token>`.
   termsOfService: '#'
   contact:
     email: info@liara.ir
@@ -126,7 +126,7 @@ paths:
       tags:
         - API Keys
       summary: Delete an API key
-      description: Soft-deletes an API key. The key will be marked as deleted but not permanently removed.
+      description: Deletes an API key.
       operationId: deleteKey
       parameters:
         - name: keyID
@@ -184,7 +184,7 @@ components:
                 type: string
         key:
           type: string
-          description: "The JWT token for this API key (only shown once)"
+          description: The API key. It's only shown once.
         createdBy:
           type: object
           properties:

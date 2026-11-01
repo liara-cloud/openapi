@@ -69,7 +69,7 @@ paths:
           description: Forbidden - workspace frozen or key disabled
           content: {}
         503:
-          description: "Service unavailable (feature disabled)"
+          description: Service temporarily unavailable.
           content: {}
       x-codegen-request-body-name: body
   /api/{workspaceID}/v1/models:
@@ -365,6 +365,7 @@ components:
             $ref: '#/components/schemas/ModelItem'
     ModelItem:
       type: object
+      description: The response can include additional fields not listed here.
       properties:
         id:
           type: string
@@ -394,13 +395,6 @@ components:
               type: string
             completion:
               type: string
-        top_provider:
-          type: object
-          properties:
-            context_length:
-              type: integer
-            max_completion_tokens:
-              type: integer
         supported_parameters:
           type: array
           items:
