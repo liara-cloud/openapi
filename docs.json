@@ -2,7 +2,10 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "almond",
   "name": "Liara OpenAPI Docs",
-  "favicon": { "dark": "/logo.png", "light": "/logo.png" },
+  "favicon": {
+    "dark": "/logo.png",
+    "light": "/logo.png"
+  },
   "logo": {
     "light": "/logo.png",
     "dark": "/logo.png"
@@ -78,7 +81,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/paas"]
+            "pages": [
+              "pages/paas"
+            ]
           },
           {
             "group": "Apps & Deployments",
@@ -113,7 +118,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/dbaas"]
+            "pages": [
+              "pages/dbaas"
+            ]
           },
           {
             "group": "API Endpoints",
@@ -132,7 +139,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/object-storage"]
+            "pages": [
+              "pages/object-storage"
+            ]
           },
           {
             "group": "API Endpoints",
@@ -151,7 +160,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/dns"]
+            "pages": [
+              "pages/dns"
+            ]
           },
           {
             "group": "API Endpoints",
@@ -169,7 +180,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/mail"]
+            "pages": [
+              "pages/mail"
+            ]
           },
           {
             "group": "API Endpoints",
@@ -188,7 +201,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/file-browser"]
+            "pages": [
+              "pages/file-browser"
+            ]
           },
           {
             "group": "API Endpoints",
@@ -207,7 +222,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/iaas"]
+            "pages": [
+              "pages/iaas"
+            ]
           },
           {
             "group": "API Endpoints",
@@ -226,7 +243,9 @@
           {
             "group": "Introduction",
             "icon": "rocket",
-            "pages": ["pages/ai"]
+            "pages": [
+              "pages/ai"
+            ]
           },
           {
             "group": "Chat Completions",
@@ -309,12 +328,48 @@
             }
           }
         ]
+      },
+
+
+      {
+        "product": "Billing",
+        "icon": "credit-card",
+        "groups": [
+          {
+            "group": "API Endpoints",
+            "icon": "file-code",
+            "openapi": {
+              "source": "spec/billing.yaml",
+              "directory": "billing"
+            }
+          }
+        ]
+      },
+      {
+        "product": "Account",
+        "icon": "user",
+        "groups": [
+          {
+            "group": "API Endpoints",
+            "icon": "file-code",
+            "openapi": {
+              "source": "spec/me.yaml",
+              "directory": "account"
+            }
+          }
+        ]
       }
     ]
   },
-  "icons": { "library": "fontawesome" },
+  "icons": {
+    "library": "fontawesome"
+  },
   "contextual": {
-    "options": ["copy", "chatgpt", "perplexity"]
+    "options": [
+      "copy",
+      "chatgpt",
+      "perplexity"
+    ]
   },
   "navbar": {
     "links": [

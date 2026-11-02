@@ -15,7 +15,7 @@ externalDocs:
   description: Find out more about DNS
   url: http://liara.ir
 servers:
-- url: https://dns-service.iran.liara.ir
+- url: https://dns-service.liara.ir
 security:
 - jwt: []
 tags:
@@ -474,6 +474,5 @@ components:
   securitySchemes:
     jwt:
       type: apiKey
-      description: 'Enter the token with the `Bearer: ` prefix, e.g. "Bearer abcde12345".  #'
       name: Authorization
       in: header

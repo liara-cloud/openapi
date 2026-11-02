@@ -18,6 +18,7 @@ servers:
   - url: https://iaas-api.liara.ir
 security:
   - jwt: []
+  - bearerAuth: []
 tags:
   - name: VMs
     description: Manage your VMs
@@ -602,6 +603,10 @@ components:
     jwt:
       type: http
       scheme: bearer
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
   schemas:
     GetVMsResponse:
@@ -645,6 +650,8 @@ components:
         config:
           type: object
           properties:
+            sshPort:
+              type: string
             SSHKeys:
               type: array
               items:
@@ -721,6 +728,8 @@ components:
           description: The config of vm that you want to create
           type: object
           properties:
+            sshPort:
+              type: string
             SSHKeys:
               type: array
               items:
