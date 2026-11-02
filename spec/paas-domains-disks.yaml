@@ -1,0 +1,1712 @@
+openapi: 3.0.1
+info:
+  title: Domains & Disks
+  version: 1.0.0
+  description: |
+    Connect custom domains to your apps and object storage buckets, and
+    manage your apps' persistent disks, their backups and FTP access.
+
+    ## Connecting a domain
+
+    1. Add the domain with `POST /v1/domains`.
+    2. Get its details with `GET /v1/domains/{domainName}` and create these
+       DNS records at your DNS provider:
+       - **Ownership:** a `TXT` record on `liara-challenge.<domain>` with the
+         domain's `verificationCode`. You can skip it if the root domain is a
+         zone managed in Liara DNS.
+       - **Routing:** a `CNAME` record from the domain to its `target`. For a
+         wildcard domain `*.example.com`, the check uses
+         `__liara__.example.com`, which a wildcard record covers.
+       - **Certificates through DNS validation** (needed for wildcard
+         domains): a `CNAME` record from `_acme-challenge.<domain>` to
+         `<domain-with-dashes>._acme-challenge.liara.cloud`, for example
+         `_acme-challenge.example.com` → `example-com._acme-challenge.liara.cloud`.
+    3. Check the records with `GET /v1/domains/{domainID}/check`. The domain
+       becomes `ACTIVE` once ownership is verified.
+    4. Request an SSL certificate with `POST /v1/domains/provision-ssl-certs`.
+
+    ## Identifying an app
+
+    Some disk endpoints identify the app by its **name** (`project_id`) and
+    others by its **ID** (`projectID`, the app's `_id`). Each endpoint says
+    which one it expects.
+
+    ## Team permissions
+
+    With `teamID`, each endpoint needs one of the permissions it lists on the
+    app (or bucket) involved. A permission from your role or a resource
+    permission on that app both count.
+servers:
+  - url: https://api.liara.ir
+security:
+  - bearerAuth: []
+tags:
+  - name: Domains
+    description: Add, verify and remove custom domains.
+  - name: Domain SSL & Redirects
+    description: SSL certificates and redirects for custom domains.
+  - name: Disks
+    description: Create, resize and delete persistent disks.
+  - name: Disk Backups
+    description: Back up disks, download backups and restore them.
+  - name: FTP Access
+    description: FTP accounts for reading and writing disk files.
+paths:
+  /v1/domains:
+    get:
+      tags:
+        - Domains
+      operationId: listDomains
+      summary: List domains
+      description: >-
+        Lists your domains, newest first. Without `type`, all of your domains
+        are returned; with `teamID`, only app domains are returned unless you
+        send `type=BUCKET`, and only for resources you have access to.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: type
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/DomainType"
+        - name: project
+          in: query
+          required: false
+          description: Only list domains of this app (by name).
+          schema:
+            type: string
+        - name: bucket
+          in: query
+          required: false
+          description: Only list domains of this bucket (by name).
+          schema:
+            type: string
+        - name: domain
+          in: query
+          required: false
+          description: Only list domains whose name contains this text (letters, digits and dots).
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          description: Page number, starting at 1. Use it together with `count`.
+          schema:
+            type: integer
+            minimum: 1
+        - name: count
+          in: query
+          required: false
+          description: Domains per page. Without it, all matching domains are returned.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Your domains.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  domains:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DomainSummary"
+              example:
+                total: 1
+                domains:
+                  - _id: "000000000000000000000210"
+                    name: www.example.com
+                    type: PROJECT
+                    status: ACTIVE
+                    project:
+                      _id: "000000000000000000000050"
+                      project_id: my-app
+                    CNameRecord: VALID
+                    acmeRecord: INVALID
+                    certificatesStatus: ACTIVE
+                    redirectTo: ""
+                    redirectStatus: 302
+                    behindCdn: false
+                    isWildcard: false
+                    created_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+    post:
+      tags:
+        - Domains
+      operationId: addDomain
+      summary: Add a domain
+      description: >-
+        Adds a domain to an app or a bucket. It's `ACTIVE` right away if its
+        root domain is already active on your account or is a zone in Liara
+        DNS; otherwise it's `PENDING` until you verify it. The number of
+        domains per app depends on the app's bundle plan, and wildcard domains
+        need a bundle plan with unlimited domains. Your account must be
+        verified. With `teamID`, you need `operate` or `manage` on the app or
+        bucket.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: The domain, for example `www.example.com`, or `*.example.com` for a wildcard domain.
+                type:
+                  $ref: "#/components/schemas/DomainType"
+                project:
+                  type: string
+                  description: The app's name. Required when `type` is `PROJECT`.
+                bucket:
+                  type: string
+                  description: The bucket's name. Required when `type` is `BUCKET`.
+                isWildcard:
+                  type: boolean
+                  default: false
+                  description: Set automatically when `name` starts with `*.`. Only for apps.
+            examples:
+              app:
+                summary: App domain
+                value:
+                  name: www.example.com
+                  type: PROJECT
+                  project: my-app
+              bucket:
+                summary: Bucket domain
+                value:
+                  name: files.example.com
+                  type: BUCKET
+                  bucket: my-bucket
+      responses:
+        "201":
+          description: The domain was added.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+              example:
+                domain:
+                  _id: "000000000000000000000210"
+        "400":
+          description: >-
+            The body or `teamID` is invalid; the TLD isn't supported
+            (`unknown_tld`, `free_tlds`); the domain has too many labels
+            (`deep_domain`); or a wildcard domain isn't for an app.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Free TLDs are not allowed.
+                data:
+                  code: free_tlds
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            Your account isn't verified (`account_verification_required`), or,
+            with `teamID`, you aren't a member (`team_not_found`) or lack the
+            permission (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: The app or bucket doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Project not found.
+                data: null
+        "409":
+          description: The domain is already active on another account, or you've already added it.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Domain name already exists.
+                data: null
+        "428":
+          description: The app has reached its domain limit, or its bundle plan doesn't allow wildcard domains.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: You have reached the maximum number of domains for this project.
+                data: null
+
+  /v1/domains/{domainName}:
+    get:
+      tags:
+        - Domains
+      operationId: getDomain
+      summary: Get a domain
+      description: >-
+        Returns a domain, including the `verificationCode` and `target` you
+        need for its DNS records. The response can include additional fields
+        not listed here. With `teamID`, you need any permission on the app or
+        bucket.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: domainName
+          in: path
+          required: true
+          schema:
+            type: string
+          example: www.example.com
+      responses:
+        "200":
+          description: The domain.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    $ref: "#/components/schemas/Domain"
+              example:
+                domain:
+                  _id: "000000000000000000000210"
+                  name: www.example.com
+                  type: PROJECT
+                  status: PENDING
+                  project:
+                    _id: "000000000000000000000050"
+                    project_id: my-app
+                  verificationCode: 00000000-0000-0000-0000-000000000000
+                  CNameRecord: INVALID
+                  acmeRecord: INVALID
+                  certificatesStatus: DEACTIVE
+                  redirectTo: ""
+                  redirectStatus: 302
+                  behindCdn: false
+                  isWildcard: false
+                  isRoot: false
+                  subdomain: www
+                  target: "<target-host>"
+                  created_at: "2026-01-01T08:00:00.000Z"
+                  updated_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/DomainNotFound"
+
+  /v1/domains/{domainID}/check:
+    get:
+      tags:
+        - Domains
+      operationId: checkDomain
+      summary: Check a domain's DNS records
+      description: >-
+        Checks the domain's ownership, routing and certificate records, saves
+        the results (`status`, `CNameRecord`, `acmeRecord`, `behindCdn`) and
+        returns the updated domain. The response can include additional
+        fields not listed here. With `teamID`, you need any permission on the
+        app or bucket.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/DomainID"
+      responses:
+        "200":
+          description: The domain after the check.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domain:
+                    $ref: "#/components/schemas/DomainSummary"
+              example:
+                domain:
+                  _id: "000000000000000000000210"
+                  name: www.example.com
+                  type: PROJECT
+                  status: ACTIVE
+                  CNameRecord: VALID
+                  acmeRecord: INVALID
+                  certificatesStatus: DEACTIVE
+                  behindCdn: false
+                  isWildcard: false
+                  created_at: "2026-01-01T08:00:00.000Z"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/DomainNotFound"
+        "409":
+          description: The domain is already active on another account.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Domain name already exists.
+                data: null
+
+  /v1/domains/{domainID}:
+    delete:
+      tags:
+        - Domains
+      operationId: deleteDomain
+      summary: Remove a domain
+      description: >-
+        Removes a domain from its app or bucket. With `teamID`, you need
+        `operate` or `manage` on the app or bucket.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/DomainID"
+      responses:
+        "200":
+          description: The domain was removed. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: >-
+            The app or bucket is suspended, or, with `teamID`, you aren't a
+            member (`team_not_found`) or lack the permission
+            (`no_permission`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 403
+                error: Forbidden
+                message: Suspended services are not allowed to delete domains.
+                data: null
+        "404":
+          $ref: "#/components/responses/DomainNotFound"
+
+  /v1/domains/provision-ssl-certs:
+    post:
+      tags:
+        - Domain SSL & Redirects
+      operationId: requestSSLCertificate
+      summary: Request an SSL certificate
+      description: >-
+        Requests a free SSL certificate for a domain. The certificate is issued
+        in the background; follow `certificatesStatus` on the domain. With
+        `teamID`, you need `operate` or `manage` on the app or bucket.
+
+
+        This endpoint answers with `{"code": "..."}` bodies instead of the
+        standard error body.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - domain
+              properties:
+                domain:
+                  type: string
+                  description: The domain's name.
+            example:
+              domain: www.example.com
+      responses:
+        "200":
+          description: The certificate was requested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodeBody"
+              example:
+                code: success
+        "400":
+          description: "`domain` is missing or isn't a string. The response body is empty."
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: You have no domain with this name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodeBody"
+              example:
+                code: domain_not_found
+
+  /v1/domains/{domainID}/ssl/disable:
+    post:
+      tags:
+        - Domain SSL & Redirects
+      operationId: disableSSL
+      summary: Turn off SSL
+      description: >-
+        Turns off SSL for a domain and stops renewing its certificate. With
+        `teamID`, you need `operate` or `manage` on the app or bucket.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/DomainID"
+      responses:
+        "204":
+          description: SSL was turned off.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/DomainNotFound"
+
+  /v1/domains/{domainName}/certs-history:
+    get:
+      tags:
+        - Domain SSL & Redirects
+      operationId: getCertificateHistory
+      summary: Get certificate history
+      description: >-
+        Lists past attempts to issue or renew the domain's certificate, newest
+        first. With `teamID`, you need any permission on the app or bucket.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: domainName
+          in: path
+          required: true
+          schema:
+            type: string
+          example: www.example.com
+      responses:
+        "200":
+          description: Certificate attempts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  certLogs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        domain:
+                          type: string
+                        isSuccess:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+              example:
+                certLogs:
+                  - _id: "000000000000000000000220"
+                    domain: www.example.com
+                    isSuccess: true
+                    createdAt: "2026-01-01T08:10:00.000Z"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/DomainNotFound"
+
+  /v1/domains/{domainID}/set-redirect:
+    post:
+      tags:
+        - Domain SSL & Redirects
+      operationId: setDomainRedirect
+      summary: Redirect a domain
+      description: >-
+        Makes an app domain redirect to another URL, or removes the redirect
+        when `redirectTo` is empty. Only for app domains. With `teamID`, you
+        need `operate` or `manage` on the app.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/DomainID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirectTo:
+                  type: string
+                  default: ""
+                  description: The full URL to redirect to, for example `https://example.com`. Empty to remove the redirect. Wildcard hosts aren't allowed.
+                redirectStatus:
+                  type: integer
+                  enum:
+                    - 301
+                    - 302
+                  default: 302
+            example:
+              redirectTo: https://example.com
+              redirectStatus: 301
+      responses:
+        "200":
+          description: The redirect was saved. The response body is empty.
+        "400":
+          description: The body or `teamID` is invalid, `redirectTo` points to a wildcard host, or the domain isn't an app domain.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: This is only applicable to domains with type PROJECT.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/DomainNotFound"
+
+  /v1/projects/{projectID}/disks:
+    get:
+      tags:
+        - Disks
+      operationId: listDisks
+      summary: List an app's disks
+      description: >-
+        Lists an app's disks and where they're mounted in its latest successful
+        release. Team permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+      responses:
+        "200":
+          description: The app's disks.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disks:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Disk"
+                        - type: object
+                          properties:
+                            filebrowserUrl:
+                              type: string
+                              format: uri
+                              description: Base URL of the File Browser API for this app's disks.
+                  mounts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: The disk's name.
+                        mountedTo:
+                          type: string
+                          description: Where it's mounted.
+              example:
+                disks:
+                  - name: uploads
+                    size: 1
+                    filebrowserUrl: "<filebrowser-url>"
+                    createdAt: "2026-01-01T08:00:00.000Z"
+                    updatedAt: "2026-01-01T08:00:00.000Z"
+                mounts:
+                  - name: uploads
+                    mountedTo: /app/uploads
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+
+  /v1/projects/{project_id}/disks:
+    post:
+      tags:
+        - Disks
+      operationId: createDisk
+      summary: Create a disk
+      description: >-
+        Creates a disk for an app. Mount it by listing it in `disks` when you
+        deploy. The total size of an app's disks can't exceed its plan's
+        storage, and the number of disks depends on its bundle plan. Team
+        permission: `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - size
+              properties:
+                name:
+                  $ref: "#/components/schemas/DiskName"
+                size:
+                  $ref: "#/components/schemas/DiskSize"
+            example:
+              name: uploads
+              size: 1
+      responses:
+        "201":
+          description: The disk was created. The response body is empty.
+        "400":
+          description: The body or `teamID` is invalid, or the app's plan doesn't have enough storage (`not_enough_storage_space`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: not_enough_storage_space
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppNotFound"
+        "409":
+          description: The app already has a disk with this name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Disk already exists.
+                data: null
+        "428":
+          description: The app has reached its bundle plan's disk limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: max_disks_reached
+                data: null
+
+  /v1/projects/{project_id}/disks/{name}:
+    get:
+      tags:
+        - Disks
+      operationId: getDisk
+      summary: Get a disk
+      description: >-
+        Returns a disk and where it's mounted in the app's latest successful
+        release. Team permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - $ref: "#/components/parameters/DiskNamePath"
+      responses:
+        "200":
+          description: The disk.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disk:
+                    allOf:
+                      - type: object
+                        properties:
+                          _id:
+                            type: string
+                      - $ref: "#/components/schemas/Disk"
+                  mounts:
+                    type: array
+                    description: Paths the disk is mounted on.
+                    items:
+                      type: string
+              example:
+                disk:
+                  _id: "000000000000000000000230"
+                  name: uploads
+                  size: 1
+                  createdAt: "2026-01-01T08:00:00.000Z"
+                  updatedAt: "2026-01-01T08:00:00.000Z"
+                mounts:
+                  - /app/uploads
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+
+  /v1/projects/{projectID}/disks/{name}:
+    delete:
+      tags:
+        - Disks
+      operationId: deleteDisk
+      summary: Delete a disk
+      description: >-
+        Deletes a disk and its data. A disk that's mounted in the app's latest
+        successful release can't be deleted; deploy without it first. Team
+        permission: `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/DiskNamePath"
+      responses:
+        "200":
+          description: The disk is being deleted. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+        "409":
+          description: The disk is mounted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: disk_is_in_use
+                data: null
+
+  /v1/projects/{project_id}/disks/{name}/resize:
+    post:
+      tags:
+        - Disks
+      operationId: resizeDisk
+      summary: Grow a disk
+      description: >-
+        Makes a disk larger. Disks can't be shrunk. If the disk is mounted, turn
+        the app off first (see `POST /v1/projects/{project_id}/actions/scale`).
+        Team permission: `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - $ref: "#/components/parameters/DiskNamePath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - size
+              properties:
+                size:
+                  $ref: "#/components/schemas/DiskSize"
+            example:
+              size: 2
+      responses:
+        "200":
+          description: The disk is being resized. The response body is empty.
+        "400":
+          description: >-
+            The body or `teamID` is invalid, the app's plan doesn't have enough
+            storage (`not_enough_storage_space`), or the disk is mounted and the
+            app is running (`disk_is_busy`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: disk_is_busy
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+        "409":
+          description: The new size isn't larger than the current one.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 409
+                error: Conflict
+                message: Can not shrink a disk.
+                data: null
+
+  /v1/projects/{projectID}/disks/{name}/metrics:
+    get:
+      tags:
+        - Disks
+      operationId: getDiskUsage
+      summary: Get disk usage
+      description: "Returns how full a disk is. Team permission: any project permission."
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/DiskNamePath"
+      responses:
+        "200":
+          description: The disk's usage. `result` is missing if no usage has been reported yet.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      size:
+                        type: string
+                        description: The disk's size.
+                      usage:
+                        type: string
+                        description: Used space, in percent.
+                      reportedAt:
+                        type: number
+                        description: When the usage was measured, in Unix seconds.
+              example:
+                result:
+                  size: "1"
+                  usage: "23.5"
+                  reportedAt: 1767254400
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+        "503":
+          description: The usage is temporarily unavailable. Try again later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/projects/{projectID}/disks/{name}/backups:
+    get:
+      tags:
+        - Disk Backups
+      operationId: listDiskBackups
+      summary: List disk backups
+      description: >-
+        Lists a disk's backups, newest first. How often backups are made and
+        how long they're kept depends on the app's bundle plan. Team
+        permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/DiskNamePath"
+      responses:
+        "200":
+          description: The disk's backups.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: "`<interval>/<file>`. Use it for downloads and restores."
+                        size:
+                          type: integer
+                          description: Size in bytes.
+                        lastModified:
+                          type: string
+                          format: date-time
+                        etag:
+                          type: string
+              example:
+                backups:
+                  - name: daily/2026-01-01T03-00-00-1767222000000.tar
+                    size: 10485760
+                    lastModified: "2026-01-01T03:01:00.000Z"
+                    etag: "<etag>"
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+    post:
+      tags:
+        - Disk Backups
+      operationId: createDiskBackup
+      summary: Back up a disk now
+      description: >-
+        Starts a manual backup of a disk. The app must have been deployed, and
+        its bundle plan must support manual backups; the number of manual
+        backups per hour also depends on the bundle plan. Team permission:
+        `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/DiskNamePath"
+      responses:
+        "200":
+          description: The backup started. The response body is empty.
+        "400":
+          description: "`teamID` is invalid, or the app has never been deployed."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Project has no releases yet.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+        "428":
+          description: The bundle plan doesn't support manual backups, or you've reached the hourly limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: Manual backup is not available in this bundle plan.
+                data: null
+
+  /v1/projects/{projectID}/disks/{name}/backups/{interval}/{backup}/download:
+    post:
+      tags:
+        - Disk Backups
+      operationId: getDiskBackupDownloadLink
+      summary: Get a backup download link
+      description: >-
+        Returns a temporary link to download a disk backup. The link is valid
+        for 12 hours. Team permission: any project permission.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppID"
+        - $ref: "#/components/parameters/DiskNamePath"
+        - name: interval
+          in: path
+          required: true
+          description: The first part of the backup's `name`.
+          schema:
+            type: string
+            enum:
+              - manual
+              - hourly
+              - daily
+              - weekly
+              - monthly
+        - name: backup
+          in: path
+          required: true
+          description: The file part of the backup's `name`.
+          schema:
+            type: string
+          example: 2026-01-01T03-00-00-1767222000000.tar
+      responses:
+        "200":
+          description: The download link.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link:
+                    type: string
+                    format: uri
+              example:
+                link: https://files.example.com/<backup>?signature=<signature>
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+
+  /v2/projects/{projectID}/disks/{name}/restore:
+    post:
+      tags:
+        - Disk Backups
+      operationId: restoreDiskBackup
+      summary: Restore a disk backup
+      description: >-
+        Restores one of a disk's backups onto a disk of the same app or of
+        another of your apps. The target disk's current contents are replaced.
+        Team permission: `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: projectID
+          in: path
+          required: true
+          description: ID of the app that owns the backed-up disk.
+          schema:
+            $ref: "#/components/schemas/ObjectID"
+        - name: name
+          in: path
+          required: true
+          description: Name of the backed-up disk.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - backupName
+                - targetProjectID
+                - targetDiskName
+              properties:
+                backupName:
+                  type: string
+                  maxLength: 100
+                  description: The backup's `name` from the backups list.
+                targetProjectID:
+                  type: string
+                  pattern: "^[0-9a-fA-F]{24}$"
+                  description: ID of the app to restore into.
+                targetDiskName:
+                  $ref: "#/components/schemas/DiskName"
+            example:
+              backupName: daily/2026-01-01T03-00-00-1767222000000.tar
+              targetProjectID: "000000000000000000000050"
+              targetDiskName: uploads
+      responses:
+        "200":
+          description: The restore started. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: An app, disk or the backup doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Backup not found.
+                data: null
+
+  /v1/projects/{project_id}/disks/{diskName}/ftp:
+    get:
+      tags:
+        - FTP Access
+      operationId: listFTPAccounts
+      summary: List a disk's FTP accounts
+      description: >-
+        Lists a disk's FTP accounts with their passwords, and the host to
+        connect to. The app must have been deployed. Team permission:
+        `operate` or `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - $ref: "#/components/parameters/FTPDiskName"
+      responses:
+        "200":
+          description: FTP accounts.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  host:
+                    type: string
+                    description: The FTP server to connect to.
+                  accesses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        disk:
+                          type: string
+                          description: The disk's ID.
+                        username:
+                          type: string
+                        password:
+                          type: string
+                        readOnly:
+                          type: boolean
+                        createdAt:
+                          type: string
+                          format: date-time
+              example:
+                host: "<ftp-host>"
+                accesses:
+                  - _id: "000000000000000000000240"
+                    disk: "000000000000000000000230"
+                    username: uploads_ftp
+                    password: "<password>"
+                    readOnly: false
+        "400":
+          description: "`teamID` is invalid, or the app has never been deployed."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: Project does not have any releases.
+                data: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+    post:
+      tags:
+        - FTP Access
+      operationId: createFTPAccount
+      summary: Create an FTP account
+      description: >-
+        Creates an FTP account for a disk and returns its generated password.
+        Usernames are unique across Liara. The number of accounts per disk
+        depends on the app's bundle plan. Team permission: `operate` or
+        `manage`.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - $ref: "#/components/parameters/AppName"
+        - $ref: "#/components/parameters/FTPDiskName"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - readOnly
+              properties:
+                username:
+                  $ref: "#/components/schemas/FTPUsername"
+                readOnly:
+                  type: boolean
+                  description: Only allow reading files.
+            example:
+              username: uploads_ftp
+              readOnly: false
+      responses:
+        "200":
+          description: The account was created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  password:
+                    type: string
+                  host:
+                    type: string
+                    description: The FTP server to connect to.
+              example:
+                username: uploads_ftp
+                password: "<password>"
+                host: "<ftp-host>"
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          $ref: "#/components/responses/AppOrDiskNotFound"
+        "409":
+          $ref: "#/components/responses/UsernameTaken"
+        "428":
+          description: The disk has reached its FTP account limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 428
+                error: Precondition Required
+                message: Max number of accesses reached.
+                data: null
+
+  /v1/ftp/{username}:
+    delete:
+      tags:
+        - FTP Access
+      operationId: deleteFTPAccount
+      summary: Delete an FTP account
+      description: "Deletes one of your FTP accounts. Team permission: `operate` or `manage`."
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+          example: uploads_ftp
+      responses:
+        "200":
+          description: The account was deleted. The response body is empty.
+        "400":
+          $ref: "#/components/responses/InvalidTeamID"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamForbidden"
+        "404":
+          description: You have no FTP account with this username.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                statusCode: 404
+                error: Not Found
+                message: Access not found.
+                data: null
+
+  /v1/ftp/{username}/check-availability:
+    get:
+      tags:
+        - FTP Access
+      operationId: checkFTPUsername
+      summary: Check if an FTP username is available
+      description: Checks whether a username can be used for a new FTP account.
+      parameters:
+        - $ref: "#/components/parameters/TeamID"
+        - name: username
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/FTPUsername"
+          example: uploads_ftp
+      responses:
+        "200":
+          description: The username is available. The response body is empty.
+        "400":
+          $ref: "#/components/responses/ValidationOrTeamIDError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/TeamNotFound"
+        "409":
+          $ref: "#/components/responses/UsernameTaken"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: "Send your API token as `Authorization: Bearer <api-token>`."
+  parameters:
+    TeamID:
+      name: teamID
+      in: query
+      required: false
+      description: >-
+        Run the request in the context of a team you belong to, instead of
+        your personal account.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000002"
+    DomainID:
+      name: domainID
+      in: path
+      required: true
+      description: The domain's `_id`.
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000210"
+    AppName:
+      name: project_id
+      in: path
+      required: true
+      description: The app's name.
+      schema:
+        type: string
+      example: my-app
+    AppID:
+      name: projectID
+      in: path
+      required: true
+      description: The app's ID (`_id`).
+      schema:
+        $ref: "#/components/schemas/ObjectID"
+      example: "000000000000000000000050"
+    DiskNamePath:
+      name: name
+      in: path
+      required: true
+      description: The disk's name.
+      schema:
+        type: string
+      example: uploads
+    FTPDiskName:
+      name: diskName
+      in: path
+      required: true
+      description: The disk's name.
+      schema:
+        type: string
+      example: uploads
+  responses:
+    Unauthorized:
+      description: The API token is missing, invalid or expired.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            error: Unauthorized.
+    InvalidTeamID:
+      description: "`teamID` isn't a valid ID."
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            error: Bad Request
+            message: Invalid team ID.
+            data: null
+    ValidationOrTeamIDError:
+      description: The body or a parameter is invalid (`message` says which), or `teamID` isn't a valid ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            validation:
+              summary: Invalid body
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: '"size" must be greater than or equal to 0.1'
+            invalidTeamID:
+              summary: Invalid team ID
+              value:
+                statusCode: 400
+                error: Bad Request
+                message: Invalid team ID.
+                data: null
+    TeamNotFound:
+      description: You sent a `teamID` for a team you aren't a member of.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 403
+            error: Forbidden
+            message: Team not found
+            data:
+              code: team_not_found
+    TeamForbidden:
+      description: >-
+        With `teamID`: you aren't a member of the team (`team_not_found`), or
+        you don't have the required permission (`no_permission`).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            teamNotFound:
+              summary: Not a team member
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: Team not found
+                data:
+                  code: team_not_found
+            noPermission:
+              summary: Missing permission
+              value:
+                statusCode: 403
+                error: Forbidden
+                message: You do not have permission to access this resource.
+                data:
+                  code: no_permission
+    DomainNotFound:
+      description: You have no domain with this name or ID.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Domain not found.
+            data: null
+    AppNotFound:
+      description: The app doesn't exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Project not found.
+            data: null
+    AppOrDiskNotFound:
+      description: The app or the disk doesn't exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            error: Not Found
+            message: Disk not found.
+            data: null
+    UsernameTaken:
+      description: The username is already used by another FTP account.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 409
+            error: Conflict
+            message: Username already taken.
+            data: null
+  schemas:
+    Error:
+      type: object
+      description: Standard error body.
+      properties:
+        statusCode:
+          type: integer
+        error:
+          type: string
+          description: HTTP status text.
+        message:
+          type: string
+          description: What went wrong.
+        data:
+          type: object
+          nullable: true
+          description: Extra details. When present, `code` is a stable, machine-readable error code.
+          properties:
+            code:
+              type: string
+    AuthError:
+      type: object
+      description: Error body returned when the API token is rejected.
+      properties:
+        error:
+          type: string
+    CodeBody:
+      type: object
+      properties:
+        code:
+          type: string
+    ObjectID:
+      type: string
+      pattern: "^[0-9a-fA-F]{24}$"
+      description: 24-character hexadecimal ID.
+    DomainType:
+      type: string
+      description: "`PROJECT` for an app's domain, `BUCKET` for an object storage bucket's domain."
+      enum:
+        - PROJECT
+        - BUCKET
+      default: PROJECT
+    DomainSummary:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        type:
+          $ref: "#/components/schemas/DomainType"
+        status:
+          type: string
+          description: "`ACTIVE` once ownership is verified, `PENDING` before that."
+          enum:
+            - PENDING
+            - ACTIVE
+        project:
+          type: object
+          nullable: true
+          description: The app, for app domains.
+          properties:
+            _id:
+              type: string
+            project_id:
+              type: string
+              description: The app's name.
+        bucket:
+          type: object
+          nullable: true
+          description: The bucket, for bucket domains.
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+        CNameRecord:
+          type: string
+          description: Result of the last routing check.
+          enum:
+            - VALID
+            - INVALID
+        acmeRecord:
+          type: string
+          description: Result of the last check of the `_acme-challenge` record.
+          enum:
+            - VALID
+            - INVALID
+        certificatesStatus:
+          type: string
+          enum:
+            - DEACTIVE
+            - REQUESTING
+            - ACTIVE
+        redirectTo:
+          type: string
+          description: URL the domain redirects to, or empty.
+        redirectStatus:
+          type: integer
+          enum:
+            - 301
+            - 302
+        behindCdn:
+          type: boolean
+          description: Whether the domain routes correctly but resolves to a different IP, for example because it's behind a CDN.
+        isWildcard:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    Domain:
+      allOf:
+        - $ref: "#/components/schemas/DomainSummary"
+        - type: object
+          properties:
+            verificationCode:
+              type: string
+              description: Value for the `liara-challenge` TXT record.
+            target:
+              type: string
+              description: Host to point the domain's CNAME record at.
+            isRoot:
+              type: boolean
+              description: Whether this is a root domain (for example `example.com`).
+            subdomain:
+              type: string
+              description: The subdomain part, for example `www`.
+            issuedAt:
+              type: string
+              format: date-time
+              description: When the current certificate was issued.
+            updated_at:
+              type: string
+              format: date-time
+    DiskName:
+      type: string
+      minLength: 3
+      pattern: "^[a-z0-9][a-z0-9\\-]+[a-z0-9]$"
+      description: Lowercase letters, digits and hyphens; can't start or end with a hyphen.
+    DiskSize:
+      type: number
+      minimum: 0.1
+      description: Size in GB, with at most one decimal place.
+    Disk:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: number
+          description: Size in GB.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    FTPUsername:
+      type: string
+      minLength: 5
+      maxLength: 16
+      pattern: "^[a-z][a-z0-9_]+[a-z0-9]$"
+      description: Lowercase letters, digits and underscores; must start with a letter.

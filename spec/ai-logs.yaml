@@ -8,7 +8,7 @@ info:
     Parameters:
     - `teamID`: To access services in a team (query param or `x-teamid` header)
 
-    Authentication: JWT Bearer token (for management) or API Key (for API key auth).
+    Authentication: your Liara API token (for management) or an AI API key.
   termsOfService: '#'
   contact:
     email: info@liara.ir
@@ -150,7 +150,7 @@ paths:
       tags:
         - Logs
       summary: Get log details (playground auth)
-      description: Gets detailed information about a specific playground log entry. Authenticated via JWT.
+      description: Gets detailed information about a specific playground log entry. Authenticated with your Liara API token.
       operationId: getLogDetailsPlayground
       parameters:
         - name: workspaceID

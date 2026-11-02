@@ -84,7 +84,7 @@ paths:
                       error: "Not Found"
                       message: "No roles found for the specified database"
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -152,7 +152,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -234,7 +234,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -309,7 +309,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -372,7 +372,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -462,7 +462,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -538,7 +538,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -634,7 +634,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -710,7 +710,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -785,7 +785,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error
@@ -860,7 +860,7 @@ paths:
           description: Validation error
           content: {}
         409:
-          description: Database-related error (e.g., database or bridge in an invalid state)
+          description: The database isn't ready or is in an invalid state.
           content: {}
         500:
           description: Unexpected server error

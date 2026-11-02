@@ -603,7 +603,6 @@ components:
     jwt:
       type: http
       scheme: bearer
-      bearerFormat: JWT
     bearerAuth:
       type: http
       scheme: bearer

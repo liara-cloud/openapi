@@ -125,16 +125,6 @@ paths:
               schema:
                 type: string
 
-            X-Generation-Id:
-              description: Generation ID returned by the transcription provider, when available.
-              schema:
-                type: string
-
-            X-Provider-Request-Id:
-              description: Request ID returned by the transcription provider, when available.
-              schema:
-                type: string
-
             X-Usage-Estimated-Cost:
               description: Estimated cost of the transcription request.
               schema:
@@ -195,7 +185,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
         502:
-          description: Speech-to-text provider request failed.
+          description: The audio couldn't be transcribed. Try again later.
           content:
             application/json:
               schema:

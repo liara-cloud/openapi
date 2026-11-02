@@ -41,7 +41,7 @@ Provision and manage virtual machines with full control over your computing reso
 
 ## Authentication
 
-All Liara APIs use JWT Bearer token authentication. To authenticate your requests, include your API token in the Authorization header:
+All Liara APIs use Bearer token authentication. To authenticate your requests, include your API token in the Authorization header:
 
 ```
 Authorization: Bearer YOUR_API_TOKEN
@@ -55,6 +55,7 @@ Different services use different base URLs:
 
 | Service | Base URL |
 |---------|----------|
+| Platform Core | `https://api.liara.ir` |
 | PaaS | `https://api.liara.ir` |
 | DBaaS | `https://api.liara.ir` |
 | Object Storage | `https://storage-service.liara.ir` |

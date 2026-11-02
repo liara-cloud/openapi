@@ -67,7 +67,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model1"
+              $ref: "#/components/schemas/CreateMailServerRequest"
         required: false
       responses:
         201:
@@ -162,7 +162,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model8"
+              $ref: "#/components/schemas/UpdateMailServerRequest"
         required: false
       responses:
         200:
@@ -229,7 +229,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model4"
+              $ref: "#/components/schemas/CreateSMTPCredentialRequest"
         required: false
       responses:
         201:
@@ -267,7 +267,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model9"
+              $ref: "#/components/schemas/RevokeSMTPCredentialRequest"
         required: false
       responses:
         200:
@@ -450,7 +450,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model5"
+              $ref: "#/components/schemas/CreateMailAccountRequest"
         required: false
       responses:
         201:
@@ -523,7 +523,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model11"
+              $ref: "#/components/schemas/CreateInboundRuleRequest"
         required: false
       responses:
         201:
@@ -594,20 +594,14 @@ paths:
           schema:
             type: number
             default: 1
-            x-constraint:
-              sign: positive
-          x-constraint:
-            sign: positive
+            minimum: 1
         - name: count
           in: query
           schema:
             maximum: 100
             type: number
             default: 15
-            x-constraint:
-              sign: positive
-          x-constraint:
-            sign: positive
+            minimum: 1
         - name: direction
           in: query
           required: true
@@ -669,7 +663,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model3"
+              $ref: "#/components/schemas/SendMessageRequest"
         required: false
       responses:
         201:
@@ -800,7 +794,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model6"
+              $ref: "#/components/schemas/CreateForwardRequest"
         required: false
       responses:
         201:
@@ -894,12 +888,7 @@ paths:
           required: true
           schema:
             type: string
-            x-format:
-              guid:
-                version: uuidv4
-          x-format:
-            guid:
-              version: uuidv4
+            format: uuid
       responses:
         200:
           description: success and returns some html text
@@ -982,20 +971,14 @@ paths:
           schema:
             type: number
             default: 1
-            x-constraint:
-              sign: positive
-          x-constraint:
-            sign: positive
+            minimum: 1
         - name: count
           in: query
           schema:
             maximum: 100
             type: number
             default: 15
-            x-constraint:
-              sign: positive
-          x-constraint:
-            sign: positive
+            minimum: 1
       responses:
         200:
           description: OK
@@ -1231,7 +1214,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Model19"
+              $ref: "#/components/schemas/TrashMessageRequest"
         required: true
         description: Pass "false" to untrash
       responses:
@@ -2000,7 +1983,7 @@ components:
       enum:
         - DEV
         - LIVE
-    Model1:
+    CreateMailServerRequest:
       required:
         - domain
         - mode
@@ -2012,11 +1995,10 @@ components:
           type: string
         domain:
           type: string
-          x-convert:
-            case: lower
+          description: Converted to lowercase.
         mode:
           $ref: "#/components/schemas/mode"
-    Model2:
+    MessageAttachment:
       required:
         - content_type
         - data
@@ -2033,8 +2015,8 @@ components:
       maxItems: 10
       type: array
       items:
-        $ref: "#/components/schemas/Model2"
-    Model3:
+        $ref: "#/components/schemas/MessageAttachment"
+    SendMessageRequest:
       required:
         - from
         - subject
@@ -2049,23 +2031,21 @@ components:
           type: string
         to:
           type: string
-          x-convert:
-            case: lower
+          description: Converted to lowercase.
         from:
           type: string
-          x-convert:
-            case: lower
+          description: Converted to lowercase.
         replyTo:
           type: string
         attachments:
           $ref: "#/components/schemas/attachments"
-    Model4:
+    CreateSMTPCredentialRequest:
       type: object
       properties:
         description:
           maxLength: 1000
           type: string
-    Model5:
+    CreateMailAccountRequest:
       required:
         - name
       type: object
@@ -2074,30 +2054,29 @@ components:
           maxLength: 64
           pattern: ^[a-z0-9]+([.-][a-z0-9]+)*$
           type: string
-    Model6:
+    CreateForwardRequest:
       required:
         - address
       type: object
       properties:
         address:
           type: string
-          x-format:
-            email: true
-    Model11:
+          format: email
+    CreateInboundRuleRequest:
       required:
         - rule
       type: object
       properties:
         rule:
           type: string
-    Model19:
+    TrashMessageRequest:
       required:
         - isTrash
       type: object
       properties:
         isTrash:
           type: boolean
-    Model8:
+    UpdateMailServerRequest:
       required:
         - mode
         - inboundSpamThreshold
@@ -2107,20 +2086,12 @@ components:
           $ref: "#/components/schemas/mode"
         inboundSpamThreshold:
           type: number
-    Model9:
+    RevokeSMTPCredentialRequest:
       required:
         - username
       type: object
       properties:
         username:
-          type: string
-    Model10:
-      required:
-        - plan
-      type: object
-      properties:
-        plan:
-          maxLength: 64
           type: string
     MailServerMetrics:
       type: object
