@@ -3,7 +3,7 @@ info:
   title: Billing & Subscription
   version: 1.0.0
   description: |
-    Check your balance and costs, add credit, download invoices and receipts,
+    Check your balance and costs, download invoices and receipts,
     manage your subscription plan, and apply discount codes.
 
     All amounts are in Toman (IRT).
@@ -19,7 +19,7 @@ tags:
   - name: Balance & Usage
     description: Balance, current costs and service counts.
   - name: Payments
-    description: Add credit and list past payments.
+    description: List past payments and check minimum payment requirements.
   - name: Invoices & Receipts
     description: Monthly billing invoices and payment receipts.
   - name: Subscription
@@ -392,119 +392,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/TeamForbidden"
-
-  /v1/payments/pay:
-    post:
-      tags:
-        - Payments
-      operationId: createPayment
-      summary: Add credit
-      description: >-
-        Starts an online payment to add credit to your balance. Send the
-        user's browser to the returned `url`, using `method` and `params`, to
-        complete the payment. When it succeeds, the amount is added to the
-        balance.
-
-
-        The amount must be within the allowed minimum and maximum. If you
-        have frozen mail servers, the amount must also cover reactivating them
-        (see `GET /v1/payments/minimum-credit`). Your account must be
-        verified. With `teamID`, this needs the `billing.manage` permission.
-
-
-        This endpoint is rate limited. Too many requests return `429`.
-      parameters:
-        - $ref: "#/components/parameters/TeamID"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - amount
-              properties:
-                amount:
-                  type: integer
-                  description: Amount to pay.
-                gateway:
-                  type: string
-                  description: Payment gateway to use. Omit it to use the default gateway.
-            example:
-              amount: 1000000
-      responses:
-        "200":
-          description: The payment was created. Send the browser to `url`.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  url:
-                    type: string
-                    format: uri
-                    description: Payment page.
-                  method:
-                    type: string
-                    description: HTTP method to open `url` with.
-                  params:
-                    type: object
-                    description: Parameters to send to `url`, if any.
-              example:
-                url: https://payment-gateway.example.com/pay
-                method: POST
-                params:
-                  token: "<payment-token>"
-        "400":
-          description: >-
-            The amount is outside the allowed range, the amount doesn't cover your
-            frozen mail servers (`minimum_credit_required`, with the required
-            amount in `data.minimumCredit`), or the gateway rejected the
-            payment.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              examples:
-                belowMinimum:
-                  summary: Amount below the minimum
-                  value:
-                    statusCode: 400
-                    error: Bad Request
-                    message: Minimum amount is <minimum-amount>.
-                    data: null
-                frozenMailServers:
-                  summary: Amount doesn't cover frozen mail servers
-                  value:
-                    statusCode: 400
-                    error: Bad Request
-                    message: You need to pay at least 1500000 to unfreeze your mailservers.
-                    data:
-                      code: minimum_credit_required
-                      minimumCredit: 1500000
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          description: >-
-            Your account isn't verified (`account_verification_required`), or,
-            with `teamID`, you aren't a member (`team_not_found`) or lack
-            `billing.manage` (`no_permission`).
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                statusCode: 403
-                error: Forbidden
-                message: You must verify your account, first.
-                data:
-                  code: account_verification_required
-        "429":
-          description: Too many payments in a short time (`too_many_payments_per_hour` or `too_many_payments_per_day`).
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
   /v1/payments/minimum-credit:
     get:
